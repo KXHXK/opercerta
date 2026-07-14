@@ -66,11 +66,7 @@ def choose_recovery_action(facts: RecoveryFacts) -> RecoveryAction:
     if facts.checkpoint is CheckpointPhase.MISSING:
         return RecoveryAction.REBUILD_FROM_BUSINESS_FACTS
     if facts.checkpoint is CheckpointPhase.INTERRUPTED:
-        return (
-            RecoveryAction.RESUME_DECISION
-            if facts.has_approval
-            else RecoveryAction.KEEP_WAITING
-        )
+        return RecoveryAction.RESUME_DECISION if facts.has_approval else RecoveryAction.KEEP_WAITING
     if facts.has_work_order:
         return RecoveryAction.VERIFY_EXISTING_WORK_ORDER
     if facts.status in {
