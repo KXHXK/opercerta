@@ -21,15 +21,15 @@
 
 ## 3. 设计资产
 
-- [FlowOps 详细设计](./2026-07-14-flowops-design.md)：LangGraph 有状态运营处置与人工审批。
-- [SecEvidence 详细设计](./2026-07-14-secevidence-design.md)：CrewAI Flows 驱动的安全事件证据研判。
-- [FieldLens 详细设计](./2026-07-14-fieldlens-design.md)：LlamaIndex Workflows 驱动的多模态巡检。
-- [FedBench 详细设计](./2026-07-14-fedbench-design.md)：PydanticAI 驱动的受控联邦实验工程平台。
-- [总体设计规格](../../../AI_Agent四项目总体设计规格.md)：时间线、作品集网站和共同基线。
+- OperCerta 详细设计：由 opercerta 独立仓库保存，使用 LangGraph 实现有状态运营处置与人工审批。
+- ForenTrail 详细设计：由 forentrail 独立仓库保存，使用 CrewAI Flows 驱动安全事件证据研判。
+- SiteVerum 详细设计：由 siteverum 独立仓库保存，使用 LlamaIndex Workflows 驱动多模态巡检。
+- Federune 详细设计：由 federune 独立仓库保存，使用 PydanticAI 构建受控联邦实验工程平台。
+- 总体设计规格：本仓库副本位于 docs/specs/AI_Agent四项目总体设计规格.md。
 
 ## 4. 四项目差异化
 
-| 维度 | FlowOps | SecEvidence | FieldLens | FedBench |
+| 维度 | OperCerta | ForenTrail | SiteVerum | Federune |
 |---|---|---|---|---|
 | 企业问题 | 运营异常处置 | 安全告警研判 | 现场多模态巡检 | 联邦实验配置与复现 |
 | 核心框架 | LangGraph | CrewAI Flows | LlamaIndex Workflows | PydanticAI |
@@ -81,12 +81,12 @@
 
 | 阶段 | 目标 | 简历与作品集动作 |
 |---|---|---|
-| 2026-07-14 至 07-20 | FlowOps 完成 Release | 暂不单独投递，形成第一个完整证据链 |
-| 2026-07-21 至 07-29 | SecEvidence 完成 Release | 两个项目均有 URL/GitHub 后准备第一版简历 |
+| 2026-07-14 至 07-20 | OperCerta 完成 Release | 暂不单独投递，形成第一个完整证据链 |
+| 2026-07-21 至 07-29 | ForenTrail 完成 Release | 两个项目均有 URL/GitHub 后准备第一版简历 |
 | 2026-07-30 至 07-31 | 作品集网站上线 | 前两项可访问，后两项仅显示“开发中” |
-| 2026-08-01 起 | 投递、面试复盘、FieldLens | 依据真实问题补强知识和讲解 |
-| FieldLens 完成后 | 更新作品集和简历 | 新增真实链接、Release 和报告 |
-| 随后完成 FedBench | 完整四项目版本 | 挑选最符合岗位的 2～3 项投递，不机械全塞 |
+| 2026-08-01 起 | 投递、面试复盘、SiteVerum | 依据真实问题补强知识和讲解 |
+| SiteVerum 完成后 | 更新作品集和简历 | 新增真实链接、Release 和报告 |
+| 随后完成 Federune | 完整四项目版本 | 挑选最符合岗位的 2～3 项投递，不机械全塞 |
 
 日期是计划，不写成履历。若发布门禁未通过，顺延项目而不是伪造上线状态。
 
@@ -95,19 +95,19 @@
 | 招聘要求 | 主要证据项目 |
 |---|---|
 | Python、FastAPI、Pydantic、异步服务 | 四项 |
-| LLM API、Prompt 版本、结构化输出、模型路由 | 四项，以 SecEvidence/FedBench 为主要讲解证据 |
-| Agent 编排、状态、HITL、工具调用 | FlowOps |
-| Context Engineering、任务级记忆、Checkpoint/Replay | FlowOps 主讲，SecEvidence/FieldLens 补充 |
-| Multi-Agent、事件流、模型路由、Agent 观测 | SecEvidence |
-| RAG、混合检索、向量数据库、多模态、vLLM | FieldLens |
-| 类型化 Agent、评测、任务编排、ML 工程 | FedBench |
-| Kafka、消息幂等、DLQ、重放 | SecEvidence |
-| Milvus、多向量和 Reranker | FieldLens |
+| LLM API、Prompt 版本、结构化输出、模型路由 | 四项，以 ForenTrail/Federune 为主要讲解证据 |
+| Agent 编排、状态、HITL、工具调用 | OperCerta |
+| Context Engineering、任务级记忆、Checkpoint/Replay | OperCerta 主讲，ForenTrail/SiteVerum 补充 |
+| Multi-Agent、事件流、模型路由、Agent 观测 | ForenTrail |
+| RAG、混合检索、向量数据库、多模态、vLLM | SiteVerum |
+| 类型化 Agent、评测、任务编排、ML 工程 | Federune |
+| Kafka、消息幂等、DLQ、重放 | ForenTrail |
+| Milvus、多向量和 Reranker | SiteVerum |
 | PostgreSQL、Redis、对象存储 | 多项 |
-| 受控执行、资源隔离与 Sandbox 思路 | FedBench |
+| 受控执行、资源隔离与 Sandbox 思路 | Federune |
 | Linux、Git、Docker、CI/CD、监控、安全和成本 | 四项发布链路 |
 
-这里的“任务级记忆”不是把聊天内容永久存入向量库。FlowOps 的图状态/检查点保存当前操作上下文，SecEvidence 按案件压缩时间线，FieldLens 只装载与当前证据相关的检索片段；状态、上下文和长期业务事实分开保存。四项都不做未经业务证明的跨用户长期人格记忆。
+这里的“任务级记忆”不是把聊天内容永久存入向量库。OperCerta 的图状态/检查点保存当前操作上下文，ForenTrail 按案件压缩时间线，SiteVerum 只装载与当前证据相关的检索片段；状态、上下文和长期业务事实分开保存。四项都不做未经业务证明的跨用户长期人格记忆。
 
 当前应用开发岗位的主要技术面已经覆盖：结构化模型调用、Tool Use/MCP、状态与 HITL、多 Agent、RAG/Hybrid Search/Rerank、向量数据库、多模态、模型路由/vLLM、队列与异步任务、评测/Trace/成本、安全和受控执行。覆盖目标是通用 AI Agent、LLM 应用、RAG、AI Python 后端和偏应用的 Agent 平台岗位，不是所有 AI 职位。
 
@@ -117,7 +117,7 @@
 
 ### 为什么四个项目使用不同框架？
 
-先从业务控制面选择框架，而不是先定框架再找场景。FlowOps 需要可恢复状态机和审批中断；SecEvidence 需要固定流程中按需调度专家；FieldLens 的复杂度集中在多模态数据、检索事件和异步任务；FedBench 的关键是把自然语言严格约束为可验证实验配置。若把四项都改成 LangGraph 也能实现，但会掩盖各框架的适用边界，也无法证明技术选型能力。
+先从业务控制面选择框架，而不是先定框架再找场景。OperCerta 需要可恢复状态机和审批中断；ForenTrail 需要固定流程中按需调度专家；SiteVerum 的复杂度集中在多模态数据、检索事件和异步任务；Federune 的关键是把自然语言严格约束为可验证实验配置。若把四项都改成 LangGraph 也能实现，但会掩盖各框架的适用边界，也无法证明技术选型能力。
 
 ### 是否为了展示技术而堆栈？
 
@@ -139,7 +139,7 @@
 - `开发中`：只显示已批准的业务目标和预计能力，不显示虚构指标或链接；
 - `归档`：保留版本和限制，说明停止原因。
 
-首轮面试优先演示 FlowOps 或 SecEvidence；FieldLens 用于偏 RAG/多模态岗位；FedBench 用于偏 Python、Agent 平台、算法工程或 MLOps 岗位。
+首轮面试优先演示 OperCerta 或 ForenTrail；SiteVerum 用于偏 RAG/多模态岗位；Federune 用于偏 Python、Agent 平台、算法工程或 MLOps 岗位。
 
 ## 12. 组合完成定义
 

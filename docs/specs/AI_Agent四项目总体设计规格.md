@@ -54,15 +54,15 @@
 
 ```mermaid
 flowchart LR
-    P1["阶段一：FlowOps<br/>可靠单 Agent 工作流"] --> G1{"上线门禁"}
-    G1 -->|通过| P2["阶段二：SecEvidence<br/>事件驱动多 Agent"]
+    P1["阶段一：OperCerta<br/>可靠单 Agent 工作流"] --> G1{"上线门禁"}
+    G1 -->|通过| P2["阶段二：ForenTrail<br/>事件驱动多 Agent"]
     G1 -->|未通过| P1
     P2 --> G2{"上线门禁"}
     G2 -->|通过| W["作品集网站上线<br/>第一版简历开始投递"]
     G2 -->|未通过| P2
-    W --> P3["阶段三：FieldLens<br/>多模态 RAG"]
+    W --> P3["阶段三：SiteVerum<br/>多模态 RAG"]
     P3 --> G3{"上线门禁"}
-    G3 -->|通过| P4["阶段四：FedBench<br/>实验编排与评测"]
+    G3 -->|通过| P4["阶段四：Federune<br/>实验编排与评测"]
     G3 -->|未通过| P3
     P4 --> G4{"作品集终验"}
     G4 -->|未通过| P4
@@ -72,11 +72,11 @@ flowchart LR
 
 | 阶段 | 目标时间 | 交付物 | 预计投入 | 投递策略 |
 |---|---|---|---:|---|
-| 1 | 2026-07-14～07-20 | FlowOps 完成、上线和复盘 | 约30～35小时 | 完成第一个旗舰项目，不单独急投 |
-| 2 | 2026-07-21～07-29 | SecEvidence 完成、上线和复盘 | 约40～45小时 | 两个项目均通过门禁后制作投递版简历 |
+| 1 | 2026-07-14～07-20 | OperCerta 完成、上线和复盘 | 约30～35小时 | 完成第一个旗舰项目，不单独急投 |
+| 2 | 2026-07-21～07-29 | ForenTrail 完成、上线和复盘 | 约40～45小时 | 两个项目均通过门禁后制作投递版简历 |
 | 2.5 | 2026-07-30～07-31 | 作品集网站、简历、双项目演示材料上线 | 约8～12小时 | 7月底开始第一轮投递 |
-| 3 | 2026-08-01～08-12 | FieldLens 完成、上线和复盘 | 约45～55小时 | 边投递、面试和复盘，边完成第三项目 |
-| 4 | 2026-08-13～08-24 | FedBench 完成、上线和复盘 | 约40～50小时 | 更新作品集和简历，挑战更高要求岗位 |
+| 3 | 2026-08-01～08-12 | SiteVerum 完成、上线和复盘 | 约45～55小时 | 边投递、面试和复盘，边完成第三项目 |
+| 4 | 2026-08-13～08-24 | Federune 完成、上线和复盘 | 约40～50小时 | 更新作品集和简历，挑战更高要求岗位 |
 | 复盘 | 2026-08-25～08-31 | 面试问题库、薄弱知识和作品集修订 | 按实际面试安排 | 根据反馈进行定向补强 |
 
 具体日期允许因门禁结果顺延，但顺序不变。7月底的核心目标是前两个项目和作品集网站上线，并达到可以开始投递的知识、技能和讲解水平；8月份每天在4～6小时总预算内分配约1小时用于投递/面试复盘、其余时间用于后两个项目开发。
@@ -87,10 +87,10 @@ flowchart LR
 
 | 项目 | 主要约束 | 框架 | 选择原因 |
 |---|---|---|---|
-| FlowOps | 长状态、暂停恢复、人工审批 | LangGraph | 状态图、持久化检查点和中断恢复符合可靠业务流程 |
-| SecEvidence | 多角色分工、并行研判、有限反证循环 | CrewAI Flows | 用固定 Flow 管理多个专职 Agent，限制自由对话和循环 |
-| FieldLens | 多模态数据、检索、异步事件 | LlamaIndex Workflows | 适合围绕文档、索引、事件和异步步骤组织多模态流程 |
-| FedBench | 强类型配置、工具轨迹评测 | PydanticAI | 结构化输入输出和 Pydantic Evals 适合实验配置与轨迹验证 |
+| OperCerta | 长状态、暂停恢复、人工审批 | LangGraph | 状态图、持久化检查点和中断恢复符合可靠业务流程 |
+| ForenTrail | 多角色分工、并行研判、有限反证循环 | CrewAI Flows | 用固定 Flow 管理多个专职 Agent，限制自由对话和循环 |
+| SiteVerum | 多模态数据、检索、异步事件 | LlamaIndex Workflows | 适合围绕文档、索引、事件和异步步骤组织多模态流程 |
+| Federune | 强类型配置、工具轨迹评测 | PydanticAI | 结构化输入输出和 Pydantic Evals 适合实验配置与轨迹验证 |
 
 在真实公司中应优先统一一到两个框架。本作品集使用不同框架，是为了验证其适用边界；公共领域模型、工具协议、状态契约、评测方法和可观测性原则保持一致。每个仓库必须编写 ADR，记录采用方案、拒绝方案和迁移方案。
 
@@ -163,7 +163,7 @@ project-root/
 - 工具使用 allowlist，禁止任意 Shell、任意 SQL、任意 Python 和任意镜像执行。
 - 审批、拒绝、重试、降级和异常均写入不可变审计事件。
 
-## 5. 项目一：FlowOps 智能运营处置 Agent
+## 5. 项目一：OperCerta｜智能运营处置 Agent
 
 ### 5.1 项目定位
 
@@ -247,7 +247,7 @@ LangGraph 检查点与业务表分开 Schema，避免将编排内部状态当作
 - 所有终态均存在审计记录。
 - 基线和优化报告可由脚本重复生成。
 
-## 6. 项目二：SecEvidence 安全事件证据研判平台
+## 6. 项目二：ForenTrail｜安全事件证据研判平台
 
 ### 6.1 项目定位
 
@@ -343,7 +343,7 @@ CrewAI 仅在固定 Flow 内运行；最大反证循环为2次，每个角色有
 - Prompt Injection 样本不得触发越权工具或改变系统规则。
 - Macro-F1 目标为0.85；若未达到，只记录实测值和错误分析。
 
-## 7. 项目三：FieldLens 多模态巡检 Agent
+## 7. 项目三：SiteVerum｜多模态现场巡检与证据检索平台
 
 ### 7.1 项目定位
 
@@ -453,7 +453,7 @@ vLLM 官方参考：
 - API/vLLM 两种模型适配至少各完成一次可复现测试。
 - 对照实验记录 VLM 输入图片数、视觉 Token、延迟和成本。
 
-## 8. 项目四：FedBench 联邦实验工程 Agent
+## 8. 项目四：Federune｜受控联邦学习实验工程平台
 
 ### 8.1 项目定位
 
@@ -564,10 +564,10 @@ flowchart TB
     PORT --> CV["在线简历 / PDF"]
     PORT --> GH["GitHub 项目仓库"]
     PORT --> C["项目演示入口：Caddy HTTPS"]
-    C --> A1["FlowOps Web/API"]
-    C --> A2["SecEvidence Web/API"]
-    C --> A3["FieldLens Web/API"]
-    C --> A4["FedBench Web/API"]
+    C --> A1["OperCerta Web/API"]
+    C --> A2["ForenTrail Web/API"]
+    C --> A3["SiteVerum Web/API"]
+    C --> A4["Federune Web/API"]
 
     A1 --> PG["PostgreSQL"]
     A1 --> RD["Redis"]
@@ -619,7 +619,7 @@ flowchart TB
 
 ### 10.1 定位
 
-作品集网站是面试官和普通用户了解个人经历及项目能力的统一入口，不作为第五个 Agent 项目。网站在 FlowOps、SecEvidence 均通过门禁后，于2026年7月底同步公开。
+作品集网站是面试官和普通用户了解个人经历及项目能力的统一入口，不作为第五个 Agent 项目。网站在 OperCerta、ForenTrail 均通过门禁后，于2026年7月底同步公开。
 
 当前 `D:\CODEX\resume\portfolio` 已有 Next.js、React、TypeScript 和 Tailwind 工程基础，首版沿用现有工程，不额外引入数据库、登录或后台管理系统。项目内容使用类型化配置或 MDX 管理，避免为了展示网站扩张非核心开发范围。
 
@@ -637,23 +637,23 @@ flowchart TB
 
 7月底首次上线时：
 
-- FlowOps：标记“已上线”，展示在线演示、GitHub、架构和实测报告。
-- SecEvidence：标记“已上线”，展示在线演示、GitHub、架构和实测报告。
-- FieldLens：保留名称和简短目标，标记“开发中”；不展示虚构指标，不提供无效在线按钮。
-- FedBench：保留名称和简短目标，标记“开发中”；不展示虚构指标，不提供无效在线按钮。
+- OperCerta：标记“已上线”，展示在线演示、GitHub、架构和实测报告。
+- ForenTrail：标记“已上线”，展示在线演示、GitHub、架构和实测报告。
+- SiteVerum：保留名称和简短目标，标记“开发中”；不展示虚构指标，不提供无效在线按钮。
+- Federune：保留名称和简短目标，标记“开发中”；不展示虚构指标，不提供无效在线按钮。
 
 后两个项目通过各自上线门禁后，将状态切换为“已上线”，补充真实链接、演示、指标和复盘内容。可以提前公开路线图仓库，但必须明确其当前状态，不能让路线图链接看起来像已经完成的源码。
 
 ### 10.4 链接和简历规则
 
-第一版投递简历只列 FlowOps、SecEvidence 两个已完成项目，每个项目同时显示可复制的完整 URL：
+第一版投递简历只列 OperCerta、ForenTrail 两个已完成项目，每个项目同时显示可复制的完整 URL：
 
 ```text
-在线演示：https://flowops.<个人域名>    GitHub：https://github.com/<用户名>/flowops
-在线演示：https://security.<个人域名>   GitHub：https://github.com/<用户名>/sec-evidence
+在线演示：https://opercerta.<个人域名>    GitHub：https://github.com/<用户名>/opercerta
+在线演示：https://forentrail.<个人域名>   GitHub：https://github.com/<用户名>/forentrail
 ```
 
-FieldLens、FedBench 在开发期间只出现在作品集网站的“开发中”卡片中，不进入正式投递简历。项目完成后加入简历时，同样必须同时提供在线演示 URL 和 GitHub URL。PDF 中的链接需要可点击，同时保留明文地址以兼容 ATS 和纸面查看。
+SiteVerum、Federune 在开发期间只出现在作品集网站的“开发中”卡片中，不进入正式投递简历。项目完成后加入简历时，同样必须同时提供在线演示 URL 和 GitHub URL。PDF 中的链接需要可点击，同时保留明文地址以兼容 ATS 和纸面查看。
 
 ### 10.5 作品集上线门禁
 
@@ -698,7 +698,7 @@ FieldLens、FedBench 在开发期间只出现在作品集网站的“开发中�
 
 标准回答：
 
-> 我不是先选框架再找业务。FlowOps 的主要约束是状态和 HITL，因此使用 LangGraph；SecEvidence 是有限角色的并行假设与反证，因此用 CrewAI Flows；FieldLens 的核心是多模态数据、索引和事件流，因此用 LlamaIndex Workflows；FedBench 需要强类型配置和轨迹评测，因此用 PydanticAI。领域规则、工具契约、评测和可观测性都与框架解耦。在公司内我会根据维护成本统一到一到两个框架。
+> 我不是先选框架再找业务。OperCerta 的主要约束是状态和 HITL，因此使用 LangGraph；ForenTrail 是有限角色的并行假设与反证，因此用 CrewAI Flows；SiteVerum 的核心是多模态数据、索引和事件流，因此用 LlamaIndex Workflows；Federune 需要强类型配置和轨迹评测，因此用 PydanticAI。领域规则、工具契约、评测和可观测性都与框架解耦。在公司内我会根据维护成本统一到一到两个框架。
 
 ### 12.3 企业级水平如何表述
 
@@ -712,18 +712,18 @@ FieldLens、FedBench 在开发期间只出现在作品集网站的“开发中�
 |---|---|
 | Python/FastAPI/异步接口 | 四个项目共同覆盖 |
 | LLM API、Prompt 版本、结构化输出与模型路由 | 四个项目共同覆盖 |
-| Function Calling/MCP | FlowOps |
-| LangGraph 状态与 HITL | FlowOps |
-| Context Engineering、任务级记忆与 Checkpoint/Replay | FlowOps 主证据，SecEvidence/FieldLens 补充 |
-| 多 Agent 协作 | SecEvidence |
-| 事件驱动、消息队列和日志检索 | SecEvidence |
-| 多模态 RAG、混合检索和 Reranker | FieldLens |
-| 多模态/VLM/视觉工具 | FieldLens |
-| vLLM 本地模型服务 | FieldLens 的按需 GPU 验证 |
-| 强类型 Agent 和轨迹评测 | FedBench |
-| Prefect/Flower/MLflow | FedBench |
-| 受控执行、资源隔离和 Sandbox 思路 | FedBench |
-| LLM 可观测性和成本 | SecEvidence 及共同基线 |
+| Function Calling/MCP | OperCerta |
+| LangGraph 状态与 HITL | OperCerta |
+| Context Engineering、任务级记忆与 Checkpoint/Replay | OperCerta 主证据，ForenTrail/SiteVerum 补充 |
+| 多 Agent 协作 | ForenTrail |
+| 事件驱动、消息队列和日志检索 | ForenTrail |
+| 多模态 RAG、混合检索和 Reranker | SiteVerum |
+| 多模态/VLM/视觉工具 | SiteVerum |
+| vLLM 本地模型服务 | SiteVerum 的按需 GPU 验证 |
+| 强类型 Agent 和轨迹评测 | Federune |
+| Prefect/Flower/MLflow | Federune |
+| 受控执行、资源隔离和 Sandbox 思路 | Federune |
+| LLM 可观测性和成本 | ForenTrail 及共同基线 |
 | Linux、Git、Docker、CI/CD、测试和部署 | 四个项目共同覆盖 |
 | 公开作品集与在线演示交付 | 作品集网站及四项目发布流程 |
 
@@ -754,15 +754,15 @@ FieldLens、FedBench 在开发期间只出现在作品集网站的“开发中�
 
 ### 第一版投递简历
 
-目标于2026年7月底发布。FlowOps 和 SecEvidence 均通过上线门禁后，只写这两个已完成项目，重点展示可靠 Agent、MCP、多 Agent、证据闭环、评测和可观测性。两个项目都必须在项目标题下方标明在线演示 URL 和 GitHub URL。
+目标于2026年7月底发布。OperCerta 和 ForenTrail 均通过上线门禁后，只写这两个已完成项目，重点展示可靠 Agent、MCP、多 Agent、证据闭环、评测和可观测性。两个项目都必须在项目标题下方标明在线演示 URL 和 GitHub URL。
 
 ### 第二版投递简历
 
-FieldLens 通过门禁后加入多模态 RAG、视觉工具、证据约束和模型服务能力，并补充在线演示 URL 与 GitHub URL。
+SiteVerum 通过门禁后加入多模态 RAG、视觉工具、证据约束和模型服务能力，并补充在线演示 URL 与 GitHub URL。
 
 ### 完整技术简历
 
-FedBench 通过门禁后形成四项目技术版，四个项目均需具备在线演示 URL 和 GitHub URL。面向普通 Agent 应用岗位时，正式两页简历仍可只保留最相关的三个项目，第四个项目通过作品集网站展示。
+Federune 通过门禁后形成四项目技术版，四个项目均需具备在线演示 URL 和 GitHub URL。面向普通 Agent 应用岗位时，正式两页简历仍可只保留最相关的三个项目，第四个项目通过作品集网站展示。
 
 ## 16. 风险登记与缓解
 
@@ -782,11 +782,11 @@ FedBench 通过门禁后形成四项目技术版，四个项目均需具备在�
 
 本规格对应的设计资产已经拆分为一份组合说明和四份可独立交接的项目详细设计：
 
-1. [四项目作品集组合设计](./docs/superpowers/specs/2026-07-14-agent-portfolio-design.md)：差异化、统一基线、时间线、招聘覆盖和面试口径。
-2. [FlowOps 详细设计](./docs/superpowers/specs/2026-07-14-flowops-design.md)：LangGraph 状态机、MCP 工具、人工审批、恢复和评测。
-3. [SecEvidence 详细设计](./docs/superpowers/specs/2026-07-14-secevidence-design.md)：CrewAI Flows、Kafka 事件流、证据研判、Outbox 一致性和复核。
-4. [FieldLens 详细设计](./docs/superpowers/specs/2026-07-14-fieldlens-design.md)：LlamaIndex Workflows、多模态工具、Milvus 混合检索、Grounding 和人工巡检。
-5. [FedBench 详细设计](./docs/superpowers/specs/2026-07-14-fedbench-design.md)：PydanticAI 强类型 Agent、Prefect/Flower 执行、实验血缘、隔离和评测。
+1. 四项目作品集组合设计：本仓库副本位于 docs/specs/2026-07-14-agent-portfolio-design.md，说明差异化、统一基线、时间线、招聘覆盖和面试口径。
+2. OperCerta 详细设计：由 opercerta 独立仓库保存，覆盖 LangGraph 状态机、MCP 工具、人工审批、恢复和评测。
+3. ForenTrail 详细设计：由 forentrail 独立仓库保存，覆盖 CrewAI Flows、Kafka 事件流、证据研判、Outbox 一致性和复核。
+4. SiteVerum 详细设计：由 siteverum 独立仓库保存，覆盖 LlamaIndex Workflows、多模态工具、Milvus 混合检索、Grounding 和人工巡检。
+5. Federune 详细设计：由 federune 独立仓库保存，覆盖 PydanticAI 强类型 Agent、Prefect/Flower 执行、实验血缘、隔离和评测。
 
 本聊天的交付边界到设计评审为止。设计通过后，在后续独立实施对话中按项目顺序产生：
 
