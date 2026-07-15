@@ -24,7 +24,7 @@ uv / pytest on Windows
         |
 SQLAlchemy + psycopg
         |
-127.0.0.1:<approved-port>
+127.0.0.1:55432
         |
 PostgreSQL 18 Windows service
         |
