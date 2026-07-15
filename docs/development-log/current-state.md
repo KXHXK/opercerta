@@ -1,10 +1,10 @@
 # OperCerta 当前状态
 
-最后核验：2026-07-15 23:17 Asia/Shanghai，Git commit `cb23362`。
+最后核验：2026-07-16 00:18 Asia/Shanghai，Git 基线 commit `b44ffb0`。
 
 ## 当前阶段
 
-非法输入、状态恢复、数据库迁移和原子审批竞态已按 TDD 实现。Task 3 已完成；本地测试数据库密码已轮换并复验，Task 4 幂等写入可以开始。
+非法输入、状态恢复、数据库迁移和原子审批竞态已按 TDD 实现。Task 3 已完成；本地测试数据库密码已轮换并复验。Task 4 已确认采用通用 JSON object payload 方案并固定新工单状态为 `created`；书面规格已落盘，仍待用户复核，生产代码尚未开始。
 
 ## 已验证事实
 
@@ -23,6 +23,8 @@
 - 原子审批 Repository 提交：`b37a659`；数据库集成测试 `5 passed`，完整测试 `34 passed`，Ruff 通过，mypy 实际检查 10 个源文件通过。
 - 十路审批竞态目标用例独立重复 20 轮，实测 `20/20` 通过；每轮断言一个成功、九个冲突、一条审批、一条审计和 `resuming` 状态。
 - 本地测试数据库密码已于 2026-07-15 轮换；不回显探针确认 `opercerta_test`/`opercerta`、`127.0.0.1:55432` 可连接，轮换后完整测试 `34 passed`、Ruff 和 mypy 通过，新密码未出现在 Git 跟踪文件中。
+- 2026-07-16 重启 Codex 后，PowerShell、OperCerta 工作区和 `.git` 临时写入探针均成功，探针已清理，`main` 工作区恢复干净。
+- Task 4 方案 1 与 `created` 初始状态已获确认；书面契约见 `docs/superpowers/specs/2026-07-16-work-order-idempotency-contract-design.md`，当前只进入用户复核门禁。
 
 ## 当前阻塞与风险
 
@@ -32,7 +34,7 @@
 
 ## 下一步
 
-执行可靠性内核 Task 4：先创建稳定幂等键与 canonical payload hash 的 RED 测试，再实现最小领域代码；随后用真实 PostgreSQL 驱动十路并发写入。
+请用户复核 Task 4 书面规格；确认后用 writing-plans 回填可执行步骤，再从非法输入、稳定幂等键与 canonical payload hash 的 RED 测试开始。
 
 ## 发布门禁
 
