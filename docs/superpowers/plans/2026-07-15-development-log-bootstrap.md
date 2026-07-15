@@ -227,7 +227,7 @@ Run:
 
 ```powershell
 $paths = Select-String -LiteralPath DOCUMENT_INDEX.md -Pattern '^\| `[^`]+` \|' -AllMatches |
-    ForEach-Object { $_.Matches.Value.Trim('`') } |
+    ForEach-Object { $_.Matches | ForEach-Object { $_.Groups[1].Value } } |
     Where-Object { $_ -match '^(README\.md|IMPLEMENTATION_HANDOFF\.md|docs/)' }
 $missing = $paths | Where-Object { -not (Test-Path -LiteralPath $_) }
 if ($missing) { $missing; throw 'DOCUMENT_INDEX.md references a missing file.' }
