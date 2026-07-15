@@ -3,15 +3,16 @@
 ## 当前检查点
 
 - 书面设计已经总审通过并冻结为实施基线；当前文档目录见根目录 `DOCUMENT_INDEX.md`。
-- 可靠性内核的非法输入契约和确定性恢复策略已实现，单元测试最近结果为 `19 passed`。
+- 可靠性内核的非法输入、确定性恢复、数据库迁移和原子审批竞态已实现；最近完整测试为 `34 passed`，审批竞态目标用例重复 `20/20` 通过。
 - Windows 原生 PostgreSQL 18.4 已验证为本地集成测试数据库：服务仅监听 `127.0.0.1:55432`，普通 IPv4 回环使用 SCRAM；证据见 `docs/release-evidence/native-postgres-environment.md`。
+- 审批原子性证据见 `docs/release-evidence/approval-atomicity.md`。继续数据库测试前，必须轮换曾被失败 traceback 展开的本地测试角色密码；新值不得粘贴到对话或写入 Git。
 - 当前 Git 尚未配置远程仓库；本地 commit 不是远程备份。
 - 发布门禁保持 `CLOSED`，不启动 ForenTrail 或其他项目。
 
 ## 新对话必须先做
 
 1. 先阅读 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md` 和最近每日日志，再阅读相关设计、计划、交接和 Git 状态。
-2. 只实施 OperCerta；从 `docs/superpowers/plans/2026-07-14-opercerta-reliability-kernel.md` 的 Task 3 开始，先写迁移和审批竞态 RED 测试，再实现最小事务 Repository。
+2. 只实施 OperCerta；先确认本地测试角色密码已经轮换且连接探针成功，再从 `docs/superpowers/plans/2026-07-14-opercerta-reliability-kernel.md` 的 Task 4 开始幂等写入 TDD。
 3. 运行集成测试前，以不回显方式从已忽略 `.env.local` 加载 `OPERCERTA_DATABASE_URL`；不得提交该文件或任何凭据。
 4. 每个效果数字都保留基线、测试数据、测量脚本和结果证据；指标未测出前使用目标值或空值，不写成已实现结果。
 5. 使用公开或合成数据，从零编写全部代码和文档，不导入任何原单位源码、数据、截图、模型、品牌或内部规则。
@@ -25,4 +26,4 @@
 
 ## 可复制到新对话的启动语
 
-> 工作目录为本 OperCerta 仓库根目录。请先读取 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md`、最近每日日志、`README.md`、`IMPLEMENTATION_HANDOFF.md` 和 `docs/specs/` 下的四份设计文件，顺序为命名设计、总体设计、组合设计、OperCerta 详细设计；然后从可靠性内核 Task 3 的迁移与审批竞态 RED 测试继续。严格只实施 OperCerta，不复用旧公司材料，不虚构指标，未通过发布门禁前不启动其他项目。
+> 工作目录为本 OperCerta 仓库根目录。请先读取 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md`、最近每日日志、`README.md`、`IMPLEMENTATION_HANDOFF.md` 和 `docs/specs/` 下的四份设计文件，顺序为命名设计、总体设计、组合设计、OperCerta 详细设计；确认本地测试数据库密码已轮换后，从可靠性内核 Task 4 的幂等写入 RED 测试继续。严格只实施 OperCerta，不复用旧公司材料，不虚构指标，未通过发布门禁前不启动其他项目。

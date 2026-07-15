@@ -559,7 +559,6 @@ git commit -m "feat: add deterministic recovery policy"
 - Create: `migrations/script.py.mako`
 - Create: `migrations/versions/0001_reliability_kernel.py`
 - Create: `src/opercerta/infrastructure/db/schema.py`
-- Create: `src/opercerta/infrastructure/db/engine.py`
 - Create: `src/opercerta/infrastructure/db/approval_repository.py`
 - Test: `tests/integration/conftest.py`
 - Test: `tests/integration/db/test_migration.py`
@@ -788,7 +787,7 @@ git add src/opercerta/domain/approvals.py src/opercerta/domain/errors.py tests/u
 git commit -m "feat: define approval domain contract"
 ```
 
-- [ ] **Step 6: RED — prove the database migration contract is absent**
+- [x] **Step 6: RED — prove the database migration contract is absent**
 
 Create `tests/integration/conftest.py` with a secret-safe local URL fixture:
 
@@ -797,28 +796,29 @@ import os
 from pathlib import Path
 
 import pytest
+from pydantic import SecretStr
 
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def _database_url() -> str:
+def _database_url() -> SecretStr:
     configured = os.getenv("OPERCERTA_DATABASE_URL")
     if configured:
-        return configured
+        return SecretStr(configured)
 
     local_env = ROOT / ".env.local"
     if local_env.is_file():
-        for raw_line in local_env.read_text(encoding="utf-8").splitlines():
+        for raw_line in local_env.read_text(encoding="utf-8-sig").splitlines():
             name, separator, value = raw_line.partition("=")
             if name == "OPERCERTA_DATABASE_URL" and separator and value:
-                return value
+                return SecretStr(value)
 
     pytest.fail("OPERCERTA_DATABASE_URL is not configured for integration tests")
 
 
 @pytest.fixture(scope="session")
-def database_url() -> str:
+def database_url() -> SecretStr:
     return _database_url()
 ```
 
@@ -829,6 +829,8 @@ from pathlib import Path
 
 from alembic import command
 from alembic.config import Config
+from pydantic import SecretStr
+from pytest import MonkeyPatch
 from sqlalchemy import create_engine, inspect
 
 
@@ -836,13 +838,14 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 def test_reliability_kernel_migration_creates_required_schema(
-    database_url: str,
-    monkeypatch,
+    database_url: SecretStr,
+    monkeypatch: MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("OPERCERTA_DATABASE_URL", database_url)
+    raw_database_url = database_url.get_secret_value()
+    monkeypatch.setenv("OPERCERTA_DATABASE_URL", raw_database_url)
     command.upgrade(Config(str(ROOT / "alembic.ini")), "head")
 
-    engine = create_engine(database_url)
+    engine = create_engine(raw_database_url)
     try:
         inspector = inspect(engine)
         assert {
@@ -868,7 +871,7 @@ uv run pytest tests/integration/db/test_migration.py -q
 
 Expected RED: Alembic raises `CommandError: No 'script_location' key found in configuration` because `alembic.ini` and the migration do not exist. The fixture must not print or embed the database URL.
 
-- [ ] **Step 7: GREEN — add the migration before the race implementation**
+- [x] **Step 7: GREEN — add the migration before the race implementation**
 
 The migration must create `public.operations`, `public.approvals`, `public.work_orders`, `public.audit_events`, and `langgraph` Schema. Exact constraints:
 
@@ -900,7 +903,7 @@ Remove-Item Env:OPERCERTA_DATABASE_URL
 
 Expected: current revision is `0001_reliability_kernel`.
 
-- [ ] **Step 8: RED — race ten decisions through independent connections**
+- [x] **Step 8: RED — race ten decisions through independent connections**
 
 Create an `awaiting_approval` operation, then start ten tasks with five approvals and five rejections:
 
@@ -932,7 +935,7 @@ assert await audit_types(engine, operation_id) == ["approval_recorded"]
 
 Run the test. Expected RED: repository import is unavailable.
 
-- [ ] **Step 9: GREEN — serialize on the operation row and commit all effects together**
+- [x] **Step 9: GREEN — serialize on the operation row and commit all effects together**
 
 Implement `submit_once` with one `engine.begin()` transaction:
 
@@ -992,12 +995,14 @@ Run the race test 20 times:
 
 Expected GREEN: every run reports one passed test; no deadlock or duplicate row.
 
-- [ ] **Step 10: Commit the approval transaction**
+- [x] **Step 10: Commit the approval transaction**
 
 ```powershell
 git add .env.example alembic.ini migrations src/opercerta/infrastructure tests/integration docs/development-log DOCUMENT_INDEX.md IMPLEMENTATION_HANDOFF.md
 git commit -m "feat: make approval decisions atomic"
 ```
+
+Execution evidence: migration and its RED/GREEN test were committed as `85e6538`; the SQLAlchemy table mapping, atomic Repository and race tests were committed as `b37a659`. On Windows, integration tests set `WindowsSelectorEventLoopPolicy` because Psycopg async does not support `ProactorEventLoop`. Test URLs use `SecretStr`, remove the password from the SQLAlchemy URL, and provide it only through temporary `PGPASSWORD`; `.env.local` is decoded with `utf-8-sig` so PowerShell-created BOM files are accepted without ever printing the value.
 
 ---
 

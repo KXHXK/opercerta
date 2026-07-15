@@ -37,6 +37,6 @@ server: 127.0.0.1/32:55432
 
 - 最近单元测试：`uv run pytest -q`，`19 passed`，退出码 0。
 - 静态检查：`uv run ruff check .` 通过；默认 `uv run mypy` 在加入 PEP 561 `src/opercerta/py.typed` 标记后实际检查 5 个源文件并通过，修复提交 `84a7b08`。
-- PostgreSQL 迁移、审批竞态、幂等写入、LangGraph checkpoint 重启恢复尚未实现或验证。
+- PostgreSQL 迁移和审批竞态已实现并验证，详见 `docs/release-evidence/approval-atomicity.md`；幂等写入和 LangGraph checkpoint 重启恢复尚未实现或验证。
 - Linux/Docker 一致性验证尚未执行。
 - `OperCerta release gate: CLOSED`。

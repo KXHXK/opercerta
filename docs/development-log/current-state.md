@@ -1,10 +1,10 @@
 # OperCerta 当前状态
 
-最后核验：2026-07-15 22:35 Asia/Shanghai，Git commit `b87ef7f`。
+最后核验：2026-07-15 22:59 Asia/Shanghai，Git commit `b37a659`。
 
 ## 当前阶段
 
-非法输入、状态恢复和审批领域契约已实现；Windows 原生 PostgreSQL 18.4 测试环境已验证。下一切片是以真实数据库 Schema 契约测试驱动 Alembic 迁移。
+非法输入、状态恢复、数据库迁移和原子审批竞态已按 TDD 实现。Task 3 已完成；进入 Task 4 幂等写入前必须先轮换曾被失败 traceback 展开的本地测试数据库密码。
 
 ## 已验证事实
 
@@ -19,15 +19,19 @@
 - 默认 `uv run mypy` 已实际检查 5 个源文件并通过；PEP 561 标记修复提交：`84a7b08`。
 - 审批领域契约设计已确认并提交：`3c55f3b`；批准与拒绝均先原子进入 `resuming`，再由恢复节点路由。
 - 审批领域契约实现提交：`b87ef7f`；目标测试先因缺失模块 RED，再以 `10 passed` GREEN；完整单元测试为 `29 passed`，Ruff 通过，mypy 实际检查 6 个源文件通过。
+- PostgreSQL 可靠性 Schema 与迁移提交：`85e6538`；Alembic 当前版本为 `0001_reliability_kernel (head)`。
+- 原子审批 Repository 提交：`b37a659`；数据库集成测试 `5 passed`，完整测试 `34 passed`，Ruff 通过，mypy 实际检查 10 个源文件通过。
+- 十路审批竞态目标用例独立重复 20 轮，实测 `20/20` 通过；每轮断言一个成功、九个冲突、一条审批、一条审计和 `resuming` 状态。
 
 ## 当前阻塞与风险
 
-- PostgreSQL 迁移、审批竞态、幂等写入与重启恢复尚未实现；集成测试可开始，但不能声称并发语义已验证。
+- 幂等写入与 LangGraph 重启恢复尚未实现，不能声称可靠性内核或发布门禁完成。
+- 一次预期失败的 Pytest/Psycopg traceback 曾展开本地测试数据库连接密码；代码、Git 和文档未保存该值，fixture 已改为无密码 URL + 临时 `PGPASSWORD`，但本地角色密码仍必须轮换。
 - 当前 Git 没有配置远程仓库；本地 commit 不是远程备份。
 
 ## 下一步
 
-执行 `docs/superpowers/plans/2026-07-14-opercerta-reliability-kernel.md` Task 3 Step 6：先写真实 PostgreSQL 迁移契约测试，观察因 Alembic 配置缺失而 RED，再创建最小迁移。
+先以不回显方式轮换 PostgreSQL 本地测试角色密码并更新已忽略 `.env.local`，重新执行连接探针与完整门禁；然后执行可靠性内核 Task 4 的幂等键和并发写入 RED 测试。
 
 ## 发布门禁
 
