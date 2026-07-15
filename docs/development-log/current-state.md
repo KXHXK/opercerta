@@ -1,10 +1,10 @@
 # OperCerta 当前状态
 
-最后核验：2026-07-15 22:59 Asia/Shanghai，Git commit `b37a659`。
+最后核验：2026-07-15 23:17 Asia/Shanghai，Git commit `cb23362`。
 
 ## 当前阶段
 
-非法输入、状态恢复、数据库迁移和原子审批竞态已按 TDD 实现。Task 3 已完成；进入 Task 4 幂等写入前必须先轮换曾被失败 traceback 展开的本地测试数据库密码。
+非法输入、状态恢复、数据库迁移和原子审批竞态已按 TDD 实现。Task 3 已完成；本地测试数据库密码已轮换并复验，Task 4 幂等写入可以开始。
 
 ## 已验证事实
 
@@ -22,16 +22,17 @@
 - PostgreSQL 可靠性 Schema 与迁移提交：`85e6538`；Alembic 当前版本为 `0001_reliability_kernel (head)`。
 - 原子审批 Repository 提交：`b37a659`；数据库集成测试 `5 passed`，完整测试 `34 passed`，Ruff 通过，mypy 实际检查 10 个源文件通过。
 - 十路审批竞态目标用例独立重复 20 轮，实测 `20/20` 通过；每轮断言一个成功、九个冲突、一条审批、一条审计和 `resuming` 状态。
+- 本地测试数据库密码已于 2026-07-15 轮换；不回显探针确认 `opercerta_test`/`opercerta`、`127.0.0.1:55432` 可连接，轮换后完整测试 `34 passed`、Ruff 和 mypy 通过，新密码未出现在 Git 跟踪文件中。
 
 ## 当前阻塞与风险
 
 - 幂等写入与 LangGraph 重启恢复尚未实现，不能声称可靠性内核或发布门禁完成。
-- 一次预期失败的 Pytest/Psycopg traceback 曾展开本地测试数据库连接密码；代码、Git 和文档未保存该值，fixture 已改为无密码 URL + 临时 `PGPASSWORD`，但本地角色密码仍必须轮换。
+- 一次预期失败的 Pytest/Psycopg traceback 曾展开旧的本地测试数据库连接密码；代码、Git 和文档未保存该值，fixture 已改为无密码 URL + 临时 `PGPASSWORD`，角色密码也已轮换和复验。
 - 当前 Git 没有配置远程仓库；本地 commit 不是远程备份。
 
 ## 下一步
 
-先以不回显方式轮换 PostgreSQL 本地测试角色密码并更新已忽略 `.env.local`，重新执行连接探针与完整门禁；然后执行可靠性内核 Task 4 的幂等键和并发写入 RED 测试。
+执行可靠性内核 Task 4：先创建稳定幂等键与 canonical payload hash 的 RED 测试，再实现最小领域代码；随后用真实 PostgreSQL 驱动十路并发写入。
 
 ## 发布门禁
 

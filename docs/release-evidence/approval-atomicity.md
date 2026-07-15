@@ -34,7 +34,7 @@
 - Psycopg 异步连接不支持 Windows 默认 `ProactorEventLoop`；集成测试在 Windows 使用 `WindowsSelectorEventLoopPolicy`，其他平台不修改事件循环策略。
 - Windows PowerShell 创建的 `.env.local` 带 UTF-8 BOM；fixture 使用 `utf-8-sig` 解码。
 - 一次预期失败的 Pytest/Psycopg traceback 曾展开本地测试连接密码。该值没有写入源码、Git、本文档或开发日志；fixture 随后改为 `SecretStr`、无密码 SQLAlchemy URL 和临时 `PGPASSWORD`，避免驱动 traceback 携带密码参数。
-- 由于密码已经出现在会话失败输出中，本地 `opercerta` 测试角色必须轮换密码并重新验证连接；完成前不得把本文件视为最终安全门禁证据。
+- 本地 `opercerta` 测试角色密码已于 2026-07-15 轮换；不回显探针确认新 `.env.local` 可连接 `opercerta_test`，轮换后完整测试 `34 passed`、Ruff 和 mypy 通过，且新密码未出现在 Git 跟踪文件中。
 
 ## 发布状态
 
