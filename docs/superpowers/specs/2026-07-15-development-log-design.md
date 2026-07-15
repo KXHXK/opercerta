@@ -16,6 +16,20 @@
 
 `docs/development-log/README.md` 说明模板、字段含义和恢复顺序；它属于记录机制说明，不是第四类业务日志。
 
+## 根目录文档索引
+
+在仓库根目录创建 `DOCUMENT_INDEX.md`，作为所有重要项目文档的中文目录和入口。它不复制正文，不替代 Git 历史，也不保存日志细节；每一项只记录文档路径、用途、当前状态、最后核验的 Git commit 和阅读优先级。
+
+索引至少覆盖：
+
+- `README.md` 与 `IMPLEMENTATION_HANDOFF.md`
+- `docs/specs/` 下的设计规格
+- `docs/superpowers/plans/` 下的实施计划
+- `docs/development-log/` 下的当前状态、每日过程和决策记录
+- `docs/release-evidence/` 下的测试与发布证据
+
+新增、移动、废弃或改变重要文档状态时，必须在同一提交内更新 `DOCUMENT_INDEX.md`。索引只链接已存在的文件；尚未创建的文档在“计划创建”小节说明其触发条件，不伪装为已有记录。
+
 ## 记录边界
 
 必须记录：
@@ -58,10 +72,11 @@
 
 自动压缩后或新会话开始时，按以下顺序读取：
 
-1. `docs/development-log/current-state.md`
-2. 最近一份 `docs/development-log/daily/` 日志
-3. 与当前任务相关的 `docs/development-log/decisions/` 记录
-4. `IMPLEMENTATION_HANDOFF.md`、当前实施计划和 Git 状态
+1. 根目录 `DOCUMENT_INDEX.md`
+2. `docs/development-log/current-state.md`
+3. 最近一份 `docs/development-log/daily/` 日志
+4. 与当前任务相关的 `docs/development-log/decisions/` 记录
+5. `IMPLEMENTATION_HANDOFF.md`、当前实施计划和 Git 状态
 
 若日志与测试、Git 或实际服务状态冲突，以新鲜命令输出为准，并在当日日志说明更正。
 
@@ -71,4 +86,4 @@
 
 ## 实施范围
 
-下一步只创建上述目录、说明、当前状态页和当天的首条日志，并将后续环境安装、TDD、测试、部署和交接按此机制记录。日志机制不引入新的运行时依赖，不改变业务代码或部署行为。
+下一步只创建根目录文档索引、上述目录、说明、当前状态页和当天的首条日志，并将后续环境安装、TDD、测试、部署和交接按此机制记录。日志机制不引入新的运行时依赖，不改变业务代码或部署行为。
