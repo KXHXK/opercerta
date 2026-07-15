@@ -562,6 +562,7 @@ git commit -m "feat: add deterministic recovery policy"
 - Create: `src/opercerta/infrastructure/db/engine.py`
 - Create: `src/opercerta/infrastructure/db/approval_repository.py`
 - Test: `tests/integration/conftest.py`
+- Test: `tests/integration/db/test_migration.py`
 - Test: `tests/integration/db/test_approval_race.py`
 
 **Interfaces:**
@@ -592,7 +593,7 @@ Remove-Item Env:OPERCERTA_DATABASE_URL
 
 Expected: PostgreSQL reports `accepting connections`; the SQL probe returns `opercerta_test`, `opercerta`, `127.0.0.1/32`, and `55432`. Redis and Docker are not started in this task.
 
-- [ ] **Step 2: RED — define the approval domain contract**
+- [x] **Step 2: RED — define the approval domain contract**
 
 Create `tests/unit/domain/test_approvals.py`:
 
@@ -688,7 +689,7 @@ def test_approval_errors_expose_stable_codes() -> None:
     assert conflict.operation_id == OPERATION_ID
 ```
 
-- [ ] **Step 3: Run the domain contract test to verify RED**
+- [x] **Step 3: Run the domain contract test to verify RED**
 
 Run:
 
@@ -698,7 +699,7 @@ uv run pytest tests/unit/domain/test_approvals.py -q
 
 Expected RED: collection fails because `opercerta.domain.approvals` and the two stable errors do not exist. Fix only test syntax/import mistakes if the failure is unrelated; do not write production code until the missing-contract failure is observed.
 
-- [ ] **Step 4: GREEN — implement the minimal immutable contract and stable errors**
+- [x] **Step 4: GREEN — implement the minimal immutable contract and stable errors**
 
 Create `src/opercerta/domain/approvals.py`:
 
@@ -769,7 +770,7 @@ class ApprovalAlreadyDecided(RuntimeError):
         super().__init__(self.code)
 ```
 
-- [ ] **Step 5: Verify the domain contract is GREEN and commit it**
+- [x] **Step 5: Verify the domain contract is GREEN and commit it**
 
 Run:
 
@@ -787,7 +788,87 @@ git add src/opercerta/domain/approvals.py src/opercerta/domain/errors.py tests/u
 git commit -m "feat: define approval domain contract"
 ```
 
-- [ ] **Step 6: Add the migration before the race implementation**
+- [ ] **Step 6: RED — prove the database migration contract is absent**
+
+Create `tests/integration/conftest.py` with a secret-safe local URL fixture:
+
+```python
+import os
+from pathlib import Path
+
+import pytest
+
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def _database_url() -> str:
+    configured = os.getenv("OPERCERTA_DATABASE_URL")
+    if configured:
+        return configured
+
+    local_env = ROOT / ".env.local"
+    if local_env.is_file():
+        for raw_line in local_env.read_text(encoding="utf-8").splitlines():
+            name, separator, value = raw_line.partition("=")
+            if name == "OPERCERTA_DATABASE_URL" and separator and value:
+                return value
+
+    pytest.fail("OPERCERTA_DATABASE_URL is not configured for integration tests")
+
+
+@pytest.fixture(scope="session")
+def database_url() -> str:
+    return _database_url()
+```
+
+Create `tests/integration/db/test_migration.py`:
+
+```python
+from pathlib import Path
+
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import create_engine, inspect
+
+
+ROOT = Path(__file__).resolve().parents[3]
+
+
+def test_reliability_kernel_migration_creates_required_schema(
+    database_url: str,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("OPERCERTA_DATABASE_URL", database_url)
+    command.upgrade(Config(str(ROOT / "alembic.ini")), "head")
+
+    engine = create_engine(database_url)
+    try:
+        inspector = inspect(engine)
+        assert {
+            "operations",
+            "approvals",
+            "work_orders",
+            "audit_events",
+        } <= set(inspector.get_table_names(schema="public"))
+        assert "langgraph" in inspector.get_schema_names()
+        assert {
+            constraint["name"]
+            for constraint in inspector.get_unique_constraints("approvals")
+        } == {"uq_approvals_operation_id"}
+    finally:
+        engine.dispose()
+```
+
+Run:
+
+```powershell
+uv run pytest tests/integration/db/test_migration.py -q
+```
+
+Expected RED: Alembic raises `CommandError: No 'script_location' key found in configuration` because `alembic.ini` and the migration do not exist. The fixture must not print or embed the database URL.
+
+- [ ] **Step 7: GREEN — add the migration before the race implementation**
 
 The migration must create `public.operations`, `public.approvals`, `public.work_orders`, `public.audit_events`, and `langgraph` Schema. Exact constraints:
 
@@ -819,7 +900,7 @@ Remove-Item Env:OPERCERTA_DATABASE_URL
 
 Expected: current revision is `0001_reliability_kernel`.
 
-- [ ] **Step 7: RED — race ten decisions through independent connections**
+- [ ] **Step 8: RED — race ten decisions through independent connections**
 
 Create an `awaiting_approval` operation, then start ten tasks with five approvals and five rejections:
 
@@ -851,7 +932,7 @@ assert await audit_types(engine, operation_id) == ["approval_recorded"]
 
 Run the test. Expected RED: repository import is unavailable.
 
-- [ ] **Step 8: GREEN — serialize on the operation row and commit all effects together**
+- [ ] **Step 9: GREEN — serialize on the operation row and commit all effects together**
 
 Implement `submit_once` with one `engine.begin()` transaction:
 
@@ -911,7 +992,7 @@ Run the race test 20 times:
 
 Expected GREEN: every run reports one passed test; no deadlock or duplicate row.
 
-- [ ] **Step 9: Commit the approval transaction**
+- [ ] **Step 10: Commit the approval transaction**
 
 ```powershell
 git add .env.example alembic.ini migrations src/opercerta/infrastructure tests/integration docs/development-log DOCUMENT_INDEX.md IMPLEMENTATION_HANDOFF.md
