@@ -1,6 +1,6 @@
 # OperCerta 文档索引
 
-最后核验：2026-07-15，PostgreSQL 环境文档同步前的 Git commit `fc974f5`。
+最后核验：2026-07-15，审批领域契约设计提交 `3c55f3b`。
 
 本文件是 OperCerta 重要文档的中文目录，不复制正文。自动压缩或新会话开始时先阅读本文件，再按“优先级”读取当前状态、过程日志、相关决策、交接和实施计划。
 
@@ -14,12 +14,12 @@
 | `docs/specs/2026-07-14-opercerta-design.md` | OperCerta 详细设计 | 已冻结基线 | `48d299c` | 4 |
 | `docs/superpowers/specs/2026-07-15-windows-native-postgres-environment-design.md` | 本机数据库环境决策 | 已确认 | `51c1583` | 4 |
 | `docs/superpowers/specs/2026-07-15-development-log-design.md` | 开发日志与上下文恢复规则 | 已确认 | `a0564b1` | 1 |
-| `docs/superpowers/specs/2026-07-15-approval-domain-contract-design.md` | 审批领域契约与原子竞态边界 | 待书面复核 | `20ab78c` | 1 |
-| `docs/superpowers/plans/2026-07-14-opercerta-reliability-kernel.md` | 可靠性内核 TDD 计划 | Task 3 可在原生 PostgreSQL 环境开始 | `84a7b08` | 1 |
+| `docs/superpowers/specs/2026-07-15-approval-domain-contract-design.md` | 审批领域契约与原子竞态边界 | 已确认 | `3c55f3b` | 1 |
+| `docs/superpowers/plans/2026-07-14-opercerta-reliability-kernel.md` | 可靠性内核 TDD 计划 | Task 3 已补齐审批领域契约 RED/GREEN | `3c55f3b` | 1 |
 | `docs/superpowers/plans/2026-07-15-windows-native-postgres-environment.md` | PostgreSQL 环境计划 | 本机安装、连接与文档同步已完成 | `84a7b08` | 2 |
 | `docs/superpowers/plans/2026-07-15-development-log-bootstrap.md` | 日志初始化计划 | 执行记录见开发日志 | `6c97d5d` | 1 |
 | `docs/development-log/README.md` | 日志机制说明 | 已初始化 | `f70411f` | 1 |
-| `docs/development-log/current-state.md` | 当前已验证状态 | 已初始化 | `f70411f` | 1 |
+| `docs/development-log/current-state.md` | 当前已验证状态 | 已同步至审批契约实施前 | `3c55f3b` | 1 |
 | `docs/development-log/daily/2026-07-15.md` | 当日过程记录 | 已初始化 | `f70411f` | 2 |
 | `docs/development-log/decisions/2026-07-15-windows-native-postgres.md` | 环境架构决策 | 已初始化 | `f70411f` | 2 |
 | `docs/release-evidence/native-postgres-environment.md` | 本机数据库环境核验证据 | 已记录；不代表发布通过 | `fc974f5` | 2 |

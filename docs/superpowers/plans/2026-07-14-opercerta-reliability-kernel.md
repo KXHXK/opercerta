@@ -550,6 +550,9 @@ git commit -m "feat: add deterministic recovery policy"
 **Precondition:** `C:\Program Files\PostgreSQL\18\bin\pg_isready.exe -h 127.0.0.1 -p 55432` must report `accepting connections`, and ignored `.env.local` must contain `OPERCERTA_DATABASE_URL`. If either check fails, stop here without writing database production code; unit Task 1–2 remain valid but the concurrency claim is unproven.
 
 **Files:**
+- Create: `src/opercerta/domain/approvals.py`
+- Modify: `src/opercerta/domain/errors.py`
+- Test: `tests/unit/domain/test_approvals.py`
 - Create: `.env.example`
 - Create: `alembic.ini`
 - Create: `migrations/env.py`
@@ -562,11 +565,17 @@ git commit -m "feat: add deterministic recovery policy"
 - Test: `tests/integration/db/test_approval_race.py`
 
 **Interfaces:**
+- Produces: `ApprovalDecision(StrEnum)` with exactly `APPROVED = "approved"` and `REJECTED = "rejected"`.
+- Produces: immutable `ApprovalCommand(operation_id: UUID, approver_id: str, decision: ApprovalDecision, reason: str)`; extra fields are forbidden, identifiers/reasons are stripped and non-empty.
+- Produces: immutable `ApprovalRecord` with the command fields plus `id: UUID` and timezone-aware `created_at: datetime`.
+- Produces: `OperationNotFound(operation_id)` with code `operation_not_found` and `ApprovalAlreadyDecided(operation_id)` with code `approval_already_decided`.
 - Produces: `ApprovalRepository.submit_once(command: ApprovalCommand) -> ApprovalRecord`.
 - Atomic postcondition: one `approvals` row, operation state `resuming`, one ordered `approval_recorded` audit event.
 - Conflict: `ApprovalAlreadyDecided` with code `approval_already_decided`.
 
-- [ ] **Step 1: Verify the isolated native PostgreSQL service**
+The approved contract source of truth is `docs/superpowers/specs/2026-07-15-approval-domain-contract-design.md`. Both approved and rejected decisions first enter `resuming`; the later workflow recovery node routes the stored decision to `executing` or `rejected`.
+
+- [x] **Step 1: Verify the isolated native PostgreSQL service**
 
 Run without printing `.env.local`:
 
@@ -583,7 +592,202 @@ Remove-Item Env:OPERCERTA_DATABASE_URL
 
 Expected: PostgreSQL reports `accepting connections`; the SQL probe returns `opercerta_test`, `opercerta`, `127.0.0.1/32`, and `55432`. Redis and Docker are not started in this task.
 
-- [ ] **Step 2: Add the migration before the race implementation**
+- [ ] **Step 2: RED — define the approval domain contract**
+
+Create `tests/unit/domain/test_approvals.py`:
+
+```python
+from datetime import datetime
+from uuid import UUID
+
+import pytest
+from pydantic import ValidationError
+
+from opercerta.domain.approvals import (
+    ApprovalCommand,
+    ApprovalDecision,
+    ApprovalRecord,
+)
+from opercerta.domain.errors import ApprovalAlreadyDecided, OperationNotFound
+
+
+OPERATION_ID = UUID("00000000-0000-4000-8000-000000000001")
+APPROVAL_ID = UUID("00000000-0000-4000-8000-000000000002")
+
+
+def valid_command_data() -> dict[str, object]:
+    return {
+        "operation_id": OPERATION_ID,
+        "approver_id": "approver-1",
+        "decision": ApprovalDecision.APPROVED,
+        "reason": "synthetic approval reason",
+    }
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("approver_id", "   "),
+        ("approver_id", "a" * 129),
+        ("decision", "unknown"),
+        ("reason", "   "),
+        ("reason", "r" * 1_001),
+    ],
+)
+def test_approval_command_rejects_invalid_fields(field: str, value: object) -> None:
+    data = valid_command_data()
+    data[field] = value
+
+    with pytest.raises(ValidationError):
+        ApprovalCommand.model_validate(data)
+
+
+def test_approval_command_rejects_extra_fields() -> None:
+    data = valid_command_data()
+    data["role"] = "approver"
+
+    with pytest.raises(ValidationError):
+        ApprovalCommand.model_validate(data)
+
+
+def test_approval_command_strips_human_text() -> None:
+    command = ApprovalCommand(
+        operation_id=OPERATION_ID,
+        approver_id="  approver-1  ",
+        decision=ApprovalDecision.REJECTED,
+        reason="  synthetic rejection reason  ",
+    )
+
+    assert command.approver_id == "approver-1"
+    assert command.reason == "synthetic rejection reason"
+
+
+def test_approval_command_is_immutable() -> None:
+    command = ApprovalCommand.model_validate(valid_command_data())
+
+    with pytest.raises(ValidationError, match="Instance is frozen"):
+        command.reason = "changed after validation"
+
+
+def test_approval_record_requires_timezone_aware_created_at() -> None:
+    with pytest.raises(ValidationError, match="created_at must include timezone"):
+        ApprovalRecord(
+            id=APPROVAL_ID,
+            **valid_command_data(),
+            created_at=datetime(2026, 7, 15, 12, 0),
+        )
+
+
+def test_approval_errors_expose_stable_codes() -> None:
+    not_found = OperationNotFound(OPERATION_ID)
+    conflict = ApprovalAlreadyDecided(OPERATION_ID)
+
+    assert not_found.code == "operation_not_found"
+    assert not_found.operation_id == OPERATION_ID
+    assert conflict.code == "approval_already_decided"
+    assert conflict.operation_id == OPERATION_ID
+```
+
+- [ ] **Step 3: Run the domain contract test to verify RED**
+
+Run:
+
+```powershell
+uv run pytest tests/unit/domain/test_approvals.py -q
+```
+
+Expected RED: collection fails because `opercerta.domain.approvals` and the two stable errors do not exist. Fix only test syntax/import mistakes if the failure is unrelated; do not write production code until the missing-contract failure is observed.
+
+- [ ] **Step 4: GREEN — implement the minimal immutable contract and stable errors**
+
+Create `src/opercerta/domain/approvals.py`:
+
+```python
+from datetime import datetime
+from enum import StrEnum
+from typing import Annotated
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, StringConstraints, field_validator
+
+
+ApproverId = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=128),
+]
+ApprovalReason = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=1_000),
+]
+
+
+class ApprovalDecision(StrEnum):
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
+class ApprovalCommand(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    operation_id: UUID
+    approver_id: ApproverId
+    decision: ApprovalDecision
+    reason: ApprovalReason
+
+
+class ApprovalRecord(ApprovalCommand):
+    id: UUID
+    created_at: datetime
+
+    @field_validator("created_at")
+    @classmethod
+    def require_timezone(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("created_at must include timezone")
+        return value
+```
+
+Add the imports and two classes to `src/opercerta/domain/errors.py` without changing `InvalidRecoveryFacts`:
+
+```python
+from uuid import UUID
+
+
+class OperationNotFound(LookupError):
+    code = "operation_not_found"
+
+    def __init__(self, operation_id: UUID) -> None:
+        self.operation_id = operation_id
+        super().__init__(self.code)
+
+
+class ApprovalAlreadyDecided(RuntimeError):
+    code = "approval_already_decided"
+
+    def __init__(self, operation_id: UUID) -> None:
+        self.operation_id = operation_id
+        super().__init__(self.code)
+```
+
+- [ ] **Step 5: Verify the domain contract is GREEN and commit it**
+
+Run:
+
+```powershell
+uv run pytest tests/unit/domain/test_approvals.py -q
+uv run pytest tests/unit -q
+uv run ruff check src/opercerta/domain tests/unit/domain
+uv run mypy
+```
+
+Expected: every command exits 0, with no warnings. Then commit only this contract slice:
+
+```powershell
+git add src/opercerta/domain/approvals.py src/opercerta/domain/errors.py tests/unit/domain/test_approvals.py
+git commit -m "feat: define approval domain contract"
+```
+
+- [ ] **Step 6: Add the migration before the race implementation**
 
 The migration must create `public.operations`, `public.approvals`, `public.work_orders`, `public.audit_events`, and `langgraph` Schema. Exact constraints:
 
@@ -615,7 +819,7 @@ Remove-Item Env:OPERCERTA_DATABASE_URL
 
 Expected: current revision is `0001_reliability_kernel`.
 
-- [ ] **Step 3: RED — race ten decisions through independent connections**
+- [ ] **Step 7: RED — race ten decisions through independent connections**
 
 Create an `awaiting_approval` operation, then start ten tasks with five approvals and five rejections:
 
@@ -639,6 +843,7 @@ accepted = [result for result in results if isinstance(result, ApprovalRecord)]
 conflicts = [result for result in results if isinstance(result, ApprovalAlreadyDecided)]
 assert len(accepted) == 1
 assert len(conflicts) == 9
+assert len(accepted) + len(conflicts) == len(results)
 assert await count_rows(engine, "approvals", operation_id) == 1
 assert await operation_status(engine, operation_id) == "resuming"
 assert await audit_types(engine, operation_id) == ["approval_recorded"]
@@ -646,7 +851,7 @@ assert await audit_types(engine, operation_id) == ["approval_recorded"]
 
 Run the test. Expected RED: repository import is unavailable.
 
-- [ ] **Step 4: GREEN — serialize on the operation row and commit all effects together**
+- [ ] **Step 8: GREEN — serialize on the operation row and commit all effects together**
 
 Implement `submit_once` with one `engine.begin()` transaction:
 
@@ -706,10 +911,10 @@ Run the race test 20 times:
 
 Expected GREEN: every run reports one passed test; no deadlock or duplicate row.
 
-- [ ] **Step 5: Commit the approval transaction**
+- [ ] **Step 9: Commit the approval transaction**
 
 ```powershell
-git add .env.example alembic.ini migrations src/opercerta/infrastructure tests/integration
+git add .env.example alembic.ini migrations src/opercerta/infrastructure tests/integration docs/development-log DOCUMENT_INDEX.md IMPLEMENTATION_HANDOFF.md
 git commit -m "feat: make approval decisions atomic"
 ```
 
