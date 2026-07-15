@@ -14,6 +14,7 @@
 | `docs/specs/2026-07-14-opercerta-design.md` | OperCerta 详细设计 | 已冻结基线 | `48d299c` | 4 |
 | `docs/superpowers/specs/2026-07-15-windows-native-postgres-environment-design.md` | 本机数据库环境决策 | 已确认 | `51c1583` | 4 |
 | `docs/superpowers/specs/2026-07-15-development-log-design.md` | 开发日志与上下文恢复规则 | 已确认 | `a0564b1` | 1 |
+| `docs/superpowers/specs/2026-07-15-approval-domain-contract-design.md` | 审批领域契约与原子竞态边界 | 待书面复核 | `20ab78c` | 1 |
 | `docs/superpowers/plans/2026-07-14-opercerta-reliability-kernel.md` | 可靠性内核 TDD 计划 | Task 3 可在原生 PostgreSQL 环境开始 | `84a7b08` | 1 |
 | `docs/superpowers/plans/2026-07-15-windows-native-postgres-environment.md` | PostgreSQL 环境计划 | 本机安装、连接与文档同步已完成 | `84a7b08` | 2 |
 | `docs/superpowers/plans/2026-07-15-development-log-bootstrap.md` | 日志初始化计划 | 执行记录见开发日志 | `6c97d5d` | 1 |
