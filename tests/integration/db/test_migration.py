@@ -5,6 +5,7 @@ from alembic.config import Config
 from pydantic import SecretStr
 from pytest import MonkeyPatch
 from sqlalchemy import create_engine, inspect
+from sqlalchemy.engine import make_url
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -13,11 +14,17 @@ def test_reliability_kernel_migration_creates_required_schema(
     database_url: SecretStr,
     monkeypatch: MonkeyPatch,
 ) -> None:
-    raw_database_url = database_url.get_secret_value()
-    monkeypatch.setenv("OPERCERTA_DATABASE_URL", raw_database_url)
+    parsed_url = make_url(database_url.get_secret_value())
+    if parsed_url.password:
+        monkeypatch.setenv("PGPASSWORD", parsed_url.password)
+    passwordless_url = parsed_url.set(password=None)
+    monkeypatch.setenv(
+        "OPERCERTA_DATABASE_URL",
+        passwordless_url.render_as_string(hide_password=False),
+    )
     command.upgrade(Config(str(ROOT / "alembic.ini")), "head")
 
-    engine = create_engine(raw_database_url)
+    engine = create_engine(passwordless_url)
     try:
         inspector = inspect(engine)
         assert {
