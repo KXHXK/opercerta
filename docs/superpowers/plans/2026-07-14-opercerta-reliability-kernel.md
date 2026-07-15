@@ -18,7 +18,7 @@
 - `LANGGRAPH_STRICT_MSGPACK=true`；检查点首次使用必须执行 `setup()`。
 - 写操作必须已有原子落库的批准决定；重复审批返回冲突；同一 operation 的模拟工单最多一行。
 - 每个生产行为先写一个能因缺失行为而失败的测试，观察 RED 后只写使其通过的最小代码，再做保持全绿的重构。
-- 当前工作站已核验：`uv 0.11.27` 可用、Python 3.12 未安装、Docker/Podman/本地 PostgreSQL 均不可用。Task 1–2 可在 `uv python install 3.12.13` 后执行；Task 3–6 必须先让 `docker version` 同时返回 Client 和 Server 信息。
+- 当前工作站已核验：Windows 原生 PostgreSQL `18.4` 服务 `postgresql-x64-18` 运行于 `127.0.0.1:55432`，普通 IPv4 回环连接使用 SCRAM；Task 3–6 的本地前置条件是 `pg_isready -h 127.0.0.1 -p 55432` 成功及已忽略 `.env.local` 提供 `OPERCERTA_DATABASE_URL`。Docker/Redis 不作为当前开发前置条件，Linux/Docker 一致性验证保留为发布门禁。
 
 ## Official Dependency Lock Decision (verified 2026-07-14)
 
@@ -46,8 +46,9 @@
 | pytest-asyncio | 1.4.0 | 严格 asyncio 测试模式 |
 | Ruff | 0.15.21 | 格式与静态规则 |
 | mypy | 2.3.0 | 严格类型检查 |
-| PostgreSQL image | `postgres:18.4-bookworm` | 官方稳定 tag；卷挂载使用 PostgreSQL 18 的 `/var/lib/postgresql` |
-| Redis image | `redis:8.8.0-trixie` | 官方稳定 tag；只绑定本机回环地址 |
+| PostgreSQL local development | `18.4` Windows x86-64 installer | 当前本机服务仅监听 `127.0.0.1:55432`；凭据仅在已忽略 `.env.local` |
+| PostgreSQL release image | `postgres:18.4-bookworm` | 后续 Linux/Docker 发布门禁使用；不是当前 Task 3 前置条件 |
+| Redis image | `redis:8.8.0-trixie` | 后续发布阶段再启用；不在当前 Task 3 启动 |
 
 Primary sources:
 
@@ -62,6 +63,8 @@ Primary sources:
 - https://pypi.org/project/SQLAlchemy/
 - https://pypi.org/project/alembic/
 - https://pypi.org/project/psycopg/
+- https://www.postgresql.org/download/windows/
+- https://www.enterprisedb.com/docs/supported-open-source/postgresql/installing/windows/
 - https://hub.docker.com/_/postgres/
 - https://hub.docker.com/_/redis/
 
@@ -544,11 +547,10 @@ git commit -m "feat: add deterministic recovery policy"
 
 ### Task 3: PostgreSQL schema and atomic approval race
 
-**Precondition:** `docker version` must show a running Server. If it does not, stop here without writing database production code; unit Task 1–2 remain valid but the concurrency claim is unproven.
+**Precondition:** `C:\Program Files\PostgreSQL\18\bin\pg_isready.exe -h 127.0.0.1 -p 55432` must report `accepting connections`, and ignored `.env.local` must contain `OPERCERTA_DATABASE_URL`. If either check fails, stop here without writing database production code; unit Task 1–2 remain valid but the concurrency claim is unproven.
 
 **Files:**
 - Create: `.env.example`
-- Create: `compose.yaml`
 - Create: `alembic.ini`
 - Create: `migrations/env.py`
 - Create: `migrations/script.py.mako`
@@ -564,54 +566,22 @@ git commit -m "feat: add deterministic recovery policy"
 - Atomic postcondition: one `approvals` row, operation state `resuming`, one ordered `approval_recorded` audit event.
 - Conflict: `ApprovalAlreadyDecided` with code `approval_already_decided`.
 
-- [ ] **Step 1: Start isolated official database services**
+- [ ] **Step 1: Verify the isolated native PostgreSQL service**
 
-`compose.yaml` must bind only loopback addresses:
-
-```yaml
-name: opercerta
-services:
-  postgres:
-    image: postgres:18.4-bookworm
-    environment:
-      POSTGRES_DB: opercerta_test
-      POSTGRES_USER: opercerta
-      POSTGRES_PASSWORD: opercerta-local-only
-      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
-    ports:
-      - "127.0.0.1:55432:5432"
-    volumes:
-      - opercerta-postgres:/var/lib/postgresql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U opercerta -d opercerta_test"]
-      interval: 2s
-      timeout: 3s
-      retries: 20
-  redis:
-    image: redis:8.8.0-trixie
-    command: ["redis-server", "--appendonly", "yes", "--requirepass", "opercerta-local-only"]
-    ports:
-      - "127.0.0.1:56379:6379"
-    volumes:
-      - opercerta-redis:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "-a", "opercerta-local-only", "ping"]
-      interval: 2s
-      timeout: 3s
-      retries: 20
-volumes:
-  opercerta-postgres:
-  opercerta-redis:
-```
-
-Run:
+Run without printing `.env.local`:
 
 ```powershell
-docker compose up -d postgres redis
-docker compose ps
+& 'C:\Program Files\PostgreSQL\18\bin\pg_isready.exe' -h 127.0.0.1 -p 55432
+$line = Get-Content -LiteralPath .env.local |
+    Where-Object { $_.StartsWith('OPERCERTA_DATABASE_URL=') } |
+    Select-Object -First 1
+if (-not $line) { throw 'OPERCERTA_DATABASE_URL is missing from .env.local.' }
+$env:OPERCERTA_DATABASE_URL = $line.Substring('OPERCERTA_DATABASE_URL='.Length)
+uv run python -c "import os; from sqlalchemy import create_engine, text; e=create_engine(os.environ['OPERCERTA_DATABASE_URL']); c=e.connect(); print(c.execute(text('select current_database(), current_user, inet_server_addr()::text, inet_server_port()')).one()); c.close(); e.dispose()"
+Remove-Item Env:OPERCERTA_DATABASE_URL
 ```
 
-Expected: both services are `healthy`.
+Expected: PostgreSQL reports `accepting connections`; the SQL probe returns `opercerta_test`, `opercerta`, `127.0.0.1/32`, and `55432`. Redis and Docker are not started in this task.
 
 - [ ] **Step 2: Add the migration before the race implementation**
 
@@ -633,9 +603,14 @@ Use PostgreSQL UUID, JSONB and timezone-aware timestamps. `operations` contains 
 Run:
 
 ```powershell
-$env:OPERCERTA_DATABASE_URL='postgresql+psycopg://opercerta:opercerta-local-only@127.0.0.1:55432/opercerta_test'
+$line = Get-Content -LiteralPath .env.local |
+    Where-Object { $_.StartsWith('OPERCERTA_DATABASE_URL=') } |
+    Select-Object -First 1
+if (-not $line) { throw 'OPERCERTA_DATABASE_URL is missing from .env.local.' }
+$env:OPERCERTA_DATABASE_URL = $line.Substring('OPERCERTA_DATABASE_URL='.Length)
 uv run alembic upgrade head
 uv run alembic current
+Remove-Item Env:OPERCERTA_DATABASE_URL
 ```
 
 Expected: current revision is `0001_reliability_kernel`.
@@ -734,7 +709,7 @@ Expected GREEN: every run reports one passed test; no deadlock or duplicate row.
 - [ ] **Step 5: Commit the approval transaction**
 
 ```powershell
-git add .env.example compose.yaml alembic.ini migrations src/opercerta/infrastructure tests/integration
+git add .env.example alembic.ini migrations src/opercerta/infrastructure tests/integration
 git commit -m "feat: make approval decisions atomic"
 ```
 
@@ -872,10 +847,14 @@ Expected GREEN: graph pauses, no write occurs.
 
 - [ ] **Step 3: Configure the durable checkpointer exactly once per database**
 
-Create the checkpointer DSN with a URL-encoded search path:
+Derive the checkpointer DSN from ignored `.env.local` without printing the base URL:
 
-```text
-postgresql://opercerta:opercerta-local-only@127.0.0.1:55432/opercerta_test?options=-c%20search_path%3Dlanggraph
+```powershell
+$line = Get-Content -LiteralPath .env.local |
+    Where-Object { $_.StartsWith('OPERCERTA_DATABASE_URL=') } |
+    Select-Object -First 1
+if (-not $line) { throw 'OPERCERTA_DATABASE_URL is missing from .env.local.' }
+$checkpointDsn = ($line.Substring('OPERCERTA_DATABASE_URL='.Length) -replace '^postgresql\+psycopg://', 'postgresql://') + '?options=-c%20search_path%3Dlanggraph'
 ```
 
 Use:
@@ -1008,4 +987,4 @@ Expected: clean working tree on `main`. Do not create a release tag, public depl
 - Scope: MCP tool implementation, complete API/UI, 30-case evaluation and public release are deliberately outside this independently testable increment; their absence keeps the release gate closed.
 - Type consistency: `OperationStatus`, `RecoveryAction`, `ApprovalCommand`, `ApprovalRecord`, `WorkOrderCommand` and `WorkOrderWriteResult` are defined once and consumed by later tasks under the same names.
 - Truthfulness: every numerical statement is a test cardinality or official dependency version; no performance or quality target is presented as achieved.
-- Environment: Docker is a real execution prerequisite for Task 3 onward and is surfaced before any PostgreSQL success claim.
+- Environment: native PostgreSQL 18.4 at `127.0.0.1:55432` is the local Task 3 prerequisite; Linux/Docker verification remains a release-gate requirement and is surfaced before any release claim.
