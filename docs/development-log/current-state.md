@@ -1,10 +1,10 @@
 # OperCerta 当前状态
 
-最后核验：2026-07-16 11:49 Asia/Shanghai，Git 基线 commit `abdbcda`。
+最后核验：2026-07-16 11:55 Asia/Shanghai，Git 基线 commit `2e6cbb4`。
 
 ## 当前阶段
 
-非法输入、状态恢复、数据库迁移、原子审批竞态和 Task 4 幂等工单写入已按 TDD 实现。Task 5 已完成快照领域模型、原子 operation 状态仓储和独立 PostgreSQL checkpointer 三个 RED/GREEN 检查点；JSON-only reliability graph、RecoveryCoordinator 和四点 A/B 重启矩阵尚未实现。
+非法输入、状态恢复、数据库迁移、原子审批竞态和 Task 4 幂等工单写入已按 TDD 实现。Task 5 已完成快照领域模型、原子 operation 状态仓储、独立 PostgreSQL checkpointer 和 JSON-only reliability graph 四个 RED/GREEN 检查点；RecoveryCoordinator 和四点 A/B 重启矩阵尚未实现。
 
 ## 已验证事实
 
@@ -37,6 +37,7 @@
 - Task 5 快照领域 RED 因稳定错误缺失退出 1；GREEN focused 为 `48 passed`、单元全集为 `77 passed`，Ruff/format 与 mypy（14 个源文件）通过，提交 `8fb054e`。
 - Task 5 状态仓储 RED 因 Repository 模块缺失退出 1；GREEN focused 为 `7 passed`、数据库集成为 `24 passed`，Ruff/format 与 mypy（15 个源文件）通过，提交 `5bdacf7`。
 - Task 5 checkpointer RED 因模块缺失退出 1；DSN 回归还真实发现 `+` 空格编码不兼容与 URL 密码残留。修复后 focused 为 `4 passed`，与数据库回归合并为 `28 passed`，Ruff/format 与 mypy（16 个源文件）通过，提交 `e9b2834`。
+- Task 5 reliability graph RED 因 workflow 模块缺失退出 1；GREEN focused 为 `3 passed`、workflow 集成为 `7 passed`，Ruff/format 与 mypy（18 个源文件）通过。测试断言 interrupt 时零审批、零工单，并覆盖无崩溃的批准完成与拒绝终止；提交 `2e6cbb4`。
 
 ## 当前阻塞与风险
 
@@ -47,7 +48,7 @@
 
 ## 下一步
 
-从 JSON-only reliability graph 的 interrupt RED 继续，先证明任何审批或工单写入前图已暂停。Task 6 后冻结可靠性内核并转向最小纵向闭环。
+从 `RecoveryCoordinator` 和四点 A/B 重启矩阵 RED 继续，证明新 graph/checkpointer 实例可依据业务事实安全恢复。Task 6 后冻结可靠性内核并转向最小纵向闭环。
 
 ## 发布门禁
 
