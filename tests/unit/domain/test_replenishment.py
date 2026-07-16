@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import pytest
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from opercerta.domain.errors import (
     EvidenceExpired,
@@ -10,10 +10,14 @@ from opercerta.domain.errors import (
 )
 from opercerta.domain.model_gateway import MockModelGateway
 from opercerta.domain.replenishment import (
+    ApprovalBinding,
     EvidenceBundle,
     InventoryEvidence,
+    InventoryPosition,
     ModelPlanExplanation,
     PolicyEvidence,
+    ReplenishmentAssessment,
+    ReplenishmentPlan,
     assess_replenishment,
     build_approval_binding,
     build_plan,
@@ -57,6 +61,221 @@ def bundle(
             captured_at=captured_at,
         ),
     )
+
+
+@pytest.mark.parametrize(
+    "invalid_value",
+    ["1", True, 1.0],
+    ids=["string", "bool", "integer-valued-float"],
+)
+@pytest.mark.parametrize(
+    "model_type,valid_data,field",
+    [
+        (
+            InventoryEvidence,
+            {
+                "evidence_id": INVENTORY_ID,
+                "sku": "SKU-LOW-001",
+                "on_hand_quantity": 20,
+                "reserved_quantity": 8,
+                "captured_at": NOW,
+                "source_version": "inventory-seed-v1",
+            },
+            "on_hand_quantity",
+        ),
+        (
+            InventoryEvidence,
+            {
+                "evidence_id": INVENTORY_ID,
+                "sku": "SKU-LOW-001",
+                "on_hand_quantity": 20,
+                "reserved_quantity": 8,
+                "captured_at": NOW,
+                "source_version": "inventory-seed-v1",
+            },
+            "reserved_quantity",
+        ),
+        (
+            PolicyEvidence,
+            {
+                "evidence_id": POLICY_ID,
+                "action": "replenish_inventory",
+                "sku": "SKU-LOW-001",
+                "reorder_point": 15,
+                "target_stock": 30,
+                "minimum_order_quantity": 1,
+                "maximum_order_quantity": 100,
+                "evidence_ttl_seconds": 300,
+                "approval_required": True,
+                "rule_version": "replenishment-v1",
+                "captured_at": NOW,
+            },
+            "reorder_point",
+        ),
+        (
+            PolicyEvidence,
+            {
+                "evidence_id": POLICY_ID,
+                "action": "replenish_inventory",
+                "sku": "SKU-LOW-001",
+                "reorder_point": 0,
+                "target_stock": 30,
+                "minimum_order_quantity": 1,
+                "maximum_order_quantity": 100,
+                "evidence_ttl_seconds": 300,
+                "approval_required": True,
+                "rule_version": "replenishment-v1",
+                "captured_at": NOW,
+            },
+            "target_stock",
+        ),
+        (
+            PolicyEvidence,
+            {
+                "evidence_id": POLICY_ID,
+                "action": "replenish_inventory",
+                "sku": "SKU-LOW-001",
+                "reorder_point": 15,
+                "target_stock": 30,
+                "minimum_order_quantity": 1,
+                "maximum_order_quantity": 100,
+                "evidence_ttl_seconds": 300,
+                "approval_required": True,
+                "rule_version": "replenishment-v1",
+                "captured_at": NOW,
+            },
+            "minimum_order_quantity",
+        ),
+        (
+            PolicyEvidence,
+            {
+                "evidence_id": POLICY_ID,
+                "action": "replenish_inventory",
+                "sku": "SKU-LOW-001",
+                "reorder_point": 15,
+                "target_stock": 30,
+                "minimum_order_quantity": 1,
+                "maximum_order_quantity": 100,
+                "evidence_ttl_seconds": 300,
+                "approval_required": True,
+                "rule_version": "replenishment-v1",
+                "captured_at": NOW,
+            },
+            "maximum_order_quantity",
+        ),
+        (
+            PolicyEvidence,
+            {
+                "evidence_id": POLICY_ID,
+                "action": "replenish_inventory",
+                "sku": "SKU-LOW-001",
+                "reorder_point": 15,
+                "target_stock": 30,
+                "minimum_order_quantity": 1,
+                "maximum_order_quantity": 100,
+                "evidence_ttl_seconds": 300,
+                "approval_required": True,
+                "rule_version": "replenishment-v1",
+                "captured_at": NOW,
+            },
+            "evidence_ttl_seconds",
+        ),
+        (
+            InventoryPosition,
+            {"sku": "SKU-LOW-001", "available_quantity": 12},
+            "available_quantity",
+        ),
+        (
+            ReplenishmentAssessment,
+            {
+                "sku": "SKU-LOW-001",
+                "available_quantity": 12,
+                "reorder_point": 15,
+                "target_stock": 30,
+                "replenishment_required": True,
+                "recommended_quantity": 18,
+                "decision_facts_hash": "0" * 64,
+            },
+            "available_quantity",
+        ),
+        (
+            ReplenishmentAssessment,
+            {
+                "sku": "SKU-LOW-001",
+                "available_quantity": 12,
+                "reorder_point": 15,
+                "target_stock": 30,
+                "replenishment_required": True,
+                "recommended_quantity": 18,
+                "decision_facts_hash": "0" * 64,
+            },
+            "reorder_point",
+        ),
+        (
+            ReplenishmentAssessment,
+            {
+                "sku": "SKU-LOW-001",
+                "available_quantity": 12,
+                "reorder_point": 15,
+                "target_stock": 30,
+                "replenishment_required": True,
+                "recommended_quantity": 18,
+                "decision_facts_hash": "0" * 64,
+            },
+            "target_stock",
+        ),
+        (
+            ReplenishmentAssessment,
+            {
+                "sku": "SKU-LOW-001",
+                "available_quantity": 12,
+                "reorder_point": 15,
+                "target_stock": 30,
+                "replenishment_required": True,
+                "recommended_quantity": 18,
+                "decision_facts_hash": "0" * 64,
+            },
+            "recommended_quantity",
+        ),
+        (
+            ReplenishmentPlan,
+            {
+                "action": "replenish_inventory",
+                "sku": "SKU-LOW-001",
+                "recommended_quantity": 18,
+                "decision_facts_hash": "0" * 64,
+                "rule_version": "replenishment-v1",
+                "summary": "summary",
+                "rationale": "rationale",
+                "plan_hash": "1" * 64,
+            },
+            "recommended_quantity",
+        ),
+        (
+            ApprovalBinding,
+            {
+                "inventory_evidence_id": INVENTORY_ID,
+                "policy_evidence_id": POLICY_ID,
+                "rule_version": "replenishment-v1",
+                "decision_facts_hash": "0" * 64,
+                "plan_hash": "1" * 64,
+                "recommended_quantity": 18,
+            },
+            "recommended_quantity",
+        ),
+    ],
+)
+def test_integer_domain_fields_reject_coercion(
+    model_type: type[BaseModel],
+    valid_data: dict[str, object],
+    field: str,
+    invalid_value: object,
+) -> None:
+    data = valid_data.copy()
+    data[field] = invalid_value
+
+    with pytest.raises(ValidationError):
+        model_type.model_validate(data)
 
 
 @pytest.mark.parametrize(

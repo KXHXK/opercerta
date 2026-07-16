@@ -6,6 +6,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     JsonValue,
+    StrictInt,
     StringConstraints,
     field_validator,
     model_validator,
@@ -48,8 +49,8 @@ class InventoryEvidence(BaseModel):
 
     evidence_id: UUID
     sku: Sku
-    on_hand_quantity: int
-    reserved_quantity: int
+    on_hand_quantity: StrictInt
+    reserved_quantity: StrictInt
     captured_at: datetime
     source_version: Version
 
@@ -72,11 +73,11 @@ class PolicyEvidence(BaseModel):
     evidence_id: UUID
     action: Literal["replenish_inventory"]
     sku: Sku
-    reorder_point: int
-    target_stock: int
-    minimum_order_quantity: int
-    maximum_order_quantity: int
-    evidence_ttl_seconds: int
+    reorder_point: StrictInt
+    target_stock: StrictInt
+    minimum_order_quantity: StrictInt
+    maximum_order_quantity: StrictInt
+    evidence_ttl_seconds: StrictInt
     approval_required: Literal[True]
     rule_version: Version
     captured_at: datetime
@@ -129,18 +130,18 @@ class InventoryPosition(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     sku: Sku
-    available_quantity: int
+    available_quantity: StrictInt
 
 
 class ReplenishmentAssessment(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     sku: Sku
-    available_quantity: int
-    reorder_point: int
-    target_stock: int
+    available_quantity: StrictInt
+    reorder_point: StrictInt
+    target_stock: StrictInt
     replenishment_required: bool
-    recommended_quantity: int | None
+    recommended_quantity: StrictInt | None
     decision_facts_hash: Digest
 
 
@@ -156,7 +157,7 @@ class ReplenishmentPlan(BaseModel):
 
     action: Literal["replenish_inventory"]
     sku: Sku
-    recommended_quantity: int
+    recommended_quantity: StrictInt
     decision_facts_hash: Digest
     rule_version: Version
     summary: SafeText
@@ -172,7 +173,7 @@ class ApprovalBinding(BaseModel):
     rule_version: Version
     decision_facts_hash: Digest
     plan_hash: Digest
-    recommended_quantity: int
+    recommended_quantity: StrictInt
 
 
 class OperationResult(BaseModel):
