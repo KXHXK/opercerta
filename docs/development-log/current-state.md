@@ -1,10 +1,10 @@
 # OperCerta 当前状态
 
-最后核验：2026-07-16 09:18 Asia/Shanghai，Git 基线 commit `9c71d7b`。
+最后核验：2026-07-16 09:36 Asia/Shanghai，Git 实现基线 commit `88c014c`。
 
 ## 当前阶段
 
-非法输入、状态恢复、数据库迁移和原子审批竞态已按 TDD 实现。Task 3 已完成；本地测试数据库密码已轮换并复验。Task 4 书面规格与聚焦 TDD 计划均已完成；用户选择 inline execution，生产代码和 Task 4 测试尚未开始。
+非法输入、状态恢复、数据库迁移、原子审批竞态和 Task 4 幂等工单写入已按 TDD 实现。Task 4 的领域契约、共享数据库 fixture、原子 Repository、十路并发复验和证据均已完成；Task 5 尚未开始。
 
 ## 已验证事实
 
@@ -26,16 +26,19 @@
 - 2026-07-16 重启 Codex 后，PowerShell、OperCerta 工作区和 `.git` 临时写入探针均成功，探针已清理，`main` 工作区恢复干净。
 - Task 4 方案 1、`created` 初始状态和完整书面契约均已获用户确认；契约见 `docs/superpowers/specs/2026-07-16-work-order-idempotency-contract-design.md`。
 - Task 4 聚焦计划见 `docs/superpowers/plans/2026-07-16-work-order-idempotency.md`；规格覆盖、占位文本、类型命名和 Python 代码块语法已自审，计划中的 Pydantic JSON 边界烟雾检查通过，但这些不是生产实现通过证据。
+- Task 4 领域 RED 因新错误契约缺失而退出 1，Repository RED 因模块缺失而退出 1；对应 GREEN 分别为 `27 passed` 和 `12 passed`。
+- Task 4 数据库集成测试为 `17 passed`，完整测试为 `73 passed`，Ruff lint、全量 format check 和 mypy（12 个源文件）通过。
+- 工单十路并发目标用例以 20 个独立 Pytest 进程复验，实测 `20/20`；每轮断言一次创建、九次安全重放、同一 ID、一行工单和一条创建审计。证据见 `docs/release-evidence/work-order-idempotency.md`。
 
 ## 当前阻塞与风险
 
-- 幂等写入与 LangGraph 重启恢复尚未实现，不能声称可靠性内核或发布门禁完成。
+- LangGraph 四点重启恢复尚未实现，不能声称可靠性内核或发布门禁完成。
 - 一次预期失败的 Pytest/Psycopg traceback 曾展开旧的本地测试数据库连接密码；代码、Git 和文档未保存该值，fixture 已改为无密码 URL + 临时 `PGPASSWORD`，角色密码也已轮换和复验。
 - 当前 Git 没有配置远程仓库；本地 commit 不是远程备份。
 
 ## 下一步
 
-按既定 inline execution 执行 Task 4 聚焦计划 Task 1：先写领域非法输入与确定性指纹测试，运行并保留预期 RED，再写最小 GREEN 实现。
+复核可靠性内核总计划 Task 5 与冻结详细设计，先补齐 LangGraph 四点重启恢复的书面规格和可执行 TDD 计划；不得因 Task 4 本地通过而跳过该设计门禁。
 
 ## 发布门禁
 

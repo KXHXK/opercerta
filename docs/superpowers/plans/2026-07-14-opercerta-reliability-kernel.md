@@ -1021,7 +1021,7 @@ Task 4 的已确认领域契约见 `docs/superpowers/specs/2026-07-16-work-order
 - `WorkOrderWriteResult.replayed` is false for exactly one first insert and true for safe repeats.
 - Same key with a different canonical payload raises `IdempotencyConflict`; missing approved decision raises `WriteNotAuthorized`.
 
-- [ ] **Step 1: RED — define deterministic key and canonical payload tests**
+- [x] **Step 1: RED — define deterministic key and canonical payload tests**
 
 ```python
 def test_idempotency_key_is_stable_for_operation() -> None:
@@ -1040,7 +1040,7 @@ def test_payload_hash_is_independent_of_dictionary_order() -> None:
 
 Expected RED: module unavailable. Implement the key and SHA-256 over UTF-8 JSON using `sort_keys=True`, `separators=(",", ":")`, and `allow_nan=False`. Expected GREEN: 2 passed.
 
-- [ ] **Step 2: RED — ten simultaneous identical writes produce one row**
+- [x] **Step 2: RED — ten simultaneous identical writes produce one row**
 
 Seed an approved `resuming` operation. Open ten independent transactions through the repository and assert:
 
@@ -1057,7 +1057,7 @@ assert await count_work_orders(engine, operation_id) == 1
 
 Expected RED: repository unavailable.
 
-- [ ] **Step 3: GREEN — lock the operation, return an existing row, then authorize a new insert**
+- [x] **Step 3: GREEN — lock the operation, return an existing row, then authorize a new insert**
 
 Inside one `engine.begin()` transaction:
 
@@ -1072,7 +1072,7 @@ Use the database unique constraints as the final collision guard; translate `Int
 
 Run the concurrency test 20 times. Expected GREEN: exactly one row and one creation event every run.
 
-- [ ] **Step 4: RED/GREEN — distinguish safe replay, payload conflict and approval bypass**
+- [x] **Step 4: RED/GREEN — distinguish safe replay, payload conflict and approval bypass**
 
 Add three tests:
 
@@ -1089,7 +1089,7 @@ uv run pytest tests/integration/db -q
 
 Expected: all tests pass; the bypass count is zero by row-count assertion, not by a claimed metric.
 
-- [ ] **Step 5: Commit the idempotent write boundary**
+- [x] **Step 5: Commit the idempotent write boundary**
 
 ```powershell
 git add src/opercerta/domain src/opercerta/infrastructure/db tests/integration/db

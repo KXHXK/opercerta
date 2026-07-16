@@ -47,7 +47,7 @@
 - Produces: `WorkOrderCommand`, `WorkOrderRecord`, `WorkOrderWriteResult`, `derive_idempotency_key(operation_id: UUID) -> str`, `canonical_payload_json(payload: dict[str, JsonValue]) -> str`, `hash_payload(payload: dict[str, JsonValue]) -> str`.
 - Produces: `IdempotencyConflict(operation_id: UUID, idempotency_key: str)` and `WriteNotAuthorized(operation_id: UUID, status: str)`.
 
-- [ ] **Step 1: RED — write illegal-input and deterministic-function tests**
+- [x] **Step 1: RED — write illegal-input and deterministic-function tests**
 
 Create `tests/unit/domain/test_work_orders.py` with the complete test boundary:
 
@@ -197,7 +197,7 @@ def test_domain_errors_keep_safe_location_fields() -> None:
     assert unauthorized.status == "planning"
 ```
 
-- [ ] **Step 2: Run the focused test and verify RED**
+- [x] **Step 2: Run the focused test and verify RED**
 
 Run:
 
@@ -207,7 +207,7 @@ uv run pytest tests/unit/domain/test_work_orders.py -q
 
 Expected RED: collection fails because `opercerta.domain.work_orders` and the two new error classes do not exist. No database is accessed.
 
-- [ ] **Step 3: GREEN — add the stable error types**
+- [x] **Step 3: GREEN — add the stable error types**
 
 Append these classes to `src/opercerta/domain/errors.py` without changing existing errors:
 
@@ -230,7 +230,7 @@ class WriteNotAuthorized(RuntimeError):
         super().__init__(self.code)
 ```
 
-- [ ] **Step 4: GREEN — implement the minimal domain module**
+- [x] **Step 4: GREEN — implement the minimal domain module**
 
 Create `src/opercerta/domain/work_orders.py`:
 
@@ -341,7 +341,7 @@ def hash_payload(payload: dict[str, JsonValue]) -> str:
     return hashlib.sha256(canonical_json.encode("utf-8")).hexdigest()
 ```
 
-- [ ] **Step 5: Verify focused GREEN and static gates**
+- [x] **Step 5: Verify focused GREEN and static gates**
 
 Run:
 
@@ -355,7 +355,7 @@ uv run mypy src
 
 Expected: every command exits `0`; record the observed test counts only after the commands finish.
 
-- [ ] **Step 6: Commit the domain boundary**
+- [x] **Step 6: Commit the domain boundary**
 
 ```powershell
 git add src/opercerta/domain/errors.py src/opercerta/domain/work_orders.py tests/unit/domain/test_work_orders.py
@@ -376,7 +376,7 @@ git commit -m "feat: define idempotent work order contract"
 - Produces: function-scoped `engine: AsyncEngine` for all async PostgreSQL integration tests.
 - Preserves: password removed from the SQLAlchemy URL and supplied only through the temporary `PGPASSWORD` environment variable.
 
-- [ ] **Step 1: Move the Engine fixture to shared integration configuration**
+- [x] **Step 1: Move the Engine fixture to shared integration configuration**
 
 Add these imports to `tests/integration/conftest.py`:
 
@@ -427,7 +427,7 @@ Keep this import because test function annotations still use it:
 from sqlalchemy.ext.asyncio import AsyncEngine
 ```
 
-- [ ] **Step 2: Verify the approval baseline is unchanged**
+- [x] **Step 2: Verify the approval baseline is unchanged**
 
 Run:
 
@@ -439,7 +439,7 @@ uv run ruff format --check tests/integration
 
 Expected: every command exits `0`; approval race assertions remain exactly one accepted decision, nine classified conflicts and one approval audit event.
 
-- [ ] **Step 3: Commit the shared fixture refactor**
+- [x] **Step 3: Commit the shared fixture refactor**
 
 ```powershell
 git add tests/integration/conftest.py tests/integration/db/test_approval_race.py
@@ -460,7 +460,7 @@ git commit -m "test: share postgres integration engine"
 - Produces: `WorkOrderRepository(engine: AsyncEngine)` and `async create_or_get(command: WorkOrderCommand) -> WorkOrderWriteResult`.
 - Invariant: an existing row is compared before first-write authorization; same hash replays, changed hash conflicts, and only a new row requires approval/status authorization.
 
-- [ ] **Step 1: RED — add authorization, replay, conflict and concurrency integration tests**
+- [x] **Step 1: RED — add authorization, replay, conflict and concurrency integration tests**
 
 Create `tests/integration/db/test_work_order_idempotency.py`:
 
@@ -808,7 +808,7 @@ async def test_ten_concurrent_identical_commands_create_effectively_once(
         await cleanup_operation(engine, operation_id)
 ```
 
-- [ ] **Step 2: Run the focused integration test and verify RED**
+- [x] **Step 2: Run the focused integration test and verify RED**
 
 Run:
 
@@ -818,7 +818,7 @@ uv run pytest tests/integration/db/test_work_order_idempotency.py -q
 
 Expected RED: collection fails because `opercerta.infrastructure.db.work_order_repository` does not exist. The database fixture may migrate first, but no Task 4 work-order row is committed.
 
-- [ ] **Step 3: GREEN — implement create-or-get, audit atomicity and collision translation**
+- [x] **Step 3: GREEN — implement create-or-get, audit atomicity and collision translation**
 
 Create `src/opercerta/infrastructure/db/work_order_repository.py`:
 
@@ -1030,7 +1030,7 @@ class WorkOrderRepository:
         )
 ```
 
-- [ ] **Step 4: Verify focused GREEN and all authorization/replay facts**
+- [x] **Step 4: Verify focused GREEN and all authorization/replay facts**
 
 Run:
 
@@ -1044,7 +1044,7 @@ uv run mypy src
 
 Expected: every command exits `0`; the focused tests prove missing operation and unauthorized paths write zero rows, safe replay preserves one ID/audit, changed payload is classified, and each allowed status can create exactly one record.
 
-- [ ] **Step 5: Repeat the target race with fresh processes**
+- [x] **Step 5: Repeat the target race with fresh processes**
 
 Run exactly twenty independent invocations:
 
@@ -1057,7 +1057,7 @@ Run exactly twenty independent invocations:
 
 Expected: all twenty invocations exit `0`; every invocation asserts one first creation, nine safe replays, one shared work-order ID, one database row and one creation audit. Do not convert this local deterministic repetition into a production success-rate claim.
 
-- [ ] **Step 6: Run the complete fresh verification gate**
+- [x] **Step 6: Run the complete fresh verification gate**
 
 Run:
 
@@ -1071,7 +1071,7 @@ git diff --check
 
 Expected: every command exits `0`. If any command fails or behaves unexpectedly, stop feature editing and use `superpowers:systematic-debugging` before changing implementation.
 
-- [ ] **Step 7: Commit the idempotent database boundary**
+- [x] **Step 7: Commit the idempotent database boundary**
 
 ```powershell
 git add src/opercerta/infrastructure/db/work_order_repository.py tests/integration/db/test_work_order_idempotency.py
@@ -1097,7 +1097,7 @@ git commit -m "feat: make simulated work orders idempotent"
 - Produces: a Chinese-first evidence record containing environment, commands, observed outcomes, transaction guarantees, limitations and rollback commit.
 - Preserves: release gate `CLOSED`; Task 5 remains unstarted.
 
-- [ ] **Step 1: Write evidence from observed output only**
+- [x] **Step 1: Write evidence from observed output only**
 
 Create `docs/release-evidence/work-order-idempotency.md` with these exact sections and fill each section only with values copied from the completed commands:
 
@@ -1137,7 +1137,7 @@ Create `docs/release-evidence/work-order-idempotency.md` with these exact sectio
 记录 Task 4 开始前和完成后的真实 Git commit。
 ```
 
-- [ ] **Step 2: Synchronize plan, index, handoff and Chinese development log**
+- [x] **Step 2: Synchronize plan, index, handoff and Chinese development log**
 
 Apply these factual state changes:
 
@@ -1165,7 +1165,7 @@ docs/superpowers/plans/2026-07-16-work-order-idempotency.md
 - Mark each checkbox complete only after its command or edit is verified.
 ```
 
-- [ ] **Step 3: Verify documentation integrity and repository hygiene**
+- [x] **Step 3: Verify documentation integrity and repository hygiene**
 
 Run:
 
