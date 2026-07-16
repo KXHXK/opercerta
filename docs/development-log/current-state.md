@@ -1,10 +1,10 @@
 # OperCerta 当前状态
 
-最后核验：2026-07-16 09:36 Asia/Shanghai，Git 实现基线 commit `88c014c`。
+最后核验：2026-07-16 10:18 Asia/Shanghai，Git 基线 commit `1f0990d`。
 
 ## 当前阶段
 
-非法输入、状态恢复、数据库迁移、原子审批竞态和 Task 4 幂等工单写入已按 TDD 实现。Task 4 的领域契约、共享数据库 fixture、原子 Repository、十路并发复验和证据均已完成；Task 5 尚未开始。
+非法输入、状态恢复、数据库迁移、原子审批竞态和 Task 4 幂等工单写入已按 TDD 实现。Task 5 四点重启恢复的架构、数据流、错误语义和测试边界已分段确认并写入书面规格；当前等待用户复核，生产代码和 Task 5 测试尚未开始。
 
 ## 已验证事实
 
@@ -29,6 +29,8 @@
 - Task 4 领域 RED 因新错误契约缺失而退出 1，Repository RED 因模块缺失而退出 1；对应 GREEN 分别为 `27 passed` 和 `12 passed`。
 - Task 4 数据库集成测试为 `17 passed`，完整测试为 `73 passed`，Ruff lint、全量 format check 和 mypy（12 个源文件）通过。
 - 工单十路并发目标用例以 20 个独立 Pytest 进程复验，实测 `20/20`；每轮断言一次创建、九次安全重放、同一 ID、一行工单和一条创建审计。证据见 `docs/release-evidence/work-order-idempotency.md`。
+- Task 5 已确认复用 `operations.request_payload` 的 `schema_version=1` 快照，不新增数据库迁移；审批落库后同时覆盖批准和拒绝恢复；状态与终态审计由独立 `OperationStateRepository` 原子写入。
+- 本地锁定版本核验：`AsyncPostgresSaver.from_conn_string` 提供 async context manager，`setup()` 必须显式调用；`LANGGRAPH_STRICT_MSGPACK` 在 `langgraph-checkpoint==4.1.1` 源码中有效，并需在默认 serializer 构造前设置。
 
 ## 当前阻塞与风险
 
@@ -38,7 +40,7 @@
 
 ## 下一步
 
-复核可靠性内核总计划 Task 5 与冻结详细设计，先补齐 LangGraph 四点重启恢复的书面规格和可执行 TDD 计划；不得因 Task 4 本地通过而跳过该设计门禁。
+请用户复核 `docs/superpowers/specs/2026-07-16-langgraph-restart-recovery-design.md`；确认后只调用 writing-plans 编写聚焦 TDD 计划，不在书面确认前写 Task 5 生产代码。
 
 ## 发布门禁
 
