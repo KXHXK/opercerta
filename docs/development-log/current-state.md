@@ -1,10 +1,10 @@
 # OperCerta 当前状态
 
-最后核验：2026-07-16 15:44 Asia/Shanghai，Git 基线 commit `f5d2de7`。
+最后核验：2026-07-16 16:20 Asia/Shanghai，Git 基线 commit `b540150`。
 
 ## 当前阶段
 
-可靠性内核 Task 1–6 已完成本地总门禁。首个业务闭环已确定为“库存不足 → 补货工单”，真实 MCP 后端纵向切片规格已获用户确认并落盘；尚未编写实施计划或生产代码。
+可靠性内核 Task 1–6 已完成本地总门禁。首个业务闭环已确定为“库存不足 → 补货工单”，真实 MCP 后端纵向切片规格已获用户确认，聚焦 TDD 实施计划已完成自审并落盘；尚未开始该切片生产代码。
 
 ## 已验证事实
 
@@ -45,6 +45,8 @@
 - 所有补货写入强制审批；证据不可用时安全关闭；审批绑定证据 ID、规则版本、事实哈希、计划哈希和建议数量，批准后写入前必须重新取证并比较事实。
 - 纵向切片采用独立 FastMCP 服务、四个真实 MCP 工具、Mock 结构化模型、LangGraph 和 FastAPI；React、SSE、JWT、真实模型与公开部署不在本轮。
 - 设计规格见 `docs/superpowers/specs/2026-07-16-inventory-replenishment-vertical-slice-design.md`。这是已确认设计，不是功能完成或测试通过证据。
+- 实施计划见 `docs/superpowers/plans/2026-07-16-inventory-replenishment-vertical-slice.md`，拆为领域规则、`0002` 数据边界、绑定审批、真实 FastMCP、类型化 MCP 客户端、审批前 workflow、审批后执行与恢复、FastAPI、总门禁九个原子 Task。
+- 2026-07-16 核验官方 PyPI 与本地锁定 API：MCP Python SDK `1.28.1`、FastAPI `0.139.0`、HTTPX `0.28.1`、LangGraph `1.2.9`、`langgraph-checkpoint-postgres 3.1.0`、Pydantic `2.13.4`、SQLAlchemy `2.0.51`、Alembic `1.18.5` 均无需在本切片升级；FastMCP Streamable HTTP、`ClientSession` 和 HTTPX `ASGITransport` 的实际签名已用于计划。
 
 ## 当前阻塞与风险
 
@@ -55,7 +57,7 @@
 
 ## 下一步
 
-用户复核已落盘的库存补货纵向闭环规格；确认无修改后使用 writing-plans 编写聚焦 TDD 实施计划，仍不提前编写生产代码。
+选择实施方式后执行库存补货纵向闭环计划；第一步是 Task 1 的领域非法输入与确定性规则 RED，不提前跳到 MCP、workflow 或 API。
 
 ## 发布门禁
 
