@@ -1,10 +1,10 @@
 # OperCerta 当前状态
 
-最后核验：2026-07-16 12:34 Asia/Shanghai，Git 基线 commit `88760be`。
+最后核验：2026-07-16 15:44 Asia/Shanghai，Git 基线 commit `f5d2de7`。
 
 ## 当前阶段
 
-可靠性内核 Task 1–6 已完成本地总门禁：非法输入、确定性恢复决策、数据库迁移、原子审批竞态、幂等工单、LangGraph interrupt/checkpoint 与四点重启恢复均有可复验代码和证据。完整产品与发布门禁尚未完成。
+可靠性内核 Task 1–6 已完成本地总门禁。首个业务闭环已确定为“库存不足 → 补货工单”，真实 MCP 后端纵向切片规格已获用户确认并落盘；尚未编写实施计划或生产代码。
 
 ## 已验证事实
 
@@ -41,6 +41,10 @@
 - Task 5 完整新鲜门禁为 `116 passed in 9.96s`；Ruff lint 通过、32 个文件 format check 通过、mypy 检查 19 个源文件通过。证据见 `docs/release-evidence/langgraph-restart-recovery.md`，实现提交 `e93b551`。
 - Task 6 新鲜总门禁：依赖冻结同步成功；完整测试 `116 passed in 8.76s`；Ruff、32 文件 format check、mypy（19 个源文件）通过；secret-safe Alembic downgrade→upgrade 后为 `0001_reliability_kernel (head)`，迁移后集成测试 `39 passed in 8.74s`。
 - 可靠性内核按既定权重已达到 100% 的阶段完成口径；这只表示 Task 1–6 本地门禁完成，不是完整 OperCerta 发布进度、生产指标或对外效果数字。
+- 首个业务闭环确认采用确定性库存规则：`available = on_hand - reserved`，不足条件为 `available < reorder_point`，建议补货量为 `target_stock - available`；正常库存零审批、零工单。
+- 所有补货写入强制审批；证据不可用时安全关闭；审批绑定证据 ID、规则版本、事实哈希、计划哈希和建议数量，批准后写入前必须重新取证并比较事实。
+- 纵向切片采用独立 FastMCP 服务、四个真实 MCP 工具、Mock 结构化模型、LangGraph 和 FastAPI；React、SSE、JWT、真实模型与公开部署不在本轮。
+- 设计规格见 `docs/superpowers/specs/2026-07-16-inventory-replenishment-vertical-slice-design.md`。这是已确认设计，不是功能完成或测试通过证据。
 
 ## 当前阻塞与风险
 
@@ -51,7 +55,7 @@
 
 ## 下一步
 
-冻结可靠性内核，下一步为 OperCerta 最小纵向闭环规格与 TDD 计划：event → evidence → plan → approval → simulated MCP write → verification → audit → API response。
+用户复核已落盘的库存补货纵向闭环规格；确认无修改后使用 writing-plans 编写聚焦 TDD 实施计划，仍不提前编写生产代码。
 
 ## 发布门禁
 

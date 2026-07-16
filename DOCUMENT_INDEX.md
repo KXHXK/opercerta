@@ -1,12 +1,12 @@
 # OperCerta 文档索引
 
-最后核验：2026-07-16，可靠性内核 Task 1–6 已完成本地总门禁；下一步进入 OperCerta 最小纵向业务闭环。
+最后核验：2026-07-16，库存不足到补货工单纵向闭环设计已确认并落盘；下一步编写聚焦 TDD 实施计划。
 
 本文件是 OperCerta 重要文档的中文目录，不复制正文。自动压缩或新会话开始时先阅读本文件，再按“优先级”读取当前状态、过程日志、相关决策、交接和实施计划。
 
 | 路径 | 用途 | 状态 | 最后核验 commit | 优先级 |
 | --- | --- | --- | --- | --- |
-| `README.md` | 项目概览与使用边界 | 已同步至可靠性内核验证与纵向闭环边界 | 本次提交 | 2 |
+| `README.md` | 项目概览与使用边界 | 已同步至库存补货纵向闭环设计边界 | 本次提交 | 2 |
 | `IMPLEMENTATION_HANDOFF.md` | 会话交接与下一动作 | 已同步至可靠性内核完成与纵向闭环待实施 | 本次提交 | 3 |
 | `docs/specs/2026-07-14-agent-project-naming-design.md` | 命名设计 | 已冻结基线 | `c7fa618` | 4 |
 | `docs/specs/AI_Agent四项目总体设计规格.md` | 总体设计 | 已冻结基线 | `48d299c` | 5 |
@@ -17,6 +17,7 @@
 | `docs/superpowers/specs/2026-07-15-approval-domain-contract-design.md` | 审批领域契约与原子竞态边界 | 已确认 | `3c55f3b` | 1 |
 | `docs/superpowers/specs/2026-07-16-work-order-idempotency-contract-design.md` | Task 4 幂等工单领域契约与竞态边界 | 已确认 | `9c71d7b` | 1 |
 | `docs/superpowers/specs/2026-07-16-langgraph-restart-recovery-design.md` | Task 5 LangGraph 四点重启恢复契约 | 已确认 | 本次提交 | 1 |
+| `docs/superpowers/specs/2026-07-16-inventory-replenishment-vertical-slice-design.md` | 库存不足到补货工单真实 MCP 后端纵向闭环 | 已确认；待实施计划 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-14-opercerta-reliability-kernel.md` | 可靠性内核 TDD 总计划 | Task 1–6 已执行 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-16-langgraph-restart-recovery.md` | Task 5 四点重启恢复可执行 TDD 计划 | 已执行；证据已归档 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-16-work-order-idempotency.md` | Task 4 幂等工单可执行 TDD 计划 | 已执行；证据已归档 | 本次提交 | 1 |

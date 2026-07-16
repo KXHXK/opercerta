@@ -19,6 +19,8 @@ OperCerta 是面向库存异常、设备告警和运营工单的智能运营处�
 
 下一阶段仍只实施 OperCerta，建立 event → evidence → risk/plan → approval → simulated MCP write → verification → audit → API response 的最小纵向闭环。可靠性内核在当前范围冻结，不继续增加与纵向闭环无关的底层功能。
 
+首个闭环已确定为“库存不足 → 补货工单”，采用独立 FastMCP 服务、四个真实 MCP 工具、Mock 结构化模型、LangGraph 和 FastAPI；当前仅完成[设计规格](docs/superpowers/specs/2026-07-16-inventory-replenishment-vertical-slice-design.md)，尚未开始该闭环代码实现。
+
 ## 实施依据
 
 按以下顺序阅读并实施：
