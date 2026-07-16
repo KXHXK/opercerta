@@ -1,10 +1,10 @@
 # OperCerta 当前状态
 
-最后核验：2026-07-16 11:55 Asia/Shanghai，Git 基线 commit `2e6cbb4`。
+最后核验：2026-07-16 12:24 Asia/Shanghai，Git 基线 commit `e93b551`。
 
 ## 当前阶段
 
-非法输入、状态恢复、数据库迁移、原子审批竞态和 Task 4 幂等工单写入已按 TDD 实现。Task 5 已完成快照领域模型、原子 operation 状态仓储、独立 PostgreSQL checkpointer 和 JSON-only reliability graph 四个 RED/GREEN 检查点；RecoveryCoordinator 和四点 A/B 重启矩阵尚未实现。
+非法输入、确定性恢复决策、数据库迁移、原子审批竞态、幂等工单和 Task 5 四点 LangGraph 重启恢复均已按 TDD 实现。Task 5 证据已归档；可靠性内核 Task 6 总门禁尚未执行。
 
 ## 已验证事实
 
@@ -38,17 +38,20 @@
 - Task 5 状态仓储 RED 因 Repository 模块缺失退出 1；GREEN focused 为 `7 passed`、数据库集成为 `24 passed`，Ruff/format 与 mypy（15 个源文件）通过，提交 `5bdacf7`。
 - Task 5 checkpointer RED 因模块缺失退出 1；DSN 回归还真实发现 `+` 空格编码不兼容与 URL 密码残留。修复后 focused 为 `4 passed`，与数据库回归合并为 `28 passed`，Ruff/format 与 mypy（16 个源文件）通过，提交 `e9b2834`。
 - Task 5 reliability graph RED 因 workflow 模块缺失退出 1；GREEN focused 为 `3 passed`、workflow 集成为 `7 passed`，Ruff/format 与 mypy（18 个源文件）通过。测试断言 interrupt 时零审批、零工单，并覆盖无崩溃的批准完成与拒绝终止；提交 `2e6cbb4`。
+- Task 5 RecoveryCoordinator RED 因模块缺失退出 1；GREEN focused 为 `8 passed`、workflow 集成 `15 passed`，四点矩阵使用完全关闭的 saver A/graph A 与新 saver B/graph B。十个独立 Pytest 进程实测 `10/10`，每轮 `8 passed`。
+- Task 5 完整新鲜门禁为 `116 passed in 9.96s`；Ruff lint 通过、32 个文件 format check 通过、mypy 检查 19 个源文件通过。证据见 `docs/release-evidence/langgraph-restart-recovery.md`，实现提交 `e93b551`。
+- 进度规划估算：可靠性内核 Task 1–5 完成、Task 6 待执行，按既定 `10/10/20/20/30/10` 权重约为 90%。这是排期估算，不是测试成绩或对外指标。
 
 ## 当前阻塞与风险
 
-- LangGraph 四点重启恢复尚未实现，不能声称可靠性内核或发布门禁完成。
+- 可靠性内核 Task 6 的迁移升降级、完整总证据和交接门禁尚未执行，不能声称可靠性内核总门禁或发布门禁完成。
 - 一次预期失败的 Pytest/Psycopg traceback 曾展开旧的本地测试数据库连接密码；代码、Git 和文档未保存该值，fixture 已改为无密码 URL + 临时 `PGPASSWORD`，角色密码也已轮换和复验。
 - 2026-07-16 checkpointer 首次 GREEN 的 Psycopg 连接失败 traceback 再次展开当时的本地测试角色密码。新封装已改为无密码 DSN、临时 `PGPASSWORD` 和 `%20` query 编码，代码/Git/文档未保存该值；用户随后同步轮换 PostgreSQL 角色与 `.env.local`，focused checkpointer 回归新鲜 `4 passed`。
 - 当前 Git 没有配置远程仓库；本地 commit 不是远程备份。
 
 ## 下一步
 
-从 `RecoveryCoordinator` 和四点 A/B 重启矩阵 RED 继续，证明新 graph/checkpointer 实例可依据业务事实安全恢复。Task 6 后冻结可靠性内核并转向最小纵向闭环。
+执行可靠性内核 Task 6：新鲜依赖同步、完整测试/静态检查、Alembic downgrade/upgrade、证据归档和边界交接；通过后冻结内核并转向 OperCerta 最小纵向闭环。
 
 ## 发布门禁
 

@@ -59,7 +59,7 @@
 - Produces: `InvalidOperationSnapshot`, `OperationTransitionConflict`, `RecoveryStateConflict`.
 - Preserves: Task 4 `WorkOrderCommand` JSON rejection and canonical hash behavior.
 
-- [ ] **Step 1: RED — add snapshot and error contract tests**
+- [x] **Step 1: RED — add snapshot and error contract tests**
 
 Create `tests/unit/domain/test_operation_state.py` with tests that:
 
@@ -145,7 +145,7 @@ def test_errors_keep_only_stable_safe_fields() -> None:
     assert conflict.reason == "thread_id_mismatch"
 ```
 
-- [ ] **Step 2: Run focused RED**
+- [x] **Step 2: Run focused RED**
 
 ```powershell
 uv run pytest tests/unit/domain/test_operation_state.py -q
@@ -153,7 +153,7 @@ uv run pytest tests/unit/domain/test_operation_state.py -q
 
 Expected RED: collection fails because `opercerta.domain.operation_state` and the three new errors do not exist.
 
-- [ ] **Step 3: GREEN — centralize JSON validation and add domain models**
+- [x] **Step 3: GREEN — centralize JSON validation and add domain models**
 
 Create `src/opercerta/domain/json_values.py`:
 
@@ -281,7 +281,7 @@ In `src/opercerta/domain/work_orders.py`, remove `math` and the private recursiv
 return require_json_object(value, "payload")
 ```
 
-- [ ] **Step 4: Verify GREEN and Task 4 JSON regression**
+- [x] **Step 4: Verify GREEN and Task 4 JSON regression**
 
 ```powershell
 uv run pytest tests/unit/domain/test_operation_state.py tests/unit/domain/test_work_orders.py -q
@@ -293,7 +293,7 @@ uv run mypy src
 
 Expected: all commands exit `0`; record only observed counts.
 
-- [ ] **Step 5: Commit the domain boundary**
+- [x] **Step 5: Commit the domain boundary**
 
 ```powershell
 git add src/opercerta/domain/errors.py src/opercerta/domain/json_values.py src/opercerta/domain/operation_state.py src/opercerta/domain/work_orders.py tests/unit/domain/test_operation_state.py
@@ -315,7 +315,7 @@ git commit -m "feat: define restart recovery state"
 - Produces: five explicit transition methods returning `OperationTransitionResult`.
 - Invariant: operation status, sequence increment and state audit event commit in one PostgreSQL transaction.
 
-- [ ] **Step 1: RED — write database fact tests**
+- [x] **Step 1: RED — write database fact tests**
 
 Create integration tests with a `seed_operation()` helper that always stores the complete `schema_version=1` snapshot and canonical `thread_id`. The tests must execute these exact assertions:
 
@@ -405,7 +405,7 @@ async def test_wrong_origin_and_incomplete_target_write_nothing(engine: AsyncEng
 
 `seed_approval()` in this file must use `ApprovalRepository.submit_once()` rather than inserting an un-audited decision; cleanup deletes the operation so foreign keys cascade.
 
-- [ ] **Step 2: Run repository RED**
+- [x] **Step 2: Run repository RED**
 
 ```powershell
 uv run pytest tests/integration/db/test_operation_state_repository.py -q
@@ -413,7 +413,7 @@ uv run pytest tests/integration/db/test_operation_state_repository.py -q
 
 Expected RED: collection fails because `operation_state_repository` does not exist.
 
-- [ ] **Step 3: GREEN — implement validated view loading and explicit transitions**
+- [x] **Step 3: GREEN — implement validated view loading and explicit transitions**
 
 Create `src/opercerta/infrastructure/db/operation_state_repository.py` with:
 
@@ -656,7 +656,7 @@ class OperationStateRepository:
         )
 ```
 
-- [ ] **Step 4: Verify repository GREEN and migration regression**
+- [x] **Step 4: Verify repository GREEN and migration regression**
 
 ```powershell
 uv run pytest tests/integration/db/test_operation_state_repository.py -q
@@ -666,7 +666,7 @@ uv run ruff format --check src tests
 uv run mypy src
 ```
 
-- [ ] **Step 5: Commit the atomic state boundary**
+- [x] **Step 5: Commit the atomic state boundary**
 
 ```powershell
 git add src/opercerta/infrastructure/db/operation_state_repository.py tests/integration/db/test_operation_state_repository.py
@@ -689,7 +689,7 @@ git commit -m "feat: make operation transitions atomic"
 - Produces: `open_checkpointer(database_url: SecretStr, setup: bool = False)` async context manager.
 - Produces: session-scoped `checkpoint_database_url: SecretStr` after exactly one test-process setup.
 
-- [ ] **Step 1: RED — test DSN secrecy, Schema isolation and JSON round-trip**
+- [x] **Step 1: RED — test DSN secrecy, Schema isolation and JSON round-trip**
 
 Create tests that assert:
 
@@ -748,7 +748,7 @@ async def test_plain_json_checkpoint_survives_new_saver_instance(
 
 The test module sets no environment variable itself; `tests/integration/conftest.py` must set it before source imports.
 
-- [ ] **Step 2: Run checkpointer RED**
+- [x] **Step 2: Run checkpointer RED**
 
 ```powershell
 uv run pytest tests/integration/workflow/test_checkpoints.py -q
@@ -756,7 +756,7 @@ uv run pytest tests/integration/workflow/test_checkpoints.py -q
 
 Expected RED: collection fails because `opercerta.infrastructure.checkpoints` does not exist.
 
-- [ ] **Step 3: GREEN — implement lazy strict import and isolated DSN**
+- [x] **Step 3: GREEN — implement lazy strict import and isolated DSN**
 
 Create `src/opercerta/infrastructure/checkpoints.py`:
 
@@ -823,7 +823,7 @@ Append to `.env.example`:
 LANGGRAPH_STRICT_MSGPACK=true
 ```
 
-- [ ] **Step 4: Verify checkpointer GREEN and inspect Schema placement**
+- [x] **Step 4: Verify checkpointer GREEN and inspect Schema placement**
 
 ```powershell
 uv run pytest tests/integration/workflow/test_checkpoints.py -q
@@ -832,7 +832,7 @@ uv run ruff format --check src tests
 uv run mypy src
 ```
 
-- [ ] **Step 5: Commit the checkpointer boundary**
+- [x] **Step 5: Commit the checkpointer boundary**
 
 ```powershell
 git add .env.example src/opercerta/infrastructure/checkpoints.py tests/integration/conftest.py tests/integration/workflow/test_checkpoints.py
@@ -855,7 +855,7 @@ git commit -m "feat: isolate langgraph checkpoints"
 - Produces: `build_reliability_graph(checkpointer, operation_states, work_orders) -> CompiledStateGraph`.
 - Invariant: `request_approval` interrupts before approval or work-order side effects.
 
-- [ ] **Step 1: RED — prove interrupt precedes writes and both decisions terminate correctly**
+- [x] **Step 1: RED — prove interrupt precedes writes and both decisions terminate correctly**
 
 The focused integration file must contain three tests:
 
@@ -907,7 +907,7 @@ async def test_no_crash_decision_uses_saved_approval(
 
 `graph_fixture` is a local helper object in the same test module; it creates a complete snapshot, repositories and compiled graph, and its cleanup deletes the operation and saver thread.
 
-- [ ] **Step 2: Run graph RED**
+- [x] **Step 2: Run graph RED**
 
 ```powershell
 uv run pytest tests/integration/workflow/test_reliability_graph.py -q
@@ -915,7 +915,7 @@ uv run pytest tests/integration/workflow/test_reliability_graph.py -q
 
 Expected RED: collection fails because `opercerta.workflow.reliability_graph` does not exist.
 
-- [ ] **Step 3: GREEN — implement the exact topology with closure-injected repositories**
+- [x] **Step 3: GREEN — implement the exact topology with closure-injected repositories**
 
 Create `src/opercerta/workflow/__init__.py` as an empty package marker and implement `reliability_graph.py` with this topology and node contract:
 
@@ -1094,7 +1094,7 @@ def build_reliability_graph(
     return builder.compile(checkpointer=checkpointer)
 ```
 
-- [ ] **Step 4: Verify interrupt, approved and rejected GREEN**
+- [x] **Step 4: Verify interrupt, approved and rejected GREEN**
 
 ```powershell
 uv run pytest tests/integration/workflow/test_reliability_graph.py -q
@@ -1104,7 +1104,7 @@ uv run ruff format --check src tests
 uv run mypy src
 ```
 
-- [ ] **Step 5: Commit the graph boundary**
+- [x] **Step 5: Commit the graph boundary**
 
 ```powershell
 git add src/opercerta/workflow/__init__.py src/opercerta/workflow/reliability_graph.py tests/integration/workflow/test_reliability_graph.py
@@ -1125,7 +1125,7 @@ git commit -m "feat: interrupt before simulated execution"
 - Produces: `RecoveryCoordinator.recover(operation_id: UUID) -> RecoveryAction`.
 - Invariant: coordinator never writes approvals and never fabricates a missing snapshot or decision.
 
-- [ ] **Step 1: RED — create the complete restart matrix**
+- [x] **Step 1: RED — create the complete restart matrix**
 
 Create one parametrized test for the business-row-before-first-checkpoint and waiting-at-interrupt cases, plus approved, rejected and prewritten-work-order cases. Each case must:
 
@@ -1160,7 +1160,7 @@ Required assertions:
 
 Add conflict tests for checkpoint `operation_id` mismatch and terminal business state with pending checkpoint; both must raise `RecoveryStateConflict` and leave business row counts unchanged.
 
-- [ ] **Step 2: Run restart RED**
+- [x] **Step 2: Run restart RED**
 
 ```powershell
 uv run pytest tests/integration/workflow/test_restart_recovery.py -q
@@ -1168,7 +1168,7 @@ uv run pytest tests/integration/workflow/test_restart_recovery.py -q
 
 Expected RED: collection fails because `recovery_coordinator` does not exist.
 
-- [ ] **Step 3: GREEN — implement snapshot classification and exact action dispatch**
+- [x] **Step 3: GREEN — implement snapshot classification and exact action dispatch**
 
 Create `src/opercerta/workflow/recovery_coordinator.py`:
 
@@ -1266,7 +1266,7 @@ class RecoveryCoordinator:
             raise RecoveryStateConflict(operation_id, "terminal_state_has_pending_checkpoint")
 ```
 
-- [ ] **Step 4: Verify focused restart GREEN and infrastructure failure preservation**
+- [x] **Step 4: Verify focused restart GREEN and infrastructure failure preservation**
 
 ```powershell
 uv run pytest tests/integration/workflow/test_restart_recovery.py -q
@@ -1305,7 +1305,7 @@ async def test_closed_checkpointer_preserves_committed_approval(
 
 Do not translate the checkpointer failure into a successful business state.
 
-- [ ] **Step 5: Repeat the complete restart matrix in fresh Pytest processes**
+- [x] **Step 5: Repeat the complete restart matrix in fresh Pytest processes**
 
 ```powershell
 1..10 | ForEach-Object {
@@ -1316,7 +1316,7 @@ Do not translate the checkpointer failure into a successful business state.
 
 Expected: ten independent invocations exit `0`; report the observed completion count, not a production reliability percentage.
 
-- [ ] **Step 6: Run the complete fresh gate**
+- [x] **Step 6: Run the complete fresh gate**
 
 ```powershell
 uv run pytest -q
@@ -1328,7 +1328,7 @@ git diff --check
 
 If any command fails or behaves unexpectedly, stop feature editing and use `superpowers:systematic-debugging` before changing implementation.
 
-- [ ] **Step 7: Commit the restart recovery boundary**
+- [x] **Step 7: Commit the restart recovery boundary**
 
 ```powershell
 git add src/opercerta/workflow/recovery_coordinator.py tests/integration/workflow/test_restart_recovery.py
@@ -1354,7 +1354,7 @@ git commit -m "feat: recover workflows after restart"
 - Produces: Chinese-first RED/GREEN, Schema, restart-matrix, database-fact and static-gate evidence.
 - Preserves: `OperCerta release gate: CLOSED`; Task 6 of the overall reliability plan remains the next step.
 
-- [ ] **Step 1: Create the evidence file from observed facts only**
+- [x] **Step 1: Create the evidence file from observed facts only**
 
 Use these exact sections:
 
@@ -1376,11 +1376,11 @@ Use these exact sections:
 
 Every result line must be copied from a command executed in Tasks 1–5. The limitations section must explicitly state that Task 5 does not prove multi-Worker scheduling, distributed exactly-once, Linux/Docker release readiness, full MCP/API/UI behavior or public deployment.
 
-- [ ] **Step 2: Synchronize status and retain the Task 6 boundary**
+- [x] **Step 2: Synchronize status and retain the Task 6 boundary**
 
 Update the index, handoff, current state, daily log and both plans with the actual commits and observed commands. Mark Task 5 complete only if the complete fresh gate and ten independent restart invocations passed. Keep the overall release gate `CLOSED` and set the next action to overall reliability-kernel Task 6 evidence/gate handoff.
 
-- [ ] **Step 3: Verify documentation and credential hygiene**
+- [x] **Step 3: Verify documentation and credential hygiene**
 
 ```powershell
 git diff --check
@@ -1391,7 +1391,7 @@ git status --short
 
 Expected: diff check exits `0`; both scans return no matches; status lists only intended Task 5 documentation files.
 
-- [ ] **Step 4: Commit the evidence checkpoint**
+- [x] **Step 4: Commit the evidence checkpoint**
 
 ```powershell
 git add DOCUMENT_INDEX.md IMPLEMENTATION_HANDOFF.md docs/development-log docs/release-evidence/langgraph-restart-recovery.md docs/superpowers/plans/2026-07-14-opercerta-reliability-kernel.md docs/superpowers/plans/2026-07-16-langgraph-restart-recovery.md

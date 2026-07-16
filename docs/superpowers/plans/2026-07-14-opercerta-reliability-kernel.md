@@ -1100,7 +1100,7 @@ git commit -m "feat: make simulated work orders idempotent"
 
 ### Task 5: LangGraph interrupt and four-point restart recovery
 
-**Focused execution plan:** `docs/superpowers/plans/2026-07-16-langgraph-restart-recovery.md` is the normative Task 5 RED/GREEN sequence. It is written and self-reviewed; the checkboxes below remain unchecked until production code and tests are actually executed.
+**Focused execution plan:** `docs/superpowers/plans/2026-07-16-langgraph-restart-recovery.md` is the normative Task 5 RED/GREEN sequence. It has been executed; observed evidence is archived in `docs/release-evidence/langgraph-restart-recovery.md`.
 
 **Files:**
 - Create: `src/opercerta/infrastructure/checkpoints.py`
@@ -1114,13 +1114,13 @@ git commit -m "feat: make simulated work orders idempotent"
 - Produces: `RecoveryCoordinator.recover(operation_id: UUID) -> RecoveryAction`.
 - Uses the operation UUID string as both stable `thread_id` and business lookup key; it stays under the documented 255-character checkpoint limit.
 
-- [ ] **Step 1: RED — pause before every external write**
+- [x] **Step 1: RED — pause before every external write**
 
 Create an `awaiting_approval` operation, invoke the graph with its business facts and assert `__interrupt__` exists, operation status remains `awaiting_approval`, and work-order count remains zero.
 
 Expected RED: graph builder unavailable.
 
-- [ ] **Step 2: GREEN — build the smallest JSON-only graph**
+- [x] **Step 2: GREEN — build the smallest JSON-only graph**
 
 Use a `TypedDict` containing only strings, booleans and dictionaries. The approval node performs no side effect before `interrupt()`:
 
@@ -1140,7 +1140,7 @@ Route an approved decision to async `execute_work_order`, a rejected decision to
 
 Expected GREEN: graph pauses, no write occurs.
 
-- [ ] **Step 3: Configure the durable checkpointer exactly once per database**
+- [x] **Step 3: Configure the durable checkpointer exactly once per database**
 
 Derive the checkpointer DSN from ignored `.env.local` without printing the base URL:
 
@@ -1161,7 +1161,7 @@ async with AsyncPostgresSaver.from_conn_string(checkpoint_dsn) as checkpointer:
 
 Set `LANGGRAPH_STRICT_MSGPACK=true` in `.env.example` and the integration test process. Do not share the business SQLAlchemy transaction with checkpoint writes.
 
-- [ ] **Step 4: RED/GREEN — restart while awaiting approval**
+- [x] **Step 4: RED/GREEN — restart while awaiting approval**
 
 1. Build graph instance A and invoke to interrupt.
 2. Dispose instance A.
@@ -1171,7 +1171,7 @@ Set `LANGGRAPH_STRICT_MSGPACK=true` in `.env.example` and the integration test p
 
 Expected RED before coordinator logic: it attempts to continue or cannot classify the checkpoint. Implement snapshot inspection plus `choose_recovery_action`; expected GREEN: waiting is preserved.
 
-- [ ] **Step 5: RED/GREEN — restart after approval commit but before graph resume**
+- [x] **Step 5: RED/GREEN — restart after approval commit but before graph resume**
 
 Record an approval through Task 3, dispose all graph objects, create a new coordinator, and recover. It must read the original decision and invoke:
 
@@ -1184,7 +1184,7 @@ await graph.ainvoke(
 
 Assert one work order, status `completed`, and no second approval. Expected RED before resume logic; GREEN after it uses the stored decision.
 
-- [ ] **Step 6: RED/GREEN — restart after the work-order write but before its graph checkpoint**
+- [x] **Step 6: RED/GREEN — restart after the work-order write but before its graph checkpoint**
 
 From an interrupted graph:
 
@@ -1196,11 +1196,11 @@ From an interrupted graph:
 
 This test must fail if the execute node uses a random idempotency key.
 
-- [ ] **Step 7: RED/GREEN — rebuild when the business row exists before the first checkpoint**
+- [x] **Step 7: RED/GREEN — rebuild when the business row exists before the first checkpoint**
 
 Insert an operation business row with persisted request/risk/plan and do not invoke the graph. Recovery must choose `rebuild_from_business_facts`, construct the initial JSON state from those persisted fields, and reach the approval interrupt. It must not call a model or fabricate missing fields.
 
-- [ ] **Step 8: Run the complete restart matrix repeatedly**
+- [x] **Step 8: Run the complete restart matrix repeatedly**
 
 ```powershell
 1..10 | ForEach-Object { uv run pytest tests/integration/workflow/test_restart_recovery.py -q; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }
@@ -1212,7 +1212,7 @@ uv run mypy src
 
 Expected: every command exits 0; every repeated run keeps one approval and at most one work order.
 
-- [ ] **Step 9: Commit the recovery integration**
+- [x] **Step 9: Commit the recovery integration**
 
 ```powershell
 git add src/opercerta/infrastructure/checkpoints.py src/opercerta/workflow tests/integration/workflow .env.example
