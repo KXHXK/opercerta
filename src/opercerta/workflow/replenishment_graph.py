@@ -11,6 +11,7 @@ from pydantic import JsonValue, ValidationError
 
 from opercerta.domain.contracts import ActionType, ObjectType, OperationRequest
 from opercerta.domain.errors import (
+    ApprovalSnapshotMismatch,
     DependencyUnavailable,
     EvidenceExpired,
     EvidenceUnavailable,
@@ -18,8 +19,11 @@ from opercerta.domain.errors import (
     InvalidPolicyEvidence,
     InventoryNotFound,
     ReplenishmentQuantityOutOfPolicy,
+    WorkOrderStorageFailed,
+    WorkOrderVerificationFailed,
 )
 from opercerta.domain.model_gateway import ModelGateway
+from opercerta.domain.operation_state import ApprovalResume
 from opercerta.domain.replenishment import (
     ApprovalBinding,
     EvidenceBundle,
@@ -33,6 +37,11 @@ from opercerta.domain.replenishment import (
     assess_replenishment,
     build_approval_binding,
     build_plan,
+)
+from opercerta.domain.work_orders import (
+    WorkOrderCommand,
+    WorkOrderRecord,
+    WorkOrderWriteResult,
 )
 from opercerta.infrastructure.db.evidence_repository import EvidenceRepository
 from opercerta.infrastructure.db.replenishment_operation_repository import (
@@ -48,6 +57,17 @@ class EvidenceGateway(Protocol):
         raise NotImplementedError
 
     async def get_policy(self, sku: str) -> object:
+        raise NotImplementedError
+
+    async def create_work_order(
+        self,
+        command: WorkOrderCommand,
+        *,
+        plan_hash: str,
+    ) -> WorkOrderWriteResult:
+        raise NotImplementedError
+
+    async def get_work_order(self, work_order_id: UUID) -> WorkOrderRecord:
         raise NotImplementedError
 
 
@@ -126,6 +146,12 @@ def build_replenishment_graph(
     def approval_binding(state: ReplenishmentState) -> ApprovalBinding:
         return ApprovalBinding.model_validate(state["approval_binding"])
 
+    def approval(state: ReplenishmentState) -> ApprovalResume:
+        return ApprovalResume.model_validate(state["approval"])
+
+    def work_order(state: ReplenishmentState) -> WorkOrderRecord:
+        return WorkOrderRecord.model_validate(state["work_order"])
+
     def error(state: ReplenishmentState) -> OperationError:
         return OperationError.model_validate(state["error"])
 
@@ -139,6 +165,11 @@ def build_replenishment_graph(
             ReplenishmentQuantityOutOfPolicy.code: (
                 "Recommended replenishment quantity is outside policy."
             ),
+            ApprovalSnapshotMismatch.code: (
+                "Approved facts no longer match the current inventory facts."
+            ),
+            WorkOrderStorageFailed.code: "The work order could not be stored.",
+            WorkOrderVerificationFailed.code: ("The stored work order could not be verified."),
             DependencyUnavailable.code: "A required dependency is unavailable.",
         }
         operation_error = OperationError(
@@ -157,6 +188,9 @@ def build_replenishment_graph(
                 InvalidPolicyEvidence,
                 EvidenceExpired,
                 ReplenishmentQuantityOutOfPolicy,
+                ApprovalSnapshotMismatch,
+                WorkOrderStorageFailed,
+                WorkOrderVerificationFailed,
             ),
         ):
             return exception.code
@@ -302,7 +336,172 @@ def build_replenishment_graph(
                 "approval_expires_at": expires_at.isoformat(),
             }
         )
-        return {"approval": cast(dict[str, JsonValue], resumed)}
+        try:
+            parsed = ApprovalResume.model_validate(resumed)
+        except ValidationError:
+            return error_update(DependencyUnavailable.code)
+        return {
+            "approval": cast(
+                dict[str, JsonValue],
+                parsed.model_dump(mode="json"),
+            )
+        }
+
+    def route_approval(state: ReplenishmentState) -> str:
+        if state["error"] is not None:
+            return "failure"
+        return approval(state).decision.value
+
+    async def mark_rejected(state: ReplenishmentState) -> dict[str, object]:
+        await operations.mark_rejected(
+            operation_id(state),
+            approval(state).approval_id,
+        )
+        return {}
+
+    async def revalidate_evidence(
+        state: ReplenishmentState,
+    ) -> dict[str, object]:
+        sku = request(state).object_id
+        if sku is None:
+            return error_update(DependencyUnavailable.code)
+        original_plan = plan(state)
+        original_binding = approval_binding(state)
+        try:
+            raw_inventory, raw_policy = await asyncio.gather(
+                gateway.get_inventory(sku),
+                gateway.get_policy(sku),
+            )
+            try:
+                refreshed_inventory = InventoryEvidence.model_validate(raw_inventory)
+            except ValidationError:
+                raise InvalidInventoryEvidence from None
+            try:
+                refreshed_policy = PolicyEvidence.model_validate(raw_policy)
+            except ValidationError:
+                raise InvalidPolicyEvidence from None
+            refreshed_bundle = EvidenceBundle(
+                inventory=refreshed_inventory,
+                policy=refreshed_policy,
+            )
+            await evidence_repository.save_refresh(
+                operation_id(state),
+                refreshed_bundle,
+            )
+            refreshed_assessment = assess_replenishment(
+                refreshed_bundle,
+                clock(),
+            )
+            if not refreshed_assessment.replenishment_required:
+                raise ApprovalSnapshotMismatch
+            refreshed_plan = build_plan(
+                refreshed_assessment,
+                ModelPlanExplanation(
+                    summary=original_plan.summary,
+                    rationale=original_plan.rationale,
+                ),
+                refreshed_policy.rule_version,
+            )
+            refreshed_binding = build_approval_binding(
+                refreshed_bundle,
+                refreshed_plan,
+            )
+            if (
+                refreshed_binding.rule_version,
+                refreshed_binding.decision_facts_hash,
+                refreshed_binding.plan_hash,
+                refreshed_binding.recommended_quantity,
+            ) != (
+                original_binding.rule_version,
+                original_binding.decision_facts_hash,
+                original_binding.plan_hash,
+                original_binding.recommended_quantity,
+            ):
+                raise ApprovalSnapshotMismatch
+        except Exception as exception:
+            if isinstance(
+                exception,
+                (
+                    InventoryNotFound,
+                    EvidenceUnavailable,
+                    InvalidInventoryEvidence,
+                    InvalidPolicyEvidence,
+                    EvidenceExpired,
+                    ReplenishmentQuantityOutOfPolicy,
+                ),
+            ):
+                return error_update(code_for(exception))
+            return error_update(ApprovalSnapshotMismatch.code)
+        return {}
+
+    async def mark_executing(state: ReplenishmentState) -> dict[str, object]:
+        await operations.mark_executing(
+            operation_id(state),
+            approval(state).approval_id,
+        )
+        return {}
+
+    async def execute_work_order(
+        state: ReplenishmentState,
+    ) -> dict[str, object]:
+        approved_plan = plan(state)
+        command = WorkOrderCommand(
+            operation_id=operation_id(state),
+            payload={
+                "approved_plan_hash": approved_plan.plan_hash,
+                "quantity": approved_plan.recommended_quantity,
+                "sku": approved_plan.sku,
+            },
+        )
+        try:
+            write_result = await gateway.create_work_order(
+                command,
+                plan_hash=approved_plan.plan_hash,
+            )
+        except Exception as exception:
+            return error_update(code_for(exception))
+        return {
+            "work_order": write_result.work_order.model_dump(mode="json"),
+            "replayed": write_result.replayed,
+        }
+
+    async def mark_verifying(state: ReplenishmentState) -> dict[str, object]:
+        await operations.mark_verifying(
+            operation_id(state),
+            work_order(state).id,
+        )
+        return {}
+
+    async def verify_work_order(
+        state: ReplenishmentState,
+    ) -> dict[str, object]:
+        expected = work_order(state)
+        try:
+            stored = await gateway.get_work_order(expected.id)
+        except Exception:
+            return error_update(WorkOrderVerificationFailed.code)
+        if (
+            stored.id != expected.id
+            or stored.operation_id != expected.operation_id
+            or stored.payload != expected.payload
+            or stored.payload_hash != expected.payload_hash
+        ):
+            return error_update(WorkOrderVerificationFailed.code)
+        return {}
+
+    async def mark_completed(state: ReplenishmentState) -> dict[str, object]:
+        stored_work_order = work_order(state)
+        result = OperationResult(
+            outcome="work_order_completed",
+            message="The approved replenishment work order was created and verified.",
+            work_order_id=stored_work_order.id,
+        )
+        await operations.mark_completed(
+            operation_id(state),
+            result,
+            stored_work_order.id,
+        )
+        return {"result": result.model_dump(mode="json")}
 
     async def mark_failed(state: ReplenishmentState) -> dict[str, object]:
         operation_error = error(state)
@@ -325,6 +524,13 @@ def build_replenishment_graph(
     builder.add_node("record_low_plan", record_low_plan)
     builder.add_node("prepare_approval", prepare_approval)
     builder.add_node("request_approval", request_approval)
+    builder.add_node("mark_rejected", mark_rejected)
+    builder.add_node("revalidate_evidence", revalidate_evidence)
+    builder.add_node("mark_executing", mark_executing)
+    builder.add_node("execute_work_order", execute_work_order)
+    builder.add_node("mark_verifying", mark_verifying)
+    builder.add_node("verify_work_order", verify_work_order)
+    builder.add_node("mark_completed", mark_completed)
     builder.add_node("mark_failed", mark_failed)
     builder.add_edge(START, "parse_request")
     builder.add_conditional_edges(
@@ -358,6 +564,33 @@ def build_replenishment_graph(
     )
     builder.add_edge("record_low_plan", "prepare_approval")
     builder.add_edge("prepare_approval", "request_approval")
-    builder.add_edge("request_approval", END)
+    builder.add_conditional_edges(
+        "request_approval",
+        route_approval,
+        {
+            "approved": "revalidate_evidence",
+            "rejected": "mark_rejected",
+            "failure": "mark_failed",
+        },
+    )
+    builder.add_edge("mark_rejected", END)
+    builder.add_conditional_edges(
+        "revalidate_evidence",
+        route_error,
+        {"continue": "mark_executing", "failure": "mark_failed"},
+    )
+    builder.add_edge("mark_executing", "execute_work_order")
+    builder.add_conditional_edges(
+        "execute_work_order",
+        route_error,
+        {"continue": "mark_verifying", "failure": "mark_failed"},
+    )
+    builder.add_edge("mark_verifying", "verify_work_order")
+    builder.add_conditional_edges(
+        "verify_work_order",
+        route_error,
+        {"continue": "mark_completed", "failure": "mark_failed"},
+    )
+    builder.add_edge("mark_completed", END)
     builder.add_edge("mark_failed", END)
     return builder.compile(checkpointer=checkpointer)
