@@ -13,6 +13,8 @@ from pytest import MonkeyPatch
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
+os.environ.setdefault("LANGGRAPH_STRICT_MSGPACK", "true")
+
 ROOT = Path(__file__).resolve().parents[2]
 
 if sys.platform == "win32":
@@ -61,6 +63,18 @@ def migrated_database_url(database_url: SecretStr) -> SecretStr:
         else:
             os.environ["PGPASSWORD"] = original_pgpassword
     return database_url
+
+
+@pytest.fixture(scope="session")
+def checkpoint_database_url(migrated_database_url: SecretStr) -> SecretStr:
+    from opercerta.infrastructure.checkpoints import open_checkpointer
+
+    async def setup_once() -> None:
+        async with open_checkpointer(migrated_database_url, setup=True):
+            pass
+
+    asyncio.run(setup_once())
+    return migrated_database_url
 
 
 @pytest_asyncio.fixture
