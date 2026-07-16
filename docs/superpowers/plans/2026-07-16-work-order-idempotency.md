@@ -1177,7 +1177,7 @@ git status --short
 
 Expected: `git diff --check` exits `0`; the credential-pattern scan returns no matches; `git status --short` lists only the intended Task 4 evidence, index, handoff, log and plan files.
 
-- [ ] **Step 4: Commit the evidence checkpoint**
+- [x] **Step 4: Commit the evidence checkpoint**
 
 ```powershell
 git add DOCUMENT_INDEX.md IMPLEMENTATION_HANDOFF.md docs/development-log docs/release-evidence/work-order-idempotency.md docs/superpowers/plans/2026-07-14-opercerta-reliability-kernel.md docs/superpowers/plans/2026-07-16-work-order-idempotency.md
