@@ -1876,7 +1876,7 @@ git commit -m "feat: expose replenishment api"
 - Produces: reproducible evidence, rollback points, unverified scope and next OperCerta boundary.
 - Preserves: `OperCerta release gate: CLOSED`.
 
-- [ ] **Step 1: Run the fresh dependency and full code gate**
+- [x] **Step 1: Run the fresh dependency and full code gate**
 
 ```powershell
 uv sync --frozen --all-groups
@@ -1890,7 +1890,7 @@ git status --short
 
 Expected: commands through diff check exit `0`; record exact observed counts and timings.
 
-- [ ] **Step 2: Run secret-safe migration downgrade and upgrade**
+- [x] **Step 2: Run secret-safe migration downgrade and upgrade**
 
 Use the established SecretStr, passwordless URL and temporary `PGPASSWORD` boundary to execute:
 
@@ -1903,7 +1903,7 @@ pytest tests/integration -q
 
 Expected final revision: `0002_inventory_replenishment (head)`. Do not print the connection URL.
 
-- [ ] **Step 3: Run independent concurrency and restart repetitions**
+- [x] **Step 3: Run independent concurrency and restart repetitions**
 
 ```powershell
 1..10 | ForEach-Object {
@@ -1918,7 +1918,7 @@ Expected final revision: `0002_inventory_replenishment (head)`. Do not print the
 
 Record completion counts only as local repeat evidence.
 
-- [ ] **Step 4: Exercise the four tools and API over real local transports**
+- [x] **Step 4: Exercise the four tools and API over real local transports**
 
 Start FastMCP on an unused loopback port and FastAPI on a separate loopback port. From a separate client process:
 
@@ -1933,7 +1933,7 @@ Start FastMCP on an unused loopback port and FastAPI on a separate loopback port
 
 Do not record ports as permanent architecture or expose credentials.
 
-- [ ] **Step 5: Create observed-facts evidence**
+- [x] **Step 5: Create observed-facts evidence**
 
 Use these exact sections:
 
@@ -1964,13 +1964,13 @@ Unverified scope: equipment scenario, React, SSE, JWT/RBAC, real model, Redis, o
 Next project permitted: no
 ```
 
-- [ ] **Step 6: Synchronize repository and learning records**
+- [x] **Step 6: Synchronize repository and learning records**
 
 Update README, index, handoff, current state and daily log with actual commits and commands. Append relevant user questions and interview explanations to `C:\Users\Administrator\Desktop\agent术语.md` without adding the desktop file to Git.
 
 Do not mark future equipment, frontend, model or release work complete.
 
-- [ ] **Step 7: Verify documentation hygiene**
+- [x] **Step 7: Verify documentation hygiene**
 
 ```powershell
 git diff --check
@@ -1981,7 +1981,7 @@ git status --short
 
 Expected: diff check exits `0`; scans have no matches; status lists only intended evidence and documentation files.
 
-- [ ] **Step 8: Commit the evidence checkpoint**
+- [x] **Step 8: Commit the evidence checkpoint**
 
 ```powershell
 git add README.md DOCUMENT_INDEX.md IMPLEMENTATION_HANDOFF.md docs/development-log docs/release-evidence/inventory-replenishment-vertical-slice.md docs/superpowers/plans/2026-07-16-inventory-replenishment-vertical-slice.md

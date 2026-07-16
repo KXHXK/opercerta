@@ -1,10 +1,10 @@
 # OperCerta 当前状态
 
-最后核验：2026-07-16 22:26 Asia/Shanghai，Task 8 实现 commit `c4ac3ab`。
+最后核验：2026-07-16 23:09 Asia/Shanghai，Task 9 本地总门禁和真实三进程传输闭环已执行。
 
 ## 当前阶段
 
-可靠性内核与库存补货纵向切片 Task 1–8 已完成本地代码门禁。后端现已覆盖严格输入、证据与计划、绑定审批、真实 MCP 读写、批准后重取事实、写后读验证、拒绝、过期、A/B 重启恢复和 FastAPI 创建/查询/审批边界；下一步为 Task 9 总门禁与真实双服务传输证据。
+可靠性内核与库存补货纵向切片 Task 1–9 已完成 Windows 原生 PostgreSQL 后端本地门禁。后端已覆盖严格输入、证据与计划、绑定审批、真实 MCP 读写、批准后重取事实、写后读验证、拒绝、过期、A/B 重启恢复、FastAPI 创建/查询/审批以及独立服务进程真实传输。发布门禁仍关闭。
 
 ## 已验证事实
 
@@ -62,18 +62,26 @@
 - 生产 factory 从环境读取数据库 URL、MCP URL、超时、审批 TTL 和 `mock` 模式；不自动迁移 Schema 或调用 checkpointer `setup()`，启动执行一次恢复扫描，关闭释放 Engine/checkpointer。
 - 生产 lifespan 资源自审先证明 Engine 构造失败会遗留临时 `PGPASSWORD`；将 Engine 构造纳入 `try/finally` 后，错误路径恢复原环境的回归通过。
 - Task 8 API focused 最终为 `8 passed in 10.11s`；MCP + workflow + API 回归为 `55 passed in 40.77s`；完整测试为 `283 passed in 55.73s`；Ruff、65 文件 format check、mypy（35 个源文件）通过。实现提交 `c4ac3ab`。
+- Task 9 `uv sync --frozen --all-groups` 成功；初始完整测试为 `283 passed in 57.94s`，文档完成后提交前复验为 `283 passed in 56.41s`；Ruff clean；68 文件 format check；mypy 检查 35 个源文件通过。
+- secret-safe Alembic 已完成 `0001_reliability_kernel` 降级与 `0002_inventory_replenishment (head)` 恢复；迁移后集成测试 `131 passed in 55.39s`。
+- 绑定审批十路竞态以 10 个独立 Pytest 进程复验 `10/10`；补货 A/B 重启恢复以 10 个独立进程复验 `10/10`，每轮 `7 passed`。不解释为生产指标。
+- 真实传输使用独立 FastMCP 服务、独立 FastAPI 服务和独立客户端进程；四工具名称精确匹配。低库存创建为 `awaiting_approval`，绑定数量 `18`，批准后 `completed`，重复审批 HTTP `409`。
+- 同一真实 operation 的 PostgreSQL 查询确认一条审批、一条工单；最后四个审计事件为 `execution_started → work_order_created → verification_started → operation_completed`；测试 checkpoint 和业务行随后清理。
+- 真实服务首次启动在业务调用前失败，根因是 Uvicorn 0.51 Windows 单进程默认 `ProactorEventLoop` 与 Psycopg async 不兼容。读取本机 Uvicorn loop factory 后，最小验证证明显式 `asyncio:SelectorEventLoop` 可启动，再完成三进程闭环。未修改业务实现。
+- Task 1–9 总证据见 `docs/release-evidence/inventory-replenishment-vertical-slice.md`。
 
 ## 当前阻塞与风险
 
-- Task 9 新鲜依赖/迁移/竞态/重启/真实双服务传输证据、SSE、认证、前端、固定评测、安全回归、可观测性、Linux/Docker 和公开部署尚未完成，发布门禁保持关闭。
+- 设备场景、SSE、认证、前端、固定评测、安全回归、可观测性、Linux/Docker 和公开部署尚未完成，发布门禁保持关闭。
+- Windows 原生真实服务需要显式 Selector loop；尚未验证 Linux/Docker 下的默认事件循环、容器进程模型和健康检查。
 - 一次预期失败的 Pytest/Psycopg traceback 曾展开旧的本地测试数据库连接密码；代码、Git 和文档未保存该值，fixture 已改为无密码 URL + 临时 `PGPASSWORD`，角色密码也已轮换和复验。
 - 2026-07-16 checkpointer 首次 GREEN 的 Psycopg 连接失败 traceback 再次展开当时的本地测试角色密码。新封装已改为无密码 DSN、临时 `PGPASSWORD` 和 `%20` query 编码，代码/Git/文档未保存该值；用户随后同步轮换 PostgreSQL 角色与 `.env.local`，focused checkpointer 回归新鲜 `4 passed`。
 - 当前 Git 没有配置远程仓库；本地 commit 不是远程备份。
 
 ## 下一步
 
-按库存补货纵向闭环计划执行 Task 9：先运行冻结依赖和完整代码门禁，再做 secret-safe 迁移升降级、竞态/重启重复及真实 FastMCP + FastAPI 双服务传输验证。
+继续只实施 OperCerta。下一步先从详细设计中拆出剩余发布门禁的可执行顺序，优先 Docker/Linux 一致性与运行健康边界，再进入认证/人工接管、前端、评测、安全回归和可观测性。
 
 ## 发布门禁
 
-`OperCerta release gate: CLOSED`。Task 8 后端 API 代码通过不等于发布通过；Task 9 总门禁、Linux/Docker 一致性和公开部署仍待完成。
+`OperCerta release gate: CLOSED`。Task 1–9 只证明库存补货后端纵向切片在 Windows 本地环境通过；Linux/Docker、完整产品面和公开部署仍待完成。
