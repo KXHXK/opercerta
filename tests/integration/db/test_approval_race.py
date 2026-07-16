@@ -1,14 +1,9 @@
 import asyncio
-from collections.abc import AsyncIterator
 from uuid import UUID, uuid4
 
 import pytest
-import pytest_asyncio
-from pydantic import SecretStr
-from pytest import MonkeyPatch
 from sqlalchemy import UniqueConstraint, delete, insert, select
-from sqlalchemy.engine import make_url
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from opercerta.domain.approvals import ApprovalCommand, ApprovalDecision, ApprovalRecord
 from opercerta.domain.errors import ApprovalAlreadyDecided, OperationNotFound
@@ -34,24 +29,6 @@ def test_schema_mapping_matches_reliability_migration() -> None:
         for constraint in work_orders.constraints
         if isinstance(constraint, UniqueConstraint)
     } == {"uq_work_orders_operation_id", "uq_work_orders_idempotency_key"}
-
-
-@pytest_asyncio.fixture
-async def engine(
-    migrated_database_url: SecretStr,
-    monkeypatch: MonkeyPatch,
-) -> AsyncIterator[AsyncEngine]:
-    parsed_url = make_url(migrated_database_url.get_secret_value())
-    if parsed_url.password:
-        monkeypatch.setenv("PGPASSWORD", parsed_url.password)
-    database_engine = create_async_engine(
-        parsed_url.set(password=None),
-        pool_pre_ping=True,
-    )
-    try:
-        yield database_engine
-    finally:
-        await database_engine.dispose()
 
 
 async def seed_operation(engine: AsyncEngine, status: str = "awaiting_approval") -> UUID:

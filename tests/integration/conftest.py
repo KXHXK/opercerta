@@ -1,13 +1,17 @@
 import asyncio
 import os
 import sys
+from collections.abc import AsyncIterator
 from pathlib import Path
 
 import pytest
+import pytest_asyncio
 from alembic import command
 from alembic.config import Config
 from pydantic import SecretStr
+from pytest import MonkeyPatch
 from sqlalchemy.engine import make_url
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -57,3 +61,21 @@ def migrated_database_url(database_url: SecretStr) -> SecretStr:
         else:
             os.environ["PGPASSWORD"] = original_pgpassword
     return database_url
+
+
+@pytest_asyncio.fixture
+async def engine(
+    migrated_database_url: SecretStr,
+    monkeypatch: MonkeyPatch,
+) -> AsyncIterator[AsyncEngine]:
+    parsed_url = make_url(migrated_database_url.get_secret_value())
+    if parsed_url.password:
+        monkeypatch.setenv("PGPASSWORD", parsed_url.password)
+    database_engine = create_async_engine(
+        parsed_url.set(password=None),
+        pool_pre_ping=True,
+    )
+    try:
+        yield database_engine
+    finally:
+        await database_engine.dispose()
