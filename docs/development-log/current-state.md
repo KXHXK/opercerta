@@ -1,10 +1,10 @@
 # OperCerta 当前状态
 
-最后核验：2026-07-16 11:20 Asia/Shanghai，Git 基线 commit `f143e99`。
+最后核验：2026-07-16 11:38 Asia/Shanghai，Git 基线 commit `e9b2834`。
 
 ## 当前阶段
 
-非法输入、状态恢复、数据库迁移、原子审批竞态和 Task 4 幂等工单写入已按 TDD 实现。Task 5 四点重启恢复书面规格与聚焦 TDD 计划已完成；生产代码和 Task 5 测试尚未开始。
+非法输入、状态恢复、数据库迁移、原子审批竞态和 Task 4 幂等工单写入已按 TDD 实现。Task 5 已完成快照领域模型、原子 operation 状态仓储和独立 PostgreSQL checkpointer 三个 RED/GREEN 检查点；JSON-only reliability graph、RecoveryCoordinator 和四点 A/B 重启矩阵尚未实现。
 
 ## 已验证事实
 
@@ -34,16 +34,20 @@
 - 进度规划估算：可靠性内核约 60%–65%；完整 OperCerta 发布范围约 25%–30%。这是按已定义里程碑及剩余范围估算，不是测试成绩或可对外指标。
 - 风险分级复核只减少用户对内部技术细节的形式审批，不减少工程文档；规格、计划、RED/GREEN、故障诊断、数据库与重启证据、静态检查、迁移回滚、未完成范围和风险必须继续在本地留痕并纳入 Git。
 - Task 5 聚焦计划已把快照领域模型、原子状态仓储、独立 checkpointer、JSON-only 图、RecoveryCoordinator、批准/拒绝与四点 A/B 重启矩阵拆成六个可提交阶段；占位匹配为零，14 个 Python 代码块语法编译通过。这是计划自审，不是生产实现或测试通过证据。
+- Task 5 快照领域 RED 因稳定错误缺失退出 1；GREEN focused 为 `48 passed`、单元全集为 `77 passed`，Ruff/format 与 mypy（14 个源文件）通过，提交 `8fb054e`。
+- Task 5 状态仓储 RED 因 Repository 模块缺失退出 1；GREEN focused 为 `7 passed`、数据库集成为 `24 passed`，Ruff/format 与 mypy（15 个源文件）通过，提交 `5bdacf7`。
+- Task 5 checkpointer RED 因模块缺失退出 1；DSN 回归还真实发现 `+` 空格编码不兼容与 URL 密码残留。修复后 focused 为 `4 passed`，与数据库回归合并为 `28 passed`，Ruff/format 与 mypy（16 个源文件）通过，提交 `e9b2834`。
 
 ## 当前阻塞与风险
 
 - LangGraph 四点重启恢复尚未实现，不能声称可靠性内核或发布门禁完成。
 - 一次预期失败的 Pytest/Psycopg traceback 曾展开旧的本地测试数据库连接密码；代码、Git 和文档未保存该值，fixture 已改为无密码 URL + 临时 `PGPASSWORD`，角色密码也已轮换和复验。
+- 2026-07-16 checkpointer 首次 GREEN 的 Psycopg 连接失败 traceback 再次展开当前本地测试角色密码。新封装已改为无密码 DSN、临时 `PGPASSWORD` 和 `%20` query 编码，代码/Git/文档未保存该值；角色密码与 `.env.local` 尚待用户再次同步轮换，轮换前暂停图实现。
 - 当前 Git 没有配置远程仓库；本地 commit 不是远程备份。
 
 ## 下一步
 
-按 Task 5 聚焦计划进行 inline execution，从 `tests/unit/domain/test_operation_state.py` 非法快照 RED 开始。Task 6 后冻结可靠性内核并转向最小纵向闭环。
+先轮换本地 PostgreSQL `opercerta` 测试角色密码并同步 `.env.local`，再执行不回显连接探针和 focused checkpointer 回归；通过后从 JSON-only reliability graph 的 interrupt RED 继续。Task 6 后冻结可靠性内核并转向最小纵向闭环。
 
 ## 发布门禁
 
