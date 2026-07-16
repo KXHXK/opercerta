@@ -45,6 +45,7 @@ from opercerta.infrastructure.db.schema import (
 
 SnapshotBuilder = Callable[[OperationSnapshot], OperationSnapshot]
 TransactionWrite = Callable[[AsyncConnection], Awaitable[None]]
+TransactionValidator = Callable[[AsyncConnection], Awaitable[None]]
 _UNSET = object()
 
 
@@ -283,21 +284,38 @@ class ReplenishmentOperationRepository:
         )
 
     async def mark_executing(self, operation_id: UUID, approval_id: UUID) -> None:
+        async def validate_approval(connection: AsyncConnection) -> None:
+            await self._require_approval_locator(
+                connection,
+                operation_id,
+                approval_id,
+                ApprovalDecision.APPROVED,
+            )
+
         await self._transition(
             operation_id,
             allowed=frozenset({OperationStatus.RESUMING}),
             target=OperationStatus.EXECUTING,
             event_type="execution_started",
             payload={"approval_id": str(approval_id)},
+            transaction_validator=validate_approval,
         )
 
     async def mark_verifying(self, operation_id: UUID, work_order_id: UUID) -> None:
+        async def validate_work_order(connection: AsyncConnection) -> None:
+            await self._require_work_order_locator(
+                connection,
+                operation_id,
+                work_order_id,
+            )
+
         await self._transition(
             operation_id,
             allowed=frozenset({OperationStatus.EXECUTING}),
             target=OperationStatus.VERIFYING,
             event_type="verification_started",
             payload={"work_order_id": str(work_order_id)},
+            transaction_validator=validate_work_order,
         )
 
     async def mark_completed(
@@ -320,12 +338,21 @@ class ReplenishmentOperationRepository:
         )
 
     async def mark_rejected(self, operation_id: UUID, approval_id: UUID) -> None:
+        async def validate_approval(connection: AsyncConnection) -> None:
+            await self._require_approval_locator(
+                connection,
+                operation_id,
+                approval_id,
+                ApprovalDecision.REJECTED,
+            )
+
         await self._transition(
             operation_id,
             allowed=frozenset({OperationStatus.RESUMING}),
             target=OperationStatus.REJECTED,
             event_type="operation_rejected",
             payload={"approval_id": str(approval_id)},
+            transaction_validator=validate_approval,
         )
 
     async def complete_without_replenishment(
@@ -434,7 +461,13 @@ class ReplenishmentOperationRepository:
         if thread_id != str(operation_id):
             raise RecoveryStateConflict(operation_id, "thread_id_mismatch")
         snapshot = self._snapshot(operation_id, operation["request_payload"])
-        result, error = self._terminal_payloads(operation_id, operation)
+        work_order_view = self._work_order_view(operation_id, work_order)
+        result, error = self._terminal_payloads(
+            operation_id,
+            status,
+            operation,
+            work_order_view,
+        )
         snapshot_binding = self._snapshot_approval_binding(operation_id, snapshot)
         return OperationDetail(
             operation_id=operation_id,
@@ -450,7 +483,7 @@ class ReplenishmentOperationRepository:
                 approval,
                 snapshot_binding=snapshot_binding,
             ),
-            work_order=self._work_order_view(operation_id, work_order),
+            work_order=work_order_view,
             audit_events=tuple(self._audit_event(row) for row in event_rows),
         )
 
@@ -495,6 +528,7 @@ class ReplenishmentOperationRepository:
         event_type: str,
         payload: dict[str, JsonValue],
         snapshot_builder: SnapshotBuilder | None = None,
+        transaction_validator: TransactionValidator | None = None,
         transaction_write: TransactionWrite | None = None,
         result_payload: dict[str, JsonValue] | None | object = _UNSET,
         error_code: str | None | object = _UNSET,
@@ -504,6 +538,18 @@ class ReplenishmentOperationRepository:
         async with self._engine.begin() as connection:
             operation = await self._locked_operation(connection, operation_id)
             current = self._status(operation_id, operation["status"])
+            if due_at is not None:
+                expires_at = cast(datetime | None, operation["approval_expires_at"])
+                if expires_at is None:
+                    raise RecoveryStateConflict(
+                        operation_id,
+                        "approval_expiry_missing",
+                    )
+                if due_at < expires_at:
+                    return False
+                payload = {"approval_expires_at": expires_at.isoformat()}
+            if transaction_validator is not None:
+                await transaction_validator(connection)
             if current is target:
                 await self._require_matching_event(
                     connection,
@@ -518,10 +564,6 @@ class ReplenishmentOperationRepository:
                     current.value,
                     target.value,
                 )
-            if due_at is not None:
-                expires_at = cast(datetime | None, operation["approval_expires_at"])
-                if expires_at is None or due_at < expires_at:
-                    return False
 
             snapshot = self._snapshot(operation_id, operation["request_payload"])
             next_snapshot = snapshot_builder(snapshot) if snapshot_builder else snapshot
@@ -575,6 +617,48 @@ class ReplenishmentOperationRepository:
         if row is None:
             raise OperationNotFound(operation_id)
         return row
+
+    async def _require_approval_locator(
+        self,
+        connection: AsyncConnection,
+        operation_id: UUID,
+        approval_id: UUID,
+        expected_decision: ApprovalDecision,
+    ) -> None:
+        row = (
+            (
+                await connection.execute(
+                    select(
+                        approvals.c.operation_id,
+                        approvals.c.decision,
+                    ).where(approvals.c.id == approval_id)
+                )
+            )
+            .mappings()
+            .one_or_none()
+        )
+        if row is None:
+            raise RecoveryStateConflict(operation_id, "approval_locator_missing")
+        if row["operation_id"] != operation_id:
+            raise RecoveryStateConflict(operation_id, "approval_operation_mismatch")
+        if row["decision"] != expected_decision.value:
+            raise RecoveryStateConflict(operation_id, "approval_decision_mismatch")
+
+    async def _require_work_order_locator(
+        self,
+        connection: AsyncConnection,
+        operation_id: UUID,
+        work_order_id: UUID,
+    ) -> None:
+        located_operation_id = (
+            await connection.execute(
+                select(work_orders.c.operation_id).where(work_orders.c.id == work_order_id)
+            )
+        ).scalar_one_or_none()
+        if located_operation_id is None:
+            raise RecoveryStateConflict(operation_id, "work_order_locator_missing")
+        if located_operation_id != operation_id:
+            raise RecoveryStateConflict(operation_id, "work_order_operation_mismatch")
 
     async def _require_matching_event(
         self,
@@ -668,29 +752,74 @@ class ReplenishmentOperationRepository:
     def _terminal_payloads(
         self,
         operation_id: UUID,
+        status: OperationStatus,
         operation: RowMapping,
+        work_order: WorkOrderRecord | None,
     ) -> tuple[OperationResult | None, OperationError | None]:
         payload = operation["result_payload"]
         error_code = cast(str | None, operation["error_code"])
-        if payload is None:
+
+        if status is OperationStatus.COMPLETED:
+            if payload is None:
+                raise RecoveryStateConflict(operation_id, "completed_result_missing")
             if error_code is not None:
-                raise RecoveryStateConflict(operation_id, "error_without_payload")
-            return None, None
-        try:
-            if error_code is not None:
-                error = OperationError.model_validate(payload)
-                if error.code != error_code:
+                raise RecoveryStateConflict(operation_id, "completed_error_code_present")
+            try:
+                result = OperationResult.model_validate(payload)
+            except ValidationError:
+                raise RecoveryStateConflict(
+                    operation_id,
+                    "invalid_completed_result",
+                ) from None
+            if result.outcome == "work_order_completed":
+                if work_order is None:
                     raise RecoveryStateConflict(
                         operation_id,
-                        "error_code_mismatch",
+                        "completed_work_order_missing",
                     )
-                return None, error
-            return OperationResult.model_validate(payload), None
-        except ValidationError:
+                if result.work_order_id != work_order.id:
+                    raise RecoveryStateConflict(
+                        operation_id,
+                        "completed_work_order_id_mismatch",
+                    )
+            elif result.work_order_id is not None or work_order is not None:
+                raise RecoveryStateConflict(
+                    operation_id,
+                    "completed_unexpected_work_order",
+                )
+            return result, None
+
+        if status is OperationStatus.FAILED:
+            if payload is None:
+                raise RecoveryStateConflict(operation_id, "failed_error_missing")
+            try:
+                error = OperationError.model_validate(payload)
+            except ValidationError:
+                raise RecoveryStateConflict(
+                    operation_id,
+                    "invalid_failed_error",
+                ) from None
+            if error.code != error_code:
+                raise RecoveryStateConflict(
+                    operation_id,
+                    "failed_error_code_mismatch",
+                )
+            return None, error
+
+        if status in {OperationStatus.REJECTED, OperationStatus.EXPIRED}:
+            if payload is not None or error_code is not None:
+                raise RecoveryStateConflict(
+                    operation_id,
+                    "empty_terminal_facts_required",
+                )
+            return None, None
+
+        if payload is not None or error_code is not None:
             raise RecoveryStateConflict(
                 operation_id,
-                "invalid_terminal_payload",
-            ) from None
+                "nonterminal_facts_present",
+            )
+        return None, None
 
     def _audit_event(self, row: RowMapping) -> AuditEventView:
         payload = cast(dict[str, JsonValue], row["payload"])

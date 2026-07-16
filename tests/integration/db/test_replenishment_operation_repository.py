@@ -1,9 +1,9 @@
 import asyncio
 from datetime import UTC, datetime, timedelta
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
-from sqlalchemy import delete, select, text, update
+from sqlalchemy import delete, insert, select, text, update
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from opercerta.domain.approvals import ApprovalCommand, ApprovalDecision
@@ -28,7 +28,12 @@ from opercerta.infrastructure.db.approval_repository import ApprovalRepository
 from opercerta.infrastructure.db.replenishment_operation_repository import (
     ReplenishmentOperationRepository,
 )
-from opercerta.infrastructure.db.schema import approvals, audit_events, operations
+from opercerta.infrastructure.db.schema import (
+    approvals,
+    audit_events,
+    operations,
+    work_orders,
+)
 from opercerta.infrastructure.db.work_order_repository import WorkOrderRepository
 
 NOW = datetime(2026, 7, 16, 4, 0, tzinfo=UTC)
@@ -145,6 +150,33 @@ async def operation_facts(
     )
 
 
+async def seed_work_order(
+    engine: AsyncEngine,
+    operation_id: UUID,
+    *,
+    work_order_id: UUID | None = None,
+) -> UUID:
+    seeded_id = work_order_id or uuid4()
+    async with engine.begin() as connection:
+        await connection.execute(
+            insert(work_orders).values(
+                id=seeded_id,
+                operation_id=operation_id,
+                idempotency_key=f"work-order:v1:{operation_id}",
+                payload={
+                    "sku": "SKU-DEMO-001",
+                    "quantity": 10,
+                    "approved_plan_hash": "b" * 64,
+                },
+                payload_hash="c" * 64,
+                status="created",
+                created_at=NOW,
+                updated_at=NOW,
+            )
+        )
+    return seeded_id
+
+
 async def advance_to_awaiting_approval(
     repository: ReplenishmentOperationRepository,
     operation_id: UUID,
@@ -159,6 +191,232 @@ async def advance_to_awaiting_approval(
         binding(),
         approval_expires_at,
     )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("status", "result_payload", "error_code", "expected_reason"),
+    [
+        (
+            OperationStatus.COMPLETED,
+            None,
+            None,
+            "completed_result_missing",
+        ),
+        (
+            OperationStatus.COMPLETED,
+            {
+                "outcome": "replenishment_not_required",
+                "message": "No replenishment is needed.",
+                "work_order_id": None,
+            },
+            "unexpected_error",
+            "completed_error_code_present",
+        ),
+        (
+            OperationStatus.COMPLETED,
+            {"outcome": "not_a_real_outcome", "message": "Invalid."},
+            None,
+            "invalid_completed_result",
+        ),
+        (
+            OperationStatus.COMPLETED,
+            {
+                "outcome": "replenishment_not_required",
+                "message": "No replenishment is needed.",
+                "work_order_id": str(UUID("30000000-0000-0000-0000-000000000003")),
+            },
+            None,
+            "completed_unexpected_work_order",
+        ),
+        (
+            OperationStatus.FAILED,
+            None,
+            "dependency_unavailable",
+            "failed_error_missing",
+        ),
+        (
+            OperationStatus.FAILED,
+            {
+                "outcome": "replenishment_not_required",
+                "message": "This is a result, not an error.",
+                "work_order_id": None,
+            },
+            "dependency_unavailable",
+            "invalid_failed_error",
+        ),
+        (
+            OperationStatus.FAILED,
+            {
+                "code": "dependency_unavailable",
+                "message": "Inventory is unavailable.",
+            },
+            "different_code",
+            "failed_error_code_mismatch",
+        ),
+        (
+            OperationStatus.REJECTED,
+            {
+                "outcome": "replenishment_not_required",
+                "message": "No replenishment is needed.",
+                "work_order_id": None,
+            },
+            None,
+            "empty_terminal_facts_required",
+        ),
+        (
+            OperationStatus.EXPIRED,
+            None,
+            "approval_expired",
+            "empty_terminal_facts_required",
+        ),
+        (
+            OperationStatus.RECEIVED,
+            {
+                "outcome": "replenishment_not_required",
+                "message": "No replenishment is needed.",
+                "work_order_id": None,
+            },
+            None,
+            "nonterminal_facts_present",
+        ),
+        (
+            OperationStatus.EXECUTING,
+            None,
+            "dependency_unavailable",
+            "nonterminal_facts_present",
+        ),
+    ],
+)
+async def test_load_detail_rejects_status_inconsistent_terminal_facts(
+    engine: AsyncEngine,
+    status: OperationStatus,
+    result_payload: dict[str, object] | None,
+    error_code: str | None,
+    expected_reason: str,
+) -> None:
+    repository = ReplenishmentOperationRepository(engine)
+    operation_id = await repository.create(operation_request())
+
+    try:
+        async with engine.begin() as connection:
+            await connection.execute(
+                update(operations)
+                .where(operations.c.id == operation_id)
+                .values(
+                    status=status.value,
+                    result_payload=result_payload,
+                    error_code=error_code,
+                )
+            )
+
+        with pytest.raises(RecoveryStateConflict) as captured:
+            await repository.load_detail(operation_id)
+        assert captured.value.reason == expected_reason
+    finally:
+        await cleanup_operation(engine, operation_id)
+
+
+@pytest.mark.asyncio
+async def test_load_detail_rejects_completed_work_order_fact_mismatches(
+    engine: AsyncEngine,
+) -> None:
+    repository = ReplenishmentOperationRepository(engine)
+    missing_id = await repository.create(operation_request())
+    mismatched_id = await repository.create(operation_request())
+    unexpected_id = await repository.create(operation_request())
+    result_reference_id = uuid4()
+
+    try:
+        mismatched_row_id = await seed_work_order(engine, mismatched_id)
+        assert mismatched_row_id != result_reference_id
+        await seed_work_order(engine, unexpected_id)
+        async with engine.begin() as connection:
+            await connection.execute(
+                update(operations)
+                .where(operations.c.id == missing_id)
+                .values(
+                    status=OperationStatus.COMPLETED.value,
+                    result_payload={
+                        "outcome": "work_order_completed",
+                        "message": "Work order completed.",
+                        "work_order_id": str(result_reference_id),
+                    },
+                    error_code=None,
+                )
+            )
+            await connection.execute(
+                update(operations)
+                .where(operations.c.id == mismatched_id)
+                .values(
+                    status=OperationStatus.COMPLETED.value,
+                    result_payload={
+                        "outcome": "work_order_completed",
+                        "message": "Work order completed.",
+                        "work_order_id": str(result_reference_id),
+                    },
+                    error_code=None,
+                )
+            )
+            await connection.execute(
+                update(operations)
+                .where(operations.c.id == unexpected_id)
+                .values(
+                    status=OperationStatus.COMPLETED.value,
+                    result_payload={
+                        "outcome": "replenishment_not_required",
+                        "message": "No replenishment is needed.",
+                        "work_order_id": None,
+                    },
+                    error_code=None,
+                )
+            )
+
+        for operation_id, expected_reason in (
+            (missing_id, "completed_work_order_missing"),
+            (mismatched_id, "completed_work_order_id_mismatch"),
+            (unexpected_id, "completed_unexpected_work_order"),
+        ):
+            with pytest.raises(RecoveryStateConflict) as captured:
+                await repository.load_detail(operation_id)
+            assert captured.value.reason == expected_reason
+    finally:
+        await cleanup_operation(engine, missing_id)
+        await cleanup_operation(engine, mismatched_id)
+        await cleanup_operation(engine, unexpected_id)
+
+
+@pytest.mark.asyncio
+async def test_load_detail_accepts_completed_result_matching_work_order_row(
+    engine: AsyncEngine,
+) -> None:
+    repository = ReplenishmentOperationRepository(engine)
+    operation_id = await repository.create(operation_request())
+
+    try:
+        work_order_id = await seed_work_order(engine, operation_id)
+        async with engine.begin() as connection:
+            await connection.execute(
+                update(operations)
+                .where(operations.c.id == operation_id)
+                .values(
+                    status=OperationStatus.COMPLETED.value,
+                    result_payload={
+                        "outcome": "work_order_completed",
+                        "message": "Work order completed.",
+                        "work_order_id": str(work_order_id),
+                    },
+                    error_code=None,
+                )
+            )
+
+        detail = await repository.load_detail(operation_id)
+        assert detail.result is not None
+        assert detail.result.work_order_id == work_order_id
+        assert detail.work_order is not None
+        assert detail.work_order.id == work_order_id
+    finally:
+        await cleanup_operation(engine, operation_id)
 
 
 @pytest.mark.asyncio
@@ -325,6 +583,172 @@ async def test_approved_execution_and_rejected_paths_store_terminal_facts(
 
 
 @pytest.mark.asyncio
+async def test_approval_locators_must_match_operation_and_decision_before_transition(
+    engine: AsyncEngine,
+) -> None:
+    repository = ReplenishmentOperationRepository(engine)
+    operation_ids: list[UUID] = []
+
+    try:
+        cases = (
+            ("executing", ApprovalDecision.APPROVED, "missing", "approval_locator_missing"),
+            (
+                "executing",
+                ApprovalDecision.APPROVED,
+                "wrong_operation",
+                "approval_operation_mismatch",
+            ),
+            (
+                "executing",
+                ApprovalDecision.REJECTED,
+                "same",
+                "approval_decision_mismatch",
+            ),
+            ("rejected", ApprovalDecision.REJECTED, "missing", "approval_locator_missing"),
+            (
+                "rejected",
+                ApprovalDecision.REJECTED,
+                "wrong_operation",
+                "approval_operation_mismatch",
+            ),
+            (
+                "rejected",
+                ApprovalDecision.APPROVED,
+                "same",
+                "approval_decision_mismatch",
+            ),
+        )
+        for target, decision, locator_kind, expected_reason in cases:
+            operation_id = await repository.create(operation_request())
+            operation_ids.append(operation_id)
+            await advance_to_awaiting_approval(
+                repository,
+                operation_id,
+                approval_expires_at=NOW + timedelta(minutes=5),
+            )
+            approval = await ApprovalRepository(engine).submit_once(
+                ApprovalCommand(
+                    operation_id=operation_id,
+                    approver_id=f"{target}-{locator_kind}",
+                    decision=decision,
+                    reason="Recorded decision",
+                )
+            )
+            locator_id = approval.id
+            if locator_kind == "missing":
+                locator_id = uuid4()
+            elif locator_kind == "wrong_operation":
+                locator_operation_id = await repository.create(operation_request())
+                operation_ids.append(locator_operation_id)
+                await advance_to_awaiting_approval(
+                    repository,
+                    locator_operation_id,
+                    approval_expires_at=NOW + timedelta(minutes=5),
+                )
+                locator_approval = await ApprovalRepository(engine).submit_once(
+                    ApprovalCommand(
+                        operation_id=locator_operation_id,
+                        approver_id=f"locator-{target}",
+                        decision=decision,
+                        reason="Recorded decision",
+                    )
+                )
+                locator_id = locator_approval.id
+
+            before = await operation_facts(engine, operation_id)
+            with pytest.raises(RecoveryStateConflict) as captured:
+                if target == "executing":
+                    await repository.mark_executing(operation_id, locator_id)
+                else:
+                    await repository.mark_rejected(operation_id, locator_id)
+            assert captured.value.reason == expected_reason
+            assert await operation_facts(engine, operation_id) == before
+    finally:
+        for operation_id in operation_ids:
+            await cleanup_operation(engine, operation_id)
+
+
+@pytest.mark.asyncio
+async def test_work_order_locator_must_match_operation_before_verifying(
+    engine: AsyncEngine,
+) -> None:
+    repository = ReplenishmentOperationRepository(engine)
+    operation_ids: list[UUID] = []
+
+    try:
+        for locator_kind, expected_reason in (
+            ("missing", "work_order_locator_missing"),
+            ("wrong_operation", "work_order_operation_mismatch"),
+        ):
+            operation_id = await repository.create(operation_request())
+            operation_ids.append(operation_id)
+            await advance_to_awaiting_approval(
+                repository,
+                operation_id,
+                approval_expires_at=NOW + timedelta(minutes=5),
+            )
+            approval = await ApprovalRepository(engine).submit_once(
+                ApprovalCommand(
+                    operation_id=operation_id,
+                    approver_id=f"operator-{locator_kind}",
+                    decision=ApprovalDecision.APPROVED,
+                    reason="Approved",
+                )
+            )
+            await repository.mark_executing(operation_id, approval.id)
+            write_result = await WorkOrderRepository(engine).create_or_get(
+                WorkOrderCommand(
+                    operation_id=operation_id,
+                    payload={
+                        "sku": "SKU-DEMO-001",
+                        "quantity": 10,
+                        "approved_plan_hash": "b" * 64,
+                    },
+                )
+            )
+            work_order_id = write_result.work_order.id
+            if locator_kind == "missing":
+                work_order_id = uuid4()
+            else:
+                locator_operation_id = await repository.create(operation_request())
+                operation_ids.append(locator_operation_id)
+                await advance_to_awaiting_approval(
+                    repository,
+                    locator_operation_id,
+                    approval_expires_at=NOW + timedelta(minutes=5),
+                )
+                locator_approval = await ApprovalRepository(engine).submit_once(
+                    ApprovalCommand(
+                        operation_id=locator_operation_id,
+                        approver_id="locator-operator",
+                        decision=ApprovalDecision.APPROVED,
+                        reason="Approved",
+                    )
+                )
+                await repository.mark_executing(locator_operation_id, locator_approval.id)
+                locator_work_order = await WorkOrderRepository(engine).create_or_get(
+                    WorkOrderCommand(
+                        operation_id=locator_operation_id,
+                        payload={
+                            "sku": "SKU-DEMO-001",
+                            "quantity": 10,
+                            "approved_plan_hash": "b" * 64,
+                        },
+                    )
+                )
+                work_order_id = locator_work_order.work_order.id
+
+            before = await operation_facts(engine, operation_id)
+            with pytest.raises(RecoveryStateConflict) as captured:
+                await repository.mark_verifying(operation_id, work_order_id)
+            assert captured.value.reason == expected_reason
+            assert await operation_facts(engine, operation_id) == before
+    finally:
+        for operation_id in operation_ids:
+            await cleanup_operation(engine, operation_id)
+
+
+@pytest.mark.asyncio
 async def test_mark_failed_stores_stable_error_without_traceback(engine: AsyncEngine) -> None:
     repository = ReplenishmentOperationRepository(engine)
     operation_id = await repository.create(operation_request())
@@ -481,6 +905,7 @@ async def test_due_approvals_expire_atomically_and_recovery_lists_exclude_termin
     repository = ReplenishmentOperationRepository(engine)
     due_id = await repository.create(operation_request())
     future_id = await repository.create(operation_request())
+    missing_expiry_id = await repository.create(operation_request())
 
     try:
         await advance_to_awaiting_approval(
@@ -493,20 +918,115 @@ async def test_due_approvals_expire_atomically_and_recovery_lists_exclude_termin
             future_id,
             approval_expires_at=NOW + timedelta(minutes=5),
         )
+        await advance_to_awaiting_approval(
+            repository,
+            missing_expiry_id,
+            approval_expires_at=NOW + timedelta(minutes=5),
+        )
 
         assert due_id in await repository.list_due_approval_ids(NOW, limit=10)
         assert future_id not in await repository.list_due_approval_ids(NOW, limit=10)
         assert due_id in await repository.list_recoverable_ids()
 
-        assert await repository.mark_expired(due_id, NOW) is True
-        assert await repository.mark_expired(due_id, NOW) is False
+        assert await repository.mark_expired(future_id, NOW) is False
+        assert (await repository.load_detail(future_id)).status is (
+            OperationStatus.AWAITING_APPROVAL
+        )
+
+        persisted_expiry = (await repository.load_detail(due_id)).approval_expires_at
+        assert persisted_expiry is not None
+        assert await repository.mark_expired(due_id, NOW + timedelta(minutes=1)) is True
+        first_expiration_facts = await operation_facts(engine, due_id)
+        assert first_expiration_facts[3][-1][1:] == (
+            "approval_expired",
+            {"approval_expires_at": persisted_expiry.isoformat()},
+        )
+        assert await repository.mark_expired(due_id, NOW + timedelta(days=1)) is False
+        assert await operation_facts(engine, due_id) == first_expiration_facts
+
         view = await repository.load_detail(due_id)
         assert view.status is OperationStatus.EXPIRED
         assert view.event_types[-1] == "approval_expired"
         assert due_id not in await repository.list_recoverable_ids()
+
+        async with engine.begin() as connection:
+            await connection.execute(
+                update(operations)
+                .where(operations.c.id == missing_expiry_id)
+                .values(approval_expires_at=None)
+            )
+        with pytest.raises(RecoveryStateConflict) as captured:
+            await repository.mark_expired(missing_expiry_id, NOW + timedelta(days=1))
+        assert captured.value.reason == "approval_expiry_missing"
     finally:
         await cleanup_operation(engine, due_id)
         await cleanup_operation(engine, future_id)
+        await cleanup_operation(engine, missing_expiry_id)
+
+
+@pytest.mark.asyncio
+async def test_expiration_replay_checks_due_before_target_event_identity(
+    engine: AsyncEngine,
+) -> None:
+    repository = ReplenishmentOperationRepository(engine)
+    operation_id = await repository.create(operation_request())
+    expires_at = NOW + timedelta(minutes=5)
+
+    try:
+        await advance_to_awaiting_approval(
+            repository,
+            operation_id,
+            approval_expires_at=expires_at,
+        )
+        assert await repository.mark_expired(operation_id, expires_at) is True
+        async with engine.begin() as connection:
+            await connection.execute(
+                update(audit_events)
+                .where(
+                    audit_events.c.operation_id == operation_id,
+                    audit_events.c.event_type == "approval_expired",
+                )
+                .values(payload={"approval_expires_at": "different"})
+            )
+
+        assert (
+            await repository.mark_expired(operation_id, expires_at - timedelta(seconds=1)) is False
+        )
+        with pytest.raises(RecoveryStateConflict) as captured:
+            await repository.mark_expired(operation_id, expires_at + timedelta(seconds=1))
+        assert captured.value.reason == "target_state_event_mismatch"
+    finally:
+        await cleanup_operation(engine, operation_id)
+
+
+@pytest.mark.asyncio
+async def test_expiration_replay_rejects_changed_persisted_expiry_fact(
+    engine: AsyncEngine,
+) -> None:
+    repository = ReplenishmentOperationRepository(engine)
+    operation_id = await repository.create(operation_request())
+    original_expiry = NOW
+    changed_expiry = NOW + timedelta(minutes=5)
+
+    try:
+        await advance_to_awaiting_approval(
+            repository,
+            operation_id,
+            approval_expires_at=original_expiry,
+        )
+        assert await repository.mark_expired(operation_id, original_expiry) is True
+        async with engine.begin() as connection:
+            await connection.execute(
+                update(operations)
+                .where(operations.c.id == operation_id)
+                .values(approval_expires_at=changed_expiry)
+            )
+
+        with pytest.raises(RecoveryStateConflict) as captured:
+            await repository.mark_expired(operation_id, changed_expiry)
+        assert captured.value.reason == "target_state_event_mismatch"
+    finally:
+        await cleanup_operation(engine, operation_id)
 
 
 @pytest.mark.asyncio

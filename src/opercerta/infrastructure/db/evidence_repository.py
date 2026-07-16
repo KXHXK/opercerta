@@ -92,6 +92,8 @@ class EvidenceRepository:
         operation_id: UUID,
         bundle: EvidenceBundle,
     ) -> tuple[EvidenceRecord, EvidenceRecord]:
+        if bundle.inventory.evidence_id == bundle.policy.evidence_id:
+            raise EvidenceConflict
         specifications = self._specifications(bundle)
         existing_rows = (
             (

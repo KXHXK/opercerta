@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import pytest
-from sqlalchemy import delete, insert
+from sqlalchemy import delete, func, insert, select
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from opercerta.domain.errors import EvidenceConflict
@@ -15,7 +15,7 @@ from opercerta.infrastructure.db.evidence_repository import (
     EvidenceRepository,
     hash_json,
 )
-from opercerta.infrastructure.db.schema import operations
+from opercerta.infrastructure.db.schema import evidence, operations
 
 NOW = datetime(2026, 7, 16, 4, 0, tzinfo=UTC)
 
@@ -136,5 +136,34 @@ async def test_save_refresh_appends_new_evidence_ids(engine: AsyncEngine) -> Non
             *(row.evidence_id for row in initial),
             *(row.evidence_id for row in refreshed),
         }
+    finally:
+        await cleanup_operation(engine, operation_id)
+
+
+@pytest.mark.asyncio
+async def test_bundle_with_duplicate_evidence_ids_conflicts_before_any_insert(
+    engine: AsyncEngine,
+) -> None:
+    operation_id = await seed_operation(engine)
+    repository = EvidenceRepository(engine)
+    shared_evidence_id = uuid4()
+    duplicate_ids = bundle(
+        inventory_evidence_id=shared_evidence_id,
+        policy_evidence_id=shared_evidence_id,
+    )
+
+    try:
+        with pytest.raises(EvidenceConflict, match="evidence_conflict"):
+            await repository.save_bundle(operation_id, duplicate_ids)
+
+        async with engine.connect() as connection:
+            row_count = (
+                await connection.execute(
+                    select(func.count())
+                    .select_from(evidence)
+                    .where(evidence.c.operation_id == operation_id)
+                )
+            ).scalar_one()
+        assert row_count == 0
     finally:
         await cleanup_operation(engine, operation_id)
