@@ -1,6 +1,5 @@
 import hashlib
 import json
-import math
 from datetime import datetime
 from typing import Annotated, Literal
 from uuid import UUID
@@ -13,6 +12,8 @@ from pydantic import (
     field_validator,
 )
 
+from opercerta.domain.json_values import require_json_object
+
 IdempotencyKey = Annotated[
     str,
     StringConstraints(min_length=1, max_length=128),
@@ -21,26 +22,6 @@ PayloadHash = Annotated[
     str,
     StringConstraints(pattern=r"^[0-9a-f]{64}$"),
 ]
-
-
-def _require_json_value(value: object) -> None:
-    if value is None or isinstance(value, (str, bool, int)):
-        return
-    if isinstance(value, float):
-        if not math.isfinite(value):
-            raise ValueError("payload numbers must be finite")
-        return
-    if isinstance(value, list):
-        for item in value:
-            _require_json_value(item)
-        return
-    if isinstance(value, dict):
-        for key, item in value.items():
-            if not isinstance(key, str):
-                raise ValueError("payload object keys must be strings")
-            _require_json_value(item)
-        return
-    raise ValueError("payload must contain only JSON values")
 
 
 class WorkOrderCommand(BaseModel):
@@ -52,10 +33,7 @@ class WorkOrderCommand(BaseModel):
     @field_validator("payload", mode="before")
     @classmethod
     def require_json_object(cls, value: object) -> object:
-        if not isinstance(value, dict):
-            raise ValueError("payload must be a JSON object")
-        _require_json_value(value)
-        return value
+        return require_json_object(value, "payload")
 
 
 class WorkOrderRecord(BaseModel):
