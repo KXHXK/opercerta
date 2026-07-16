@@ -2,7 +2,7 @@
 
 ## 决策状态
 
-本设计的架构、数据流、错误语义和测试边界已在 2026-07-16 的实施对话中分段确认；本文件仍需用户完成书面规格复核。它补齐 `docs/superpowers/plans/2026-07-14-opercerta-reliability-kernel.md` Task 5 的精确契约，不修改冻结的产品范围。
+本设计的架构、数据流、错误语义和测试边界已在 2026-07-16 的实施对话中分段确认；用户于同日完成书面规格确认。它补齐 `docs/superpowers/plans/2026-07-14-opercerta-reliability-kernel.md` Task 5 的精确契约，不修改冻结的产品范围。
 
 Task 4 已证明审批原子性和工单写入 effectively-once。Task 5 只证明单 Worker 进程重启后，LangGraph 控制流可以结合 PostgreSQL 业务事实安全恢复；它不声称多 Worker 调度、跨区域容灾或节点 exactly-once。
 

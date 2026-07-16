@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-非法输入、状态恢复、数据库迁移、原子审批竞态和 Task 4 幂等工单写入已按 TDD 实现。Task 5 四点重启恢复的架构、数据流、错误语义和测试边界已分段确认并写入书面规格；当前等待用户复核，生产代码和 Task 5 测试尚未开始。
+非法输入、状态恢复、数据库迁移、原子审批竞态和 Task 4 幂等工单写入已按 TDD 实现。Task 5 四点重启恢复书面规格已确认；当前待编写聚焦 TDD 计划，生产代码和 Task 5 测试尚未开始。
 
 ## 已验证事实
 
@@ -31,6 +31,7 @@
 - 工单十路并发目标用例以 20 个独立 Pytest 进程复验，实测 `20/20`；每轮断言一次创建、九次安全重放、同一 ID、一行工单和一条创建审计。证据见 `docs/release-evidence/work-order-idempotency.md`。
 - Task 5 已确认复用 `operations.request_payload` 的 `schema_version=1` 快照，不新增数据库迁移；审批落库后同时覆盖批准和拒绝恢复；状态与终态审计由独立 `OperationStateRepository` 原子写入。
 - 本地锁定版本核验：`AsyncPostgresSaver.from_conn_string` 提供 async context manager，`setup()` 必须显式调用；`LANGGRAPH_STRICT_MSGPACK` 在 `langgraph-checkpoint==4.1.1` 源码中有效，并需在默认 serializer 构造前设置。
+- 进度规划估算：可靠性内核约 60%–65%；完整 OperCerta 发布范围约 25%–30%。这是按已定义里程碑及剩余范围估算，不是测试成绩或可对外指标。
 
 ## 当前阻塞与风险
 
@@ -40,7 +41,7 @@
 
 ## 下一步
 
-请用户复核 `docs/superpowers/specs/2026-07-16-langgraph-restart-recovery-design.md`；确认后只调用 writing-plans 编写聚焦 TDD 计划，不在书面确认前写 Task 5 生产代码。
+使用 writing-plans 编写并自审 Task 5 聚焦 TDD 计划；随后按 inline execution 从非法快照 RED 开始。Task 6 后冻结可靠性内核并转向最小纵向闭环。
 
 ## 发布门禁
 
