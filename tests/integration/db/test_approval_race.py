@@ -11,6 +11,7 @@ from opercerta.infrastructure.db.approval_repository import ApprovalRepository
 from opercerta.infrastructure.db.schema import (
     approvals,
     audit_events,
+    evidence,
     metadata,
     operations,
     work_orders,
@@ -23,12 +24,18 @@ def test_schema_mapping_matches_reliability_migration() -> None:
         "approvals",
         "work_orders",
         "audit_events",
+        "evidence",
     }
     assert {
         constraint.name
         for constraint in work_orders.constraints
         if isinstance(constraint, UniqueConstraint)
     } == {"uq_work_orders_operation_id", "uq_work_orders_idempotency_key"}
+    assert {
+        constraint.name
+        for constraint in evidence.constraints
+        if isinstance(constraint, UniqueConstraint)
+    } == {"uq_evidence_operation_evidence_id"}
 
 
 async def seed_operation(engine: AsyncEngine, status: str = "awaiting_approval") -> UUID:

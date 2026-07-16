@@ -32,6 +32,7 @@ def test_reliability_kernel_migration_creates_required_schema(
             "approvals",
             "work_orders",
             "audit_events",
+            "evidence",
         } <= set(inspector.get_table_names(schema="public"))
         assert "langgraph" in inspector.get_schema_names()
         assert {

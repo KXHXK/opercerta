@@ -10,6 +10,9 @@ operations = sa.Table(
     sa.Column("thread_id", sa.String(length=128), nullable=False),
     sa.Column("request_payload", postgresql.JSONB(), nullable=False),
     sa.Column("status", sa.String(length=32), nullable=False),
+    sa.Column("result_payload", postgresql.JSONB()),
+    sa.Column("error_code", sa.String(length=64)),
+    sa.Column("approval_expires_at", sa.DateTime(timezone=True)),
     sa.Column(
         "next_audit_sequence",
         sa.BigInteger(),
@@ -44,6 +47,12 @@ approvals = sa.Table(
     sa.Column("approver_id", sa.String(length=128), nullable=False),
     sa.Column("decision", sa.String(length=16), nullable=False),
     sa.Column("reason", sa.String(length=1_000), nullable=False),
+    sa.Column("inventory_evidence_id", postgresql.UUID(as_uuid=True)),
+    sa.Column("policy_evidence_id", postgresql.UUID(as_uuid=True)),
+    sa.Column("rule_version", sa.String(length=128)),
+    sa.Column("decision_facts_hash", sa.String(length=64)),
+    sa.Column("plan_hash", sa.String(length=64)),
+    sa.Column("recommended_quantity", sa.BigInteger()),
     sa.Column(
         "created_at",
         sa.DateTime(timezone=True),
@@ -51,6 +60,37 @@ approvals = sa.Table(
         nullable=False,
     ),
     sa.UniqueConstraint("operation_id", name="uq_approvals_operation_id"),
+)
+
+evidence = sa.Table(
+    "evidence",
+    metadata,
+    sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+    sa.Column(
+        "operation_id",
+        postgresql.UUID(as_uuid=True),
+        sa.ForeignKey("operations.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    sa.Column("evidence_id", postgresql.UUID(as_uuid=True), nullable=False),
+    sa.Column("evidence_type", sa.String(length=32), nullable=False),
+    sa.Column("source_tool", sa.String(length=128), nullable=False),
+    sa.Column("source_version", sa.String(length=128), nullable=False),
+    sa.Column("captured_at", sa.DateTime(timezone=True), nullable=False),
+    sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
+    sa.Column("content", postgresql.JSONB(), nullable=False),
+    sa.Column("content_hash", sa.String(length=64), nullable=False),
+    sa.Column(
+        "created_at",
+        sa.DateTime(timezone=True),
+        server_default=sa.text("CURRENT_TIMESTAMP"),
+        nullable=False,
+    ),
+    sa.UniqueConstraint(
+        "operation_id",
+        "evidence_id",
+        name="uq_evidence_operation_evidence_id",
+    ),
 )
 
 work_orders = sa.Table(
