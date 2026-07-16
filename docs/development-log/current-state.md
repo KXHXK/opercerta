@@ -1,6 +1,6 @@
 # OperCerta 当前状态
 
-最后核验：2026-07-16 10:18 Asia/Shanghai，Git 基线 commit `1f0990d`。
+最后核验：2026-07-16 10:56 Asia/Shanghai，Git 基线 commit `4d3ef4d`。
 
 ## 当前阶段
 
@@ -32,6 +32,7 @@
 - Task 5 已确认复用 `operations.request_payload` 的 `schema_version=1` 快照，不新增数据库迁移；审批落库后同时覆盖批准和拒绝恢复；状态与终态审计由独立 `OperationStateRepository` 原子写入。
 - 本地锁定版本核验：`AsyncPostgresSaver.from_conn_string` 提供 async context manager，`setup()` 必须显式调用；`LANGGRAPH_STRICT_MSGPACK` 在 `langgraph-checkpoint==4.1.1` 源码中有效，并需在默认 serializer 构造前设置。
 - 进度规划估算：可靠性内核约 60%–65%；完整 OperCerta 发布范围约 25%–30%。这是按已定义里程碑及剩余范围估算，不是测试成绩或可对外指标。
+- 风险分级复核只减少用户对内部技术细节的形式审批，不减少工程文档；规格、计划、RED/GREEN、故障诊断、数据库与重启证据、静态检查、迁移回滚、未完成范围和风险必须继续在本地留痕并纳入 Git。
 
 ## 当前阻塞与风险
 
