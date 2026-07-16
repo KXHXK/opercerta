@@ -1,13 +1,13 @@
 # OperCerta 文档索引
 
-最后核验：2026-07-16，库存不足到补货工单纵向闭环设计与聚焦 TDD 实施计划均已落盘；下一步按计划从领域非法输入 RED 开始。
+最后核验：2026-07-16，库存补货 Task 1–7 已完成本地门禁；下一步按计划执行 Task 8 FastAPI 创建、查询与审批边界。
 
 本文件是 OperCerta 重要文档的中文目录，不复制正文。自动压缩或新会话开始时先阅读本文件，再按“优先级”读取当前状态、过程日志、相关决策、交接和实施计划。
 
 | 路径 | 用途 | 状态 | 最后核验 commit | 优先级 |
 | --- | --- | --- | --- | --- |
-| `README.md` | 项目概览与使用边界 | 已同步至库存补货纵向闭环设计边界 | 本次提交 | 2 |
-| `IMPLEMENTATION_HANDOFF.md` | 会话交接与下一动作 | 已同步至可靠性内核完成与纵向闭环待实施 | 本次提交 | 3 |
+| `README.md` | 项目概览与使用边界 | 已同步至库存补货 Task 7 完成、Task 8 待实施 | 本次提交 | 2 |
+| `IMPLEMENTATION_HANDOFF.md` | 会话交接与下一动作 | 已同步至 Task 7 证据与 Task 8 下一动作 | 本次提交 | 3 |
 | `docs/specs/2026-07-14-agent-project-naming-design.md` | 命名设计 | 已冻结基线 | `c7fa618` | 4 |
 | `docs/specs/AI_Agent四项目总体设计规格.md` | 总体设计 | 已冻结基线 | `48d299c` | 5 |
 | `docs/specs/2026-07-14-agent-portfolio-design.md` | 组合设计 | 已冻结基线 | `48d299c` | 5 |
@@ -21,13 +21,13 @@
 | `docs/superpowers/plans/2026-07-14-opercerta-reliability-kernel.md` | 可靠性内核 TDD 总计划 | Task 1–6 已执行 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-16-langgraph-restart-recovery.md` | Task 5 四点重启恢复可执行 TDD 计划 | 已执行；证据已归档 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-16-work-order-idempotency.md` | Task 4 幂等工单可执行 TDD 计划 | 已执行；证据已归档 | 本次提交 | 1 |
-| `docs/superpowers/plans/2026-07-16-inventory-replenishment-vertical-slice.md` | 首个库存补货后端纵向闭环可执行 TDD 计划 | 已完成计划自审；待执行 | 本次提交 | 1 |
+| `docs/superpowers/plans/2026-07-16-inventory-replenishment-vertical-slice.md` | 首个库存补货后端纵向闭环可执行 TDD 计划 | Task 1–7 已执行；Task 8–9 待执行 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-15-windows-native-postgres-environment.md` | PostgreSQL 环境计划 | 本机安装、连接与文档同步已完成 | `84a7b08` | 2 |
 | `docs/superpowers/plans/2026-07-15-development-log-bootstrap.md` | 日志初始化计划 | 执行记录见开发日志 | `6c97d5d` | 1 |
 | `docs/development-log/README.md` | 日志机制说明 | 已初始化 | `f70411f` | 1 |
-| `docs/development-log/current-state.md` | 当前已验证状态 | 已同步至可靠性内核完成、纵向闭环待实施 | 本次提交 | 1 |
+| `docs/development-log/current-state.md` | 当前已验证状态 | 已同步至库存补货 Task 7 完成、Task 8 待实施 | 本次提交 | 1 |
 | `docs/development-log/daily/2026-07-15.md` | 当日过程记录 | 已初始化 | `f70411f` | 2 |
-| `docs/development-log/daily/2026-07-16.md` | 当日过程记录 | 已记录 Task 4 实施与 Task 5 设计落盘 | 本次提交 | 2 |
+| `docs/development-log/daily/2026-07-16.md` | 当日过程记录 | 已记录库存补货 Task 1–7 实施与验证 | 本次提交 | 2 |
 | `docs/development-log/decisions/2026-07-15-windows-native-postgres.md` | 环境架构决策 | 已初始化 | `f70411f` | 2 |
 | `docs/development-log/decisions/2026-07-16-risk-based-review-and-progress-control.md` | 风险分级复核、进度口径与纵向闭环保护 | 已采用 | 本次提交 | 1 |
 | `docs/release-evidence/native-postgres-environment.md` | 本机数据库环境核验证据 | 已记录；不代表发布通过 | `fc974f5` | 2 |
@@ -35,6 +35,7 @@
 | `docs/release-evidence/work-order-idempotency.md` | Task 4 幂等工单与十路并发实测证据 | 已记录；不代表发布通过 | 本次提交 | 1 |
 | `docs/release-evidence/langgraph-restart-recovery.md` | Task 5 四点 A/B 重启恢复与 checkpointer 实测证据 | 已记录；不代表发布通过 | 本次提交 | 1 |
 | `docs/release-evidence/reliability-kernel.md` | Task 1–6 可靠性内核新鲜总门禁与下一边界 | 已验证本地内核；发布门禁仍关闭 | 本次提交 | 1 |
+| `docs/release-evidence/replenishment-execution-restart.md` | Task 7 审批后执行、写后读与 A/B 重启证据 | 已记录；不代表发布通过 | 本次提交 | 1 |
 
 ## 计划创建
 
