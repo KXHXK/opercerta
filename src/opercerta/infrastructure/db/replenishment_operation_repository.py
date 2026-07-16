@@ -89,20 +89,38 @@ class OperationDetail:
         value = self.snapshot.risk.get("assessment")
         if value is None:
             return None
-        return ReplenishmentAssessment.model_validate(value)
+        try:
+            return ReplenishmentAssessment.model_validate(value)
+        except ValidationError:
+            raise RecoveryStateConflict(
+                self.operation_id,
+                "invalid_snapshot_assessment",
+            ) from None
 
     @property
     def plan(self) -> ReplenishmentPlan | None:
         if not self.snapshot.plan:
             return None
-        return ReplenishmentPlan.model_validate(self.snapshot.plan)
+        try:
+            return ReplenishmentPlan.model_validate(self.snapshot.plan)
+        except ValidationError:
+            raise RecoveryStateConflict(
+                self.operation_id,
+                "invalid_snapshot_plan",
+            ) from None
 
     @property
     def approval_binding(self) -> ApprovalBinding | None:
         value = self.snapshot.risk.get("approval_binding")
         if value is None:
             return None
-        return ApprovalBinding.model_validate(value)
+        try:
+            return ApprovalBinding.model_validate(value)
+        except ValidationError:
+            raise RecoveryStateConflict(
+                self.operation_id,
+                "invalid_snapshot_approval_binding",
+            ) from None
 
     @property
     def last_audit_sequence(self) -> int:
@@ -327,12 +345,21 @@ class ReplenishmentOperationRepository:
         if result.outcome != "work_order_completed" or result.work_order_id != work_order_id:
             raise ValueError("completed result must match work order")
         result_payload = cast(dict[str, JsonValue], result.model_dump(mode="json"))
+
+        async def validate_work_order(connection: AsyncConnection) -> None:
+            await self._require_work_order_locator(
+                connection,
+                operation_id,
+                work_order_id,
+            )
+
         await self._transition(
             operation_id,
             allowed=frozenset({OperationStatus.VERIFYING}),
             target=OperationStatus.COMPLETED,
             event_type="operation_completed",
             payload=result_payload,
+            transaction_validator=validate_work_order,
             result_payload=result_payload,
             error_code=None,
         )
@@ -811,6 +838,11 @@ class ReplenishmentOperationRepository:
                 raise RecoveryStateConflict(
                     operation_id,
                     "empty_terminal_facts_required",
+                )
+            if work_order is not None:
+                raise RecoveryStateConflict(
+                    operation_id,
+                    "empty_terminal_work_order_present",
                 )
             return None, None
 

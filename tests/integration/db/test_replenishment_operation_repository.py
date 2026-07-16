@@ -12,6 +12,7 @@ from opercerta.domain.errors import (
     OperationTransitionConflict,
     RecoveryStateConflict,
 )
+from opercerta.domain.operation_state import OperationSnapshot
 from opercerta.domain.recovery import OperationStatus
 from opercerta.domain.replenishment import (
     ApprovalBinding,
@@ -26,6 +27,7 @@ from opercerta.domain.replenishment import (
 from opercerta.domain.work_orders import WorkOrderCommand
 from opercerta.infrastructure.db.approval_repository import ApprovalRepository
 from opercerta.infrastructure.db.replenishment_operation_repository import (
+    OperationDetail,
     ReplenishmentOperationRepository,
 )
 from opercerta.infrastructure.db.schema import (
@@ -193,6 +195,70 @@ async def advance_to_awaiting_approval(
     )
 
 
+@pytest.mark.parametrize(
+    ("attribute", "snapshot", "expected_reason"),
+    [
+        (
+            "assessment",
+            OperationSnapshot(
+                schema_version=1,
+                request={},
+                risk={"assessment": {}},
+                plan={},
+                work_order_payload={},
+            ),
+            "invalid_snapshot_assessment",
+        ),
+        (
+            "plan",
+            OperationSnapshot(
+                schema_version=1,
+                request={},
+                risk={},
+                plan={"action": "replenish_inventory"},
+                work_order_payload={},
+            ),
+            "invalid_snapshot_plan",
+        ),
+        (
+            "approval_binding",
+            OperationSnapshot(
+                schema_version=1,
+                request={},
+                risk={"approval_binding": {}},
+                plan={},
+                work_order_payload={},
+            ),
+            "invalid_snapshot_approval_binding",
+        ),
+    ],
+)
+def test_operation_detail_snapshot_properties_hide_validation_errors(
+    attribute: str,
+    snapshot: OperationSnapshot,
+    expected_reason: str,
+) -> None:
+    operation_id = uuid4()
+    detail = OperationDetail(
+        operation_id=operation_id,
+        thread_id=str(operation_id),
+        status=OperationStatus.RECEIVED,
+        snapshot=snapshot,
+        result=None,
+        error=None,
+        approval_expires_at=None,
+        evidence=(),
+        approval=None,
+        work_order=None,
+        audit_events=(),
+    )
+
+    with pytest.raises(RecoveryStateConflict) as captured:
+        getattr(detail, attribute)
+    assert captured.value.operation_id == operation_id
+    assert captured.value.reason == expected_reason
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("status", "result_payload", "error_code", "expected_reason"),
@@ -313,6 +379,87 @@ async def test_load_detail_rejects_status_inconsistent_terminal_facts(
         with pytest.raises(RecoveryStateConflict) as captured:
             await repository.load_detail(operation_id)
         assert captured.value.reason == expected_reason
+    finally:
+        await cleanup_operation(engine, operation_id)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "status",
+    [OperationStatus.REJECTED, OperationStatus.EXPIRED],
+)
+async def test_load_detail_rejects_empty_terminal_status_with_work_order(
+    engine: AsyncEngine,
+    status: OperationStatus,
+) -> None:
+    repository = ReplenishmentOperationRepository(engine)
+    operation_id = await repository.create(operation_request())
+
+    try:
+        await seed_work_order(engine, operation_id)
+        async with engine.begin() as connection:
+            await connection.execute(
+                update(operations)
+                .where(operations.c.id == operation_id)
+                .values(
+                    status=status.value,
+                    result_payload=None,
+                    error_code=None,
+                )
+            )
+
+        with pytest.raises(RecoveryStateConflict) as captured:
+            await repository.load_detail(operation_id)
+        assert captured.value.reason == "empty_terminal_work_order_present"
+    finally:
+        await cleanup_operation(engine, operation_id)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("status", "result_payload", "error_code"),
+    [
+        (
+            OperationStatus.FAILED,
+            {
+                "code": "verification_failed",
+                "message": "The work order could not be verified.",
+            },
+            "verification_failed",
+        ),
+        (OperationStatus.EXECUTING, None, None),
+        (OperationStatus.VERIFYING, None, None),
+    ],
+)
+async def test_load_detail_allows_work_order_for_failed_and_recoverable_statuses(
+    engine: AsyncEngine,
+    status: OperationStatus,
+    result_payload: dict[str, object] | None,
+    error_code: str | None,
+) -> None:
+    repository = ReplenishmentOperationRepository(engine)
+    operation_id = await repository.create(operation_request())
+
+    try:
+        work_order_id = await seed_work_order(engine, operation_id)
+        async with engine.begin() as connection:
+            await connection.execute(
+                update(operations)
+                .where(operations.c.id == operation_id)
+                .values(
+                    status=status.value,
+                    result_payload=result_payload,
+                    error_code=error_code,
+                )
+            )
+
+        detail = await repository.load_detail(operation_id)
+        assert detail.status is status
+        assert detail.work_order is not None
+        assert detail.work_order.id == work_order_id
+        if status is OperationStatus.FAILED:
+            assert detail.error is not None
+            assert detail.error.code == error_code
     finally:
         await cleanup_operation(engine, operation_id)
 
@@ -743,6 +890,76 @@ async def test_work_order_locator_must_match_operation_before_verifying(
                 await repository.mark_verifying(operation_id, work_order_id)
             assert captured.value.reason == expected_reason
             assert await operation_facts(engine, operation_id) == before
+    finally:
+        for operation_id in operation_ids:
+            await cleanup_operation(engine, operation_id)
+
+
+@pytest.mark.asyncio
+async def test_completed_work_order_locator_must_match_operation_before_transition(
+    engine: AsyncEngine,
+) -> None:
+    repository = ReplenishmentOperationRepository(engine)
+    operation_ids: list[UUID] = []
+
+    try:
+        for locator_kind, expected_reason in (
+            ("missing", "work_order_locator_missing"),
+            ("wrong_operation", "work_order_operation_mismatch"),
+        ):
+            operation_id = await repository.create(operation_request())
+            operation_ids.append(operation_id)
+            await advance_to_awaiting_approval(
+                repository,
+                operation_id,
+                approval_expires_at=NOW + timedelta(minutes=5),
+            )
+            approval = await ApprovalRepository(engine).submit_once(
+                ApprovalCommand(
+                    operation_id=operation_id,
+                    approver_id=f"complete-{locator_kind}",
+                    decision=ApprovalDecision.APPROVED,
+                    reason="Approved",
+                )
+            )
+            await repository.mark_executing(operation_id, approval.id)
+            write_result = await WorkOrderRepository(engine).create_or_get(
+                WorkOrderCommand(
+                    operation_id=operation_id,
+                    payload={
+                        "sku": "SKU-DEMO-001",
+                        "quantity": 10,
+                        "approved_plan_hash": "b" * 64,
+                    },
+                )
+            )
+            own_work_order_id = write_result.work_order.id
+            await repository.mark_verifying(operation_id, own_work_order_id)
+
+            locator_id = uuid4()
+            if locator_kind == "wrong_operation":
+                locator_operation_id = await repository.create(operation_request())
+                operation_ids.append(locator_operation_id)
+                locator_id = await seed_work_order(engine, locator_operation_id)
+
+            invalid_result = OperationResult(
+                outcome="work_order_completed",
+                message="The replenishment work order completed.",
+                work_order_id=locator_id,
+            )
+            before = await operation_facts(engine, operation_id)
+            with pytest.raises(RecoveryStateConflict) as captured:
+                await repository.mark_completed(operation_id, invalid_result, locator_id)
+            assert captured.value.reason == expected_reason
+            assert await operation_facts(engine, operation_id) == before
+
+            valid_result = invalid_result.model_copy(update={"work_order_id": own_work_order_id})
+            await repository.mark_completed(
+                operation_id,
+                valid_result,
+                own_work_order_id,
+            )
+            assert (await repository.load_detail(operation_id)).result == valid_result
     finally:
         for operation_id in operation_ids:
             await cleanup_operation(engine, operation_id)
