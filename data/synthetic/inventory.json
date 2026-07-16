@@ -1,0 +1,10 @@
+{
+  "source_version": "inventory-seed-v1",
+  "items": [
+    {"sku": "SKU-NORMAL-001", "on_hand_quantity": 40, "reserved_quantity": 5},
+    {"sku": "SKU-LOW-001", "on_hand_quantity": 20, "reserved_quantity": 8},
+    {"sku": "SKU-BACKORDER-001", "on_hand_quantity": 2, "reserved_quantity": 7},
+    {"sku": "SKU-LIMIT-001", "on_hand_quantity": 0, "reserved_quantity": 0},
+    {"sku": "SKU-MUTABLE-001", "on_hand_quantity": 20, "reserved_quantity": 8}
+  ]
+}

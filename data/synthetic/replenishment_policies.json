@@ -1,0 +1,11 @@
+{
+  "source_version": "replenishment-policy-seed-v1",
+  "rule_version": "replenishment-v1",
+  "items": [
+    {"sku": "SKU-NORMAL-001", "reorder_point": 20, "target_stock": 50, "minimum_order_quantity": 1, "maximum_order_quantity": 100, "evidence_ttl_seconds": 300, "approval_required": true},
+    {"sku": "SKU-LOW-001", "reorder_point": 15, "target_stock": 30, "minimum_order_quantity": 1, "maximum_order_quantity": 100, "evidence_ttl_seconds": 300, "approval_required": true},
+    {"sku": "SKU-BACKORDER-001", "reorder_point": 5, "target_stock": 10, "minimum_order_quantity": 1, "maximum_order_quantity": 100, "evidence_ttl_seconds": 300, "approval_required": true},
+    {"sku": "SKU-LIMIT-001", "reorder_point": 10, "target_stock": 100, "minimum_order_quantity": 1, "maximum_order_quantity": 20, "evidence_ttl_seconds": 300, "approval_required": true},
+    {"sku": "SKU-MUTABLE-001", "reorder_point": 15, "target_stock": 30, "minimum_order_quantity": 1, "maximum_order_quantity": 100, "evidence_ttl_seconds": 300, "approval_required": true}
+  ]
+}

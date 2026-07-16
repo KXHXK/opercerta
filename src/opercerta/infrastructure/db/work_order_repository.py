@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 from opercerta.domain.errors import (
     IdempotencyConflict,
     OperationNotFound,
+    WorkOrderNotFound,
     WriteNotAuthorized,
 )
 from opercerta.domain.work_orders import (
@@ -60,6 +61,21 @@ class WorkOrderRepository:
                 idempotency_key=idempotency_key,
                 payload_hash=payload_hash,
             )
+
+    async def get(self, work_order_id: UUID) -> WorkOrderRecord:
+        async with self._engine.connect() as connection:
+            row = (
+                (
+                    await connection.execute(
+                        select(work_orders).where(work_orders.c.id == work_order_id)
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+        if row is None:
+            raise WorkOrderNotFound
+        return self._record(row)
 
     async def _create_or_get_once(
         self,
@@ -180,20 +196,23 @@ class WorkOrderRepository:
     ) -> WorkOrderWriteResult:
         if existing["payload_hash"] != payload_hash:
             raise IdempotencyConflict(operation_id, idempotency_key)
+        return WorkOrderWriteResult(
+            work_order=self._record(existing),
+            replayed=True,
+        )
+
+    def _record(self, row: RowMapping) -> WorkOrderRecord:
         payload_snapshot = cast(
             dict[str, JsonValue],
-            json.loads(canonical_payload_json(cast(dict[str, JsonValue], existing["payload"]))),
+            json.loads(canonical_payload_json(cast(dict[str, JsonValue], row["payload"]))),
         )
-        return WorkOrderWriteResult(
-            work_order=WorkOrderRecord(
-                id=existing["id"],
-                operation_id=existing["operation_id"],
-                idempotency_key=existing["idempotency_key"],
-                payload=payload_snapshot,
-                payload_hash=existing["payload_hash"],
-                status=existing["status"],
-                created_at=existing["created_at"],
-                updated_at=existing["updated_at"],
-            ),
-            replayed=True,
+        return WorkOrderRecord(
+            id=row["id"],
+            operation_id=row["operation_id"],
+            idempotency_key=row["idempotency_key"],
+            payload=payload_snapshot,
+            payload_hash=row["payload_hash"],
+            status=row["status"],
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
         )
