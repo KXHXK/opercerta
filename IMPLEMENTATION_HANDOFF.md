@@ -24,11 +24,12 @@
 - 审批十路竞态独立重复 `10/10`；A/B 重启恢复独立重复 `10/10`，每轮 `7 passed`。这些只是本地重复证据。
 - 真实 FastMCP、FastAPI 和独立客户端三进程闭环通过：四工具名称匹配，创建进入 `awaiting_approval`，批准后 `completed`，重复审批 `409`，数据库一条审批、一条工单且终态审计顺序正确。证据见 `docs/release-evidence/inventory-replenishment-vertical-slice.md`。
 - Windows Uvicorn 0.51 默认 Proactor loop 与 Psycopg async 不兼容；真实服务验证使用 Uvicorn custom loop factory 明确选择 Selector loop。Linux/Docker 仍未验证。
+- Docker/Linux 运行时设计已获用户确认：使用 Hyper-V、Ubuntu 24.04 LTS VM、官方 Docker Engine 与 Compose；不使用当前 LTSC 2021 build 19044 不再官方支持的 Docker Desktop。规格见 `docs/superpowers/specs/2026-07-16-docker-linux-runtime-design.md`，尚未实施。
 
 ## 新对话必须先做
 
 1. 先阅读 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md` 和最近每日日志，再阅读相关设计、计划、交接和 Git 状态。
-2. 只实施 OperCerta；库存补货 Task 1–9 已完成本地后端闭环，下一步按详细设计规划并执行剩余发布门禁，不启动其他项目。
+2. 只实施 OperCerta；库存补货 Task 1–9 已完成本地后端闭环。Docker/Linux 规格已确认，用户复核规格后创建 TDD 实施计划；计划确认后才手动启用 Hyper-V、重启并实施该阶段，不启动其他项目。
 3. 运行集成测试前，以不回显方式从已忽略 `.env.local` 加载 `OPERCERTA_DATABASE_URL`；不得提交该文件或任何凭据。
 4. 每个效果数字都保留基线、测试数据、测量脚本和结果证据；指标未测出前使用目标值或空值，不写成已实现结果。
 5. 使用公开或合成数据，从零编写全部代码和文档，不导入任何原单位源码、数据、截图、模型、品牌或内部规则。

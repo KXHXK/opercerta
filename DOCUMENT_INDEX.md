@@ -18,6 +18,7 @@
 | `docs/superpowers/specs/2026-07-16-work-order-idempotency-contract-design.md` | Task 4 幂等工单领域契约与竞态边界 | 已确认 | `9c71d7b` | 1 |
 | `docs/superpowers/specs/2026-07-16-langgraph-restart-recovery-design.md` | Task 5 LangGraph 四点重启恢复契约 | 已确认 | 本次提交 | 1 |
 | `docs/superpowers/specs/2026-07-16-inventory-replenishment-vertical-slice-design.md` | 库存不足到补货工单真实 MCP 后端纵向闭环 | 已确认；实施计划已创建 | 本次提交 | 1 |
+| `docs/superpowers/specs/2026-07-16-docker-linux-runtime-design.md` | Docker/Linux、健康检查与 Ubuntu VM 运行时边界 | 已确认；尚未实施 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-14-opercerta-reliability-kernel.md` | 可靠性内核 TDD 总计划 | Task 1–6 已执行 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-16-langgraph-restart-recovery.md` | Task 5 四点重启恢复可执行 TDD 计划 | 已执行；证据已归档 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-16-work-order-idempotency.md` | Task 4 幂等工单可执行 TDD 计划 | 已执行；证据已归档 | 本次提交 | 1 |
