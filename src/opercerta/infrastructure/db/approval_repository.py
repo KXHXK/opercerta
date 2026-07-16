@@ -35,9 +35,7 @@ class ApprovalRepository:
             existing = (
                 (
                     await connection.execute(
-                        select(approvals).where(
-                            approvals.c.operation_id == command.operation_id
-                        )
+                        select(approvals).where(approvals.c.operation_id == command.operation_id)
                     )
                 )
                 .mappings()

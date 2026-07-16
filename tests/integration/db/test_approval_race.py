@@ -77,9 +77,7 @@ def approval_command(operation_id: UUID, index: int) -> ApprovalCommand:
     return ApprovalCommand(
         operation_id=operation_id,
         approver_id=f"approver-{index}",
-        decision=(
-            ApprovalDecision.APPROVED if index % 2 == 0 else ApprovalDecision.REJECTED
-        ),
+        decision=(ApprovalDecision.APPROVED if index % 2 == 0 else ApprovalDecision.REJECTED),
         reason=f"synthetic decision {index}",
     )
 
@@ -91,17 +89,12 @@ async def test_ten_concurrent_decisions_commit_exactly_one(engine: AsyncEngine) 
 
     try:
         results = await asyncio.gather(
-            *[
-                repository.submit_once(approval_command(operation_id, index))
-                for index in range(10)
-            ],
+            *[repository.submit_once(approval_command(operation_id, index)) for index in range(10)],
             return_exceptions=True,
         )
 
         accepted = [result for result in results if isinstance(result, ApprovalRecord)]
-        conflicts = [
-            result for result in results if isinstance(result, ApprovalAlreadyDecided)
-        ]
+        conflicts = [result for result in results if isinstance(result, ApprovalAlreadyDecided)]
         assert len(accepted) == 1
         assert len(conflicts) == 9
         assert len(accepted) + len(conflicts) == len(results)

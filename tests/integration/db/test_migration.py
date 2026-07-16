@@ -35,8 +35,7 @@ def test_reliability_kernel_migration_creates_required_schema(
         } <= set(inspector.get_table_names(schema="public"))
         assert "langgraph" in inspector.get_schema_names()
         assert {
-            constraint["name"]
-            for constraint in inspector.get_unique_constraints("approvals")
+            constraint["name"] for constraint in inspector.get_unique_constraints("approvals")
         } == {"uq_approvals_operation_id"}
     finally:
         engine.dispose()
