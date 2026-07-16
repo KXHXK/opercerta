@@ -2,7 +2,7 @@
 
 OperCerta 是面向库存异常、设备告警和运营工单的智能运营处置 Agent 独立作品仓库。
 
-> 当前状态：库存不足到补货工单的审批后执行与重启恢复已在 Windows 原生 PostgreSQL 环境完成本地验证；FastAPI、最终总门禁和公开发布尚未完成。
+> 当前状态：库存不足到补货工单的 FastAPI 后端纵向闭环已在 Windows 原生 PostgreSQL 环境完成本地验证；最终总门禁、Linux/Docker 和公开发布尚未完成。
 
 ## 当前已验证范围
 
@@ -12,15 +12,16 @@ OperCerta 是面向库存异常、设备告警和运营工单的智能运营处�
 - 授权后幂等工单写入与并发安全重放；
 - 独立 `langgraph` Schema checkpointer；
 - LangGraph interrupt、审批绑定、批准后事实重取、拒绝终止和 A/B 重启恢复；
-- 真实 MCP 工单幂等写入、写后读验证、预写工单安全重放和审批过期扫描。
+- 真实 MCP 工单幂等写入、写后读验证、预写工单安全重放和审批过期扫描；
+- FastAPI 操作创建、业务事实查询、绑定审批、固定安全错误映射和生产 lifespan 启动恢复。
 
-Task 7 新鲜证据见 [补货执行与重启恢复证据](docs/release-evidence/replenishment-execution-restart.md)。这不是 FastAPI、前端、评测、Docker/Linux 或公开部署完成声明。
+Task 7 新鲜证据见 [补货执行与重启恢复证据](docs/release-evidence/replenishment-execution-restart.md)。Task 8 API 已完成代码门禁；Task 9 将归档整个纵向切片的最终证据。这不是前端、评测、Docker/Linux 或公开部署完成声明。
 
 ## 下一实施边界
 
-下一阶段仍只实施 OperCerta，为已验证的 event → evidence → plan → approval → MCP write → verification → audit 后端路径增加 FastAPI 创建、查询和审批边界。
+下一阶段仍只实施 OperCerta，执行 Task 9：冻结依赖、迁移升降级、竞态与重启重复、真实 FastMCP + FastAPI 双服务传输验证，并归档整个纵向切片证据。
 
-首个闭环已确定为“库存不足 → 补货工单”，采用独立 FastMCP 服务、四个真实 MCP 工具、Mock 结构化模型、LangGraph 和 FastAPI；[设计规格](docs/superpowers/specs/2026-07-16-inventory-replenishment-vertical-slice-design.md)与[可执行 TDD 计划](docs/superpowers/plans/2026-07-16-inventory-replenishment-vertical-slice.md)已落盘，Task 1–7 已完成，下一步为 Task 8 FastAPI 边界。
+首个闭环已确定为“库存不足 → 补货工单”，采用独立 FastMCP 服务、四个真实 MCP 工具、Mock 结构化模型、LangGraph 和 FastAPI；[设计规格](docs/superpowers/specs/2026-07-16-inventory-replenishment-vertical-slice-design.md)与[可执行 TDD 计划](docs/superpowers/plans/2026-07-16-inventory-replenishment-vertical-slice.md)已落盘，Task 1–8 已完成，下一步为 Task 9 最终门禁与证据。
 
 ## 实施依据
 
