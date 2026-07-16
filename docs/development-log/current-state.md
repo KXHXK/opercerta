@@ -1,6 +1,6 @@
 # OperCerta 当前状态
 
-最后核验：2026-07-16 11:38 Asia/Shanghai，Git 基线 commit `e9b2834`。
+最后核验：2026-07-16 11:49 Asia/Shanghai，Git 基线 commit `abdbcda`。
 
 ## 当前阶段
 
@@ -42,12 +42,12 @@
 
 - LangGraph 四点重启恢复尚未实现，不能声称可靠性内核或发布门禁完成。
 - 一次预期失败的 Pytest/Psycopg traceback 曾展开旧的本地测试数据库连接密码；代码、Git 和文档未保存该值，fixture 已改为无密码 URL + 临时 `PGPASSWORD`，角色密码也已轮换和复验。
-- 2026-07-16 checkpointer 首次 GREEN 的 Psycopg 连接失败 traceback 再次展开当前本地测试角色密码。新封装已改为无密码 DSN、临时 `PGPASSWORD` 和 `%20` query 编码，代码/Git/文档未保存该值；角色密码与 `.env.local` 尚待用户再次同步轮换，轮换前暂停图实现。
+- 2026-07-16 checkpointer 首次 GREEN 的 Psycopg 连接失败 traceback 再次展开当时的本地测试角色密码。新封装已改为无密码 DSN、临时 `PGPASSWORD` 和 `%20` query 编码，代码/Git/文档未保存该值；用户随后同步轮换 PostgreSQL 角色与 `.env.local`，focused checkpointer 回归新鲜 `4 passed`。
 - 当前 Git 没有配置远程仓库；本地 commit 不是远程备份。
 
 ## 下一步
 
-先轮换本地 PostgreSQL `opercerta` 测试角色密码并同步 `.env.local`，再执行不回显连接探针和 focused checkpointer 回归；通过后从 JSON-only reliability graph 的 interrupt RED 继续。Task 6 后冻结可靠性内核并转向最小纵向闭环。
+从 JSON-only reliability graph 的 interrupt RED 继续，先证明任何审批或工单写入前图已暂停。Task 6 后冻结可靠性内核并转向最小纵向闭环。
 
 ## 发布门禁
 

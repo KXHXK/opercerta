@@ -8,7 +8,7 @@
 - 审批原子性证据见 `docs/release-evidence/approval-atomicity.md`。曾被失败 traceback 展开的本地测试角色密码已轮换并复验；新值不得粘贴到对话或写入 Git。
 - Task 4 已按聚焦计划完成：领域契约 `6f99bf6`、共享数据库 fixture `8408f81`、幂等 Repository 与并发测试 `88c014c`；证据见 `docs/release-evidence/work-order-idempotency.md`。
 - Task 5 已完成三个原子提交：快照领域边界 `8fb054e`、operation 原子状态仓储 `5bdacf7`、独立 checkpointer `e9b2834`。JSON-only graph、RecoveryCoordinator 和四点 A/B 重启矩阵尚未实现。
-- checkpointer 首次连接失败 traceback 展开了当前本地测试角色密码；代码、Git 和文档未保存该值，封装已改为无密码 DSN + 临时 `PGPASSWORD`。必须先轮换 PostgreSQL 角色密码并同步 `.env.local`，再继续图实现。
+- checkpointer 首次连接失败 traceback 展开了当时的本地测试角色密码；代码、Git 和文档未保存该值，封装已改为无密码 DSN + 临时 `PGPASSWORD`。用户已同步轮换 PostgreSQL 角色密码与 `.env.local`，轮换后 focused checkpointer 回归新鲜 `4 passed`。
 - 后续采用风险分级复核：用户决定产品范围、成本、外部账号和发布；内部技术细节由 Codex 以 TDD、静态检查和证据负责。进度必须区分可靠性内核与完整发布范围。
 - 当前 Git 尚未配置远程仓库；本地 commit 不是远程备份。
 - 发布门禁保持 `CLOSED`，不启动 ForenTrail 或其他项目。
@@ -16,7 +16,7 @@
 ## 新对话必须先做
 
 1. 先阅读 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md` 和最近每日日志，再阅读相关设计、计划、交接和 Git 状态。
-2. 只实施 OperCerta；先确认本地测试角色密码已轮换并以不回显探针复验，再按 `docs/superpowers/plans/2026-07-16-langgraph-restart-recovery.md` 从 reliability graph interrupt RED 继续。
+2. 只实施 OperCerta；按 `docs/superpowers/plans/2026-07-16-langgraph-restart-recovery.md` 从 reliability graph interrupt RED 继续。
 3. 运行集成测试前，以不回显方式从已忽略 `.env.local` 加载 `OPERCERTA_DATABASE_URL`；不得提交该文件或任何凭据。
 4. 每个效果数字都保留基线、测试数据、测量脚本和结果证据；指标未测出前使用目标值或空值，不写成已实现结果。
 5. 使用公开或合成数据，从零编写全部代码和文档，不导入任何原单位源码、数据、截图、模型、品牌或内部规则。
