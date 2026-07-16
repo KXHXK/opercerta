@@ -1,0 +1,486 @@
+import json
+import os
+from collections.abc import AsyncIterator, Callable
+from contextlib import asynccontextmanager
+from dataclasses import dataclass, field
+from datetime import UTC, datetime, timedelta
+from typing import cast
+from uuid import UUID, uuid4
+
+import pytest
+from httpx import ASGITransport, AsyncClient
+from pydantic import SecretStr
+from pytest import MonkeyPatch
+from sqlalchemy import delete
+from sqlalchemy.engine import URL
+from sqlalchemy.ext.asyncio import AsyncEngine
+
+from opercerta.api.app import (
+    AppRuntime,
+    ProductionSettings,
+    create_app,
+    create_production_app,
+)
+from opercerta.application.approval_expiry import ApprovalExpiryService
+from opercerta.application.operation_runner import OperationRunner
+from opercerta.domain.contracts import (
+    ActionType,
+    ObjectType,
+    OperationRequest,
+)
+from opercerta.domain.model_gateway import MockModelGateway
+from opercerta.infrastructure.checkpoints import open_checkpointer
+from opercerta.infrastructure.db.approval_repository import ApprovalRepository
+from opercerta.infrastructure.db.evidence_repository import EvidenceRepository
+from opercerta.infrastructure.db.replenishment_operation_repository import (
+    ReplenishmentOperationRepository,
+)
+from opercerta.infrastructure.db.schema import operations
+from opercerta.infrastructure.mcp_gateway import McpToolGateway
+from opercerta.workflow.replenishment_graph import build_replenishment_graph
+from opercerta.workflow.replenishment_recovery import (
+    ReplenishmentRecoveryCoordinator,
+)
+from tests.integration.mcp.conftest import McpServerHarness
+from tests.integration.mcp.conftest import (
+    mcp_server as _mcp_server_fixture,
+)
+
+mcp_server = _mcp_server_fixture
+
+NOW = datetime(2026, 7, 16, 8, 0, tzinfo=UTC)
+
+
+@dataclass(slots=True)
+class ApiHarness:
+    client: AsyncClient
+    operations: ReplenishmentOperationRepository
+    mcp_server: McpServerHarness
+    operation_ids: list[UUID] = field(default_factory=list)
+
+    async def create_operation(self, sku: str = "SKU-LOW-001") -> dict[str, object]:
+        response = await self.client.post(
+            "/api/v1/operations",
+            json={
+                "message": f"为 {sku} 生成补货工单",
+                "requested_action": "create_work_order",
+                "object_type": "inventory",
+                "object_id": sku,
+            },
+        )
+        body = cast(dict[str, object], response.json())
+        if response.status_code == 202:
+            self.operation_ids.append(UUID(str(body["operation_id"])))
+        body["_status_code"] = response.status_code
+        return body
+
+
+class UnavailableRunner:
+    async def start(self, request: object) -> UUID:
+        del request
+        raise RuntimeError("postgresql password traceback 127.0.0.1:55432")
+
+
+def assert_safe_response(body: object) -> None:
+    serialized = json.dumps(body, ensure_ascii=False)
+    assert "postgresql" not in serialized.lower()
+    assert "password" not in serialized.lower()
+    assert "traceback" not in serialized.lower()
+    assert "127.0.0.1:55432" not in serialized
+
+
+def approval_payload(
+    detail: dict[str, object],
+    decision: str,
+) -> dict[str, object]:
+    binding = cast(dict[str, object], detail["approval_binding"])
+    return {
+        "approver_id": "inventory.api.manager",
+        "decision": decision,
+        "reason": f"{decision} after reviewing API evidence",
+        "expected_inventory_evidence_id": binding["inventory_evidence_id"],
+        "expected_policy_evidence_id": binding["policy_evidence_id"],
+        "expected_rule_version": binding["rule_version"],
+        "expected_decision_facts_hash": binding["decision_facts_hash"],
+        "expected_plan_hash": binding["plan_hash"],
+        "expected_recommended_quantity": binding["recommended_quantity"],
+    }
+
+
+@asynccontextmanager
+async def open_api_harness(
+    engine: AsyncEngine,
+    checkpoint_database_url: SecretStr,
+    mcp_server: McpServerHarness,
+    *,
+    graph_clock: Callable[[], datetime] = lambda: NOW,
+    runner_clock: Callable[[], datetime] = lambda: NOW,
+    approval_ttl_seconds: int = 300,
+) -> AsyncIterator[ApiHarness]:
+    operations_repository = ReplenishmentOperationRepository(engine)
+    async with open_checkpointer(checkpoint_database_url) as saver:
+        graph = build_replenishment_graph(
+            saver,
+            operations_repository,
+            EvidenceRepository(engine),
+            McpToolGateway(mcp_server.url, timeout_seconds=2),
+            MockModelGateway(),
+            graph_clock,
+            approval_ttl_seconds=approval_ttl_seconds,
+        )
+        runner = OperationRunner(
+            graph,
+            ApprovalRepository(engine),
+            operations_repository,
+            ReplenishmentRecoveryCoordinator(graph, operations_repository),
+            ApprovalExpiryService(operations_repository, runner_clock),
+            runner_clock,
+        )
+        app = create_app(
+            AppRuntime(
+                runner=runner,
+                operations=operations_repository,
+            )
+        )
+        transport = ASGITransport(app=app, raise_app_exceptions=False)
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://testserver",
+        ) as client:
+            harness = ApiHarness(
+                client=client,
+                operations=operations_repository,
+                mcp_server=mcp_server,
+            )
+            try:
+                yield harness
+            finally:
+                for operation_id in harness.operation_ids:
+                    await saver.adelete_thread(str(operation_id))
+                async with engine.begin() as connection:
+                    if harness.operation_ids:
+                        await connection.execute(
+                            delete(operations).where(operations.c.id.in_(harness.operation_ids))
+                        )
+
+
+@pytest.mark.asyncio
+async def test_create_and_query_low_inventory_operation(
+    engine: AsyncEngine,
+    checkpoint_database_url: SecretStr,
+    mcp_server: McpServerHarness,
+) -> None:
+    async with open_api_harness(
+        engine,
+        checkpoint_database_url,
+        mcp_server,
+    ) as harness:
+        accepted = await harness.create_operation()
+        assert accepted.pop("_status_code") == 202
+        assert set(accepted) == {"operation_id", "status", "created_at"}
+        assert accepted["status"] == "awaiting_approval"
+
+        operation_id = UUID(str(accepted["operation_id"]))
+        response = await harness.client.get(f"/api/v1/operations/{operation_id}")
+        assert response.status_code == 200
+        detail = response.json()
+        assert detail["assessment"]["recommended_quantity"] == 18
+        assert detail["approval_binding"]["recommended_quantity"] == 18
+        assert detail["approval"] is None
+        assert detail["work_order"] is None
+        assert detail["last_audit_sequence"] > 0
+        assert len(detail["evidence"]) == 2
+        openapi = (await harness.client.get("/openapi.json")).json()
+        accepted_schema = openapi["components"]["schemas"]["OperationAccepted"]
+        assert accepted_schema["properties"]["created_at"]["format"] == "date-time"
+        assert_safe_response([accepted, detail])
+
+
+@pytest.mark.asyncio
+async def test_approve_with_exact_binding_completes_and_duplicate_returns_409(
+    engine: AsyncEngine,
+    checkpoint_database_url: SecretStr,
+    mcp_server: McpServerHarness,
+) -> None:
+    async with open_api_harness(
+        engine,
+        checkpoint_database_url,
+        mcp_server,
+    ) as harness:
+        accepted = await harness.create_operation()
+        operation_id = UUID(str(accepted["operation_id"]))
+        detail = (await harness.client.get(f"/api/v1/operations/{operation_id}")).json()
+        payload = approval_payload(detail, "approved")
+
+        approved = await harness.client.post(
+            f"/api/v1/operations/{operation_id}/approval",
+            json=payload,
+        )
+        assert approved.status_code == 202
+        assert approved.json()["status"] == "completed"
+
+        final = (await harness.client.get(f"/api/v1/operations/{operation_id}")).json()
+        assert final["status"] == "completed"
+        assert final["approval"]["decision"] == "approved"
+        assert final["work_order"]["payload"] == {
+            "approved_plan_hash": final["plan"]["plan_hash"],
+            "quantity": 18,
+            "sku": "SKU-LOW-001",
+        }
+        assert final["result"]["outcome"] == "work_order_completed"
+
+        duplicate = await harness.client.post(
+            f"/api/v1/operations/{operation_id}/approval",
+            json=payload,
+        )
+        assert duplicate.status_code == 409
+        assert duplicate.json() == {
+            "code": "approval_already_decided",
+            "message": "该操作已经完成审批决定。",
+        }
+        assert_safe_response([approved.json(), final, duplicate.json()])
+
+
+@pytest.mark.asyncio
+async def test_reject_with_exact_binding_returns_rejected_without_work_order(
+    engine: AsyncEngine,
+    checkpoint_database_url: SecretStr,
+    mcp_server: McpServerHarness,
+) -> None:
+    async with open_api_harness(
+        engine,
+        checkpoint_database_url,
+        mcp_server,
+    ) as harness:
+        accepted = await harness.create_operation()
+        operation_id = UUID(str(accepted["operation_id"]))
+        detail = (await harness.client.get(f"/api/v1/operations/{operation_id}")).json()
+
+        rejected = await harness.client.post(
+            f"/api/v1/operations/{operation_id}/approval",
+            json=approval_payload(detail, "rejected"),
+        )
+        assert rejected.status_code == 202
+        assert rejected.json()["status"] == "rejected"
+
+        final = (await harness.client.get(f"/api/v1/operations/{operation_id}")).json()
+        assert final["status"] == "rejected"
+        assert final["approval"]["decision"] == "rejected"
+        assert final["work_order"] is None
+
+
+@pytest.mark.asyncio
+async def test_validation_missing_and_stale_binding_use_safe_error_envelopes(
+    engine: AsyncEngine,
+    checkpoint_database_url: SecretStr,
+    mcp_server: McpServerHarness,
+) -> None:
+    async with open_api_harness(
+        engine,
+        checkpoint_database_url,
+        mcp_server,
+    ) as harness:
+        invalid = await harness.client.post(
+            "/api/v1/operations",
+            json={
+                "message": "",
+                "requested_action": "create_work_order",
+                "object_type": "inventory",
+                "unexpected": "secret",
+            },
+        )
+        assert invalid.status_code == 422
+        assert invalid.json() == {
+            "code": "request_validation_failed",
+            "message": "请求内容无效。",
+        }
+        unsupported = await harness.client.post(
+            "/api/v1/operations",
+            json={
+                "message": "查询设备状态",
+                "requested_action": "query",
+                "object_type": "equipment",
+                "object_id": "EQ-001",
+            },
+        )
+        assert unsupported.status_code == 422
+        assert unsupported.json() == {
+            "code": "request_validation_failed",
+            "message": "请求内容无效。",
+        }
+
+        missing = await harness.client.get(f"/api/v1/operations/{uuid4()}")
+        assert missing.status_code == 404
+        assert missing.json() == {
+            "code": "operation_not_found",
+            "message": "未找到指定操作。",
+        }
+
+        accepted = await harness.create_operation()
+        operation_id = UUID(str(accepted["operation_id"]))
+        detail = (await harness.client.get(f"/api/v1/operations/{operation_id}")).json()
+        stale = approval_payload(detail, "approved")
+        stale["expected_plan_hash"] = "0" * 64
+        mismatch = await harness.client.post(
+            f"/api/v1/operations/{operation_id}/approval",
+            json=stale,
+        )
+        assert mismatch.status_code == 409
+        assert mismatch.json() == {
+            "code": "approval_snapshot_mismatch",
+            "message": "审批依据已变化。请刷新后重试。",
+        }
+        assert_safe_response(
+            [
+                invalid.json(),
+                unsupported.json(),
+                missing.json(),
+                mismatch.json(),
+            ]
+        )
+
+
+@pytest.mark.asyncio
+async def test_expired_approval_returns_409_and_inventory_missing_is_queryable(
+    engine: AsyncEngine,
+    checkpoint_database_url: SecretStr,
+    mcp_server: McpServerHarness,
+) -> None:
+    async with open_api_harness(
+        engine,
+        checkpoint_database_url,
+        mcp_server,
+        runner_clock=lambda: NOW + timedelta(seconds=2),
+        approval_ttl_seconds=1,
+    ) as harness:
+        accepted = await harness.create_operation()
+        operation_id = UUID(str(accepted["operation_id"]))
+        detail = (await harness.client.get(f"/api/v1/operations/{operation_id}")).json()
+        expired = await harness.client.post(
+            f"/api/v1/operations/{operation_id}/approval",
+            json=approval_payload(detail, "approved"),
+        )
+        assert expired.status_code == 409
+        assert expired.json() == {
+            "code": "approval_expired",
+            "message": "审批已过期。",
+        }
+
+        missing_inventory = await harness.create_operation("SKU-MISSING-001")
+        assert missing_inventory["_status_code"] == 202
+        missing_id = UUID(str(missing_inventory["operation_id"]))
+        failed = (await harness.client.get(f"/api/v1/operations/{missing_id}")).json()
+        assert failed["status"] == "failed"
+        assert failed["error"]["code"] == "inventory_not_found"
+        assert_safe_response([expired.json(), failed])
+
+
+@pytest.mark.asyncio
+async def test_unexpected_dependency_error_returns_fixed_503_without_details(
+    engine: AsyncEngine,
+) -> None:
+    runtime = AppRuntime(
+        runner=cast(OperationRunner, UnavailableRunner()),
+        operations=ReplenishmentOperationRepository(engine),
+    )
+    app = create_app(runtime)
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://testserver",
+    ) as client:
+        response = await client.post(
+            "/api/v1/operations",
+            json={
+                "message": "为低库存物料生成补货工单",
+                "requested_action": "create_work_order",
+                "object_type": "inventory",
+                "object_id": "SKU-LOW-001",
+            },
+        )
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "code": "dependency_unavailable",
+        "message": "依赖服务暂时不可用。",
+    }
+    assert_safe_response(response.json())
+
+
+@pytest.mark.asyncio
+async def test_production_lifespan_loads_environment_and_recovers_once(
+    engine: AsyncEngine,
+    database_url: SecretStr,
+    checkpoint_database_url: SecretStr,
+    mcp_server: McpServerHarness,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    operations_repository = ReplenishmentOperationRepository(engine)
+    operation_id = await operations_repository.create(
+        OperationRequest(
+            message="启动时恢复低库存补货操作",
+            requested_action=ActionType.CREATE_WORK_ORDER,
+            object_type=ObjectType.INVENTORY,
+            object_id="SKU-LOW-001",
+        )
+    )
+    monkeypatch.setenv(
+        "OPERCERTA_DATABASE_URL",
+        database_url.get_secret_value(),
+    )
+    monkeypatch.setenv("OPERCERTA_MCP_URL", mcp_server.url)
+    monkeypatch.setenv("OPERCERTA_MCP_TIMEOUT_SECONDS", "2")
+    monkeypatch.setenv("OPERCERTA_APPROVAL_TTL_SECONDS", "300")
+    monkeypatch.setenv("OPERCERTA_MODEL_MODE", "mock")
+    app = create_production_app(clock=lambda: NOW)
+
+    try:
+        async with app.router.lifespan_context(app):
+            transport = ASGITransport(app=app, raise_app_exceptions=False)
+            async with AsyncClient(
+                transport=transport,
+                base_url="http://testserver",
+            ) as client:
+                response = await client.get(f"/api/v1/operations/{operation_id}")
+
+        assert response.status_code == 200
+        assert response.json()["status"] == "awaiting_approval"
+    finally:
+        async with open_checkpointer(checkpoint_database_url) as saver:
+            await saver.adelete_thread(str(operation_id))
+        await cleanup_operation(engine, operation_id)
+
+
+async def cleanup_operation(engine: AsyncEngine, operation_id: UUID) -> None:
+    async with engine.begin() as connection:
+        await connection.execute(delete(operations).where(operations.c.id == operation_id))
+
+
+@pytest.mark.asyncio
+async def test_production_lifespan_restores_password_environment_on_engine_error(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PGPASSWORD", "original-test-value")
+    invalid_async_url = URL.create(
+        drivername="postgresql",
+        username="test-user",
+        password="temporary-test-value",
+        host="127.0.0.1",
+        database="test-db",
+    ).render_as_string(hide_password=False)
+    settings = ProductionSettings.model_validate(
+        {
+            "OPERCERTA_DATABASE_URL": invalid_async_url,
+            "OPERCERTA_MCP_URL": "http://127.0.0.1:8001/mcp",
+            "OPERCERTA_MCP_TIMEOUT_SECONDS": 2,
+            "OPERCERTA_APPROVAL_TTL_SECONDS": 300,
+            "OPERCERTA_MODEL_MODE": "mock",
+        }
+    )
+    app = create_production_app(settings, clock=lambda: NOW)
+
+    with pytest.raises(ModuleNotFoundError):
+        async with app.router.lifespan_context(app):
+            pass
+
+    assert os.environ["PGPASSWORD"] == "original-test-value"

@@ -55,10 +55,14 @@ class OperationRunner:
     async def submit_approval(
         self,
         command: BoundApprovalCommand,
-        now: datetime,
+        now: datetime | None = None,
     ) -> UUID:
-        self._require_aware(now)
-        approval = await self._approvals.submit_bound_once(command, now)
+        approval_time = now if now is not None else self._clock()
+        self._require_aware(approval_time)
+        approval = await self._approvals.submit_bound_once(
+            command,
+            approval_time,
+        )
         resume_command: Command[Any] = Command(
             resume={
                 "approval_id": str(approval.id),
