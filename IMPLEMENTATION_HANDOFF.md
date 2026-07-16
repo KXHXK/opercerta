@@ -7,7 +7,7 @@
 - Windows 原生 PostgreSQL 18.4 已验证为本地集成测试数据库：服务仅监听 `127.0.0.1:55432`，普通 IPv4 回环使用 SCRAM；证据见 `docs/release-evidence/native-postgres-environment.md`。
 - 审批原子性证据见 `docs/release-evidence/approval-atomicity.md`。曾被失败 traceback 展开的本地测试角色密码已轮换并复验；新值不得粘贴到对话或写入 Git。
 - Task 4 已按聚焦计划完成：领域契约 `6f99bf6`、共享数据库 fixture `8408f81`、幂等 Repository 与并发测试 `88c014c`；证据见 `docs/release-evidence/work-order-idempotency.md`。
-- Task 5 已确认复用 `operations.request_payload` 快照、同时恢复批准/拒绝、使用独立 `OperationStateRepository`；书面规格位于 `docs/superpowers/specs/2026-07-16-langgraph-restart-recovery-design.md`，当前待编写聚焦 TDD 计划，尚未写生产代码或 Task 5 测试。
+- Task 5 已确认复用 `operations.request_payload` 快照、同时恢复批准/拒绝、使用独立 `OperationStateRepository`；书面规格位于 `docs/superpowers/specs/2026-07-16-langgraph-restart-recovery-design.md`，聚焦计划位于 `docs/superpowers/plans/2026-07-16-langgraph-restart-recovery.md`。计划已完成规格覆盖、占位和 Python 代码块语法自审，生产代码与 Task 5 测试仍未开始。
 - 后续采用风险分级复核：用户决定产品范围、成本、外部账号和发布；内部技术细节由 Codex 以 TDD、静态检查和证据负责。进度必须区分可靠性内核与完整发布范围。
 - 当前 Git 尚未配置远程仓库；本地 commit 不是远程备份。
 - 发布门禁保持 `CLOSED`，不启动 ForenTrail 或其他项目。
@@ -15,7 +15,7 @@
 ## 新对话必须先做
 
 1. 先阅读 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md` 和最近每日日志，再阅读相关设计、计划、交接和 Git 状态。
-2. 只实施 OperCerta；使用 writing-plans 编写 Task 5 聚焦 TDD 计划并自审，不再要求用户判断内部接口细节；随后从非法快照 RED 开始。
+2. 只实施 OperCerta；按 `docs/superpowers/plans/2026-07-16-langgraph-restart-recovery.md` 在当前对话内执行，从非法快照 RED 开始，不再要求用户判断内部接口细节。
 3. 运行集成测试前，以不回显方式从已忽略 `.env.local` 加载 `OPERCERTA_DATABASE_URL`；不得提交该文件或任何凭据。
 4. 每个效果数字都保留基线、测试数据、测量脚本和结果证据；指标未测出前使用目标值或空值，不写成已实现结果。
 5. 使用公开或合成数据，从零编写全部代码和文档，不导入任何原单位源码、数据、截图、模型、品牌或内部规则。
@@ -29,4 +29,4 @@
 
 ## 可复制到新对话的启动语
 
-> 工作目录为本 OperCerta 仓库根目录。请先读取 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md`、最近每日日志、`README.md`、`IMPLEMENTATION_HANDOFF.md` 和 `docs/specs/` 下的四份设计文件，顺序为命名设计、总体设计、组合设计、OperCerta 详细设计；然后从可靠性内核 Task 4 的幂等写入 RED 测试继续。严格只实施 OperCerta，不复用旧公司材料，不虚构指标，未通过发布门禁前不启动其他项目。
+> 工作目录为本 OperCerta 仓库根目录。请先读取 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md`、最近每日日志、`README.md`、`IMPLEMENTATION_HANDOFF.md` 和 `docs/specs/` 下的四份设计文件，顺序为命名设计、总体设计、组合设计、OperCerta 详细设计；然后按 Task 5 聚焦计划从非法快照 RED 测试继续。严格只实施 OperCerta，不复用旧公司材料，不虚构指标，未通过发布门禁前不启动其他项目。

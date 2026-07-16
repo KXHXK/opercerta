@@ -1100,6 +1100,8 @@ git commit -m "feat: make simulated work orders idempotent"
 
 ### Task 5: LangGraph interrupt and four-point restart recovery
 
+**Focused execution plan:** `docs/superpowers/plans/2026-07-16-langgraph-restart-recovery.md` is the normative Task 5 RED/GREEN sequence. It is written and self-reviewed; the checkboxes below remain unchecked until production code and tests are actually executed.
+
 **Files:**
 - Create: `src/opercerta/infrastructure/checkpoints.py`
 - Create: `src/opercerta/workflow/__init__.py`

@@ -1,10 +1,10 @@
 # OperCerta 当前状态
 
-最后核验：2026-07-16 10:56 Asia/Shanghai，Git 基线 commit `4d3ef4d`。
+最后核验：2026-07-16 11:20 Asia/Shanghai，Git 基线 commit `f143e99`。
 
 ## 当前阶段
 
-非法输入、状态恢复、数据库迁移、原子审批竞态和 Task 4 幂等工单写入已按 TDD 实现。Task 5 四点重启恢复书面规格已确认；当前待编写聚焦 TDD 计划，生产代码和 Task 5 测试尚未开始。
+非法输入、状态恢复、数据库迁移、原子审批竞态和 Task 4 幂等工单写入已按 TDD 实现。Task 5 四点重启恢复书面规格与聚焦 TDD 计划已完成；生产代码和 Task 5 测试尚未开始。
 
 ## 已验证事实
 
@@ -33,6 +33,7 @@
 - 本地锁定版本核验：`AsyncPostgresSaver.from_conn_string` 提供 async context manager，`setup()` 必须显式调用；`LANGGRAPH_STRICT_MSGPACK` 在 `langgraph-checkpoint==4.1.1` 源码中有效，并需在默认 serializer 构造前设置。
 - 进度规划估算：可靠性内核约 60%–65%；完整 OperCerta 发布范围约 25%–30%。这是按已定义里程碑及剩余范围估算，不是测试成绩或可对外指标。
 - 风险分级复核只减少用户对内部技术细节的形式审批，不减少工程文档；规格、计划、RED/GREEN、故障诊断、数据库与重启证据、静态检查、迁移回滚、未完成范围和风险必须继续在本地留痕并纳入 Git。
+- Task 5 聚焦计划已把快照领域模型、原子状态仓储、独立 checkpointer、JSON-only 图、RecoveryCoordinator、批准/拒绝与四点 A/B 重启矩阵拆成六个可提交阶段；占位匹配为零，14 个 Python 代码块语法编译通过。这是计划自审，不是生产实现或测试通过证据。
 
 ## 当前阻塞与风险
 
@@ -42,7 +43,7 @@
 
 ## 下一步
 
-使用 writing-plans 编写并自审 Task 5 聚焦 TDD 计划；随后按 inline execution 从非法快照 RED 开始。Task 6 后冻结可靠性内核并转向最小纵向闭环。
+按 Task 5 聚焦计划进行 inline execution，从 `tests/unit/domain/test_operation_state.py` 非法快照 RED 开始。Task 6 后冻结可靠性内核并转向最小纵向闭环。
 
 ## 发布门禁
 
