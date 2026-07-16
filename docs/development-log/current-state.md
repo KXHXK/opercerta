@@ -1,10 +1,10 @@
 # OperCerta 当前状态
 
-最后核验：2026-07-16 00:27 Asia/Shanghai，Git 基线 commit `80b69e8`。
+最后核验：2026-07-16 09:18 Asia/Shanghai，Git 基线 commit `9c71d7b`。
 
 ## 当前阶段
 
-非法输入、状态恢复、数据库迁移和原子审批竞态已按 TDD 实现。Task 3 已完成；本地测试数据库密码已轮换并复验。Task 4 已确认采用通用 JSON object payload 方案并固定新工单状态为 `created`；书面规格已获用户确认，正在回填可执行实施计划，生产代码尚未开始。
+非法输入、状态恢复、数据库迁移和原子审批竞态已按 TDD 实现。Task 3 已完成；本地测试数据库密码已轮换并复验。Task 4 书面规格与聚焦 TDD 计划均已完成；用户选择 inline execution，生产代码和 Task 4 测试尚未开始。
 
 ## 已验证事实
 
@@ -25,6 +25,7 @@
 - 本地测试数据库密码已于 2026-07-15 轮换；不回显探针确认 `opercerta_test`/`opercerta`、`127.0.0.1:55432` 可连接，轮换后完整测试 `34 passed`、Ruff 和 mypy 通过，新密码未出现在 Git 跟踪文件中。
 - 2026-07-16 重启 Codex 后，PowerShell、OperCerta 工作区和 `.git` 临时写入探针均成功，探针已清理，`main` 工作区恢复干净。
 - Task 4 方案 1、`created` 初始状态和完整书面契约均已获用户确认；契约见 `docs/superpowers/specs/2026-07-16-work-order-idempotency-contract-design.md`。
+- Task 4 聚焦计划见 `docs/superpowers/plans/2026-07-16-work-order-idempotency.md`；规格覆盖、占位文本、类型命名和 Python 代码块语法已自审，计划中的 Pydantic JSON 边界烟雾检查通过，但这些不是生产实现通过证据。
 
 ## 当前阻塞与风险
 
@@ -34,7 +35,7 @@
 
 ## 下一步
 
-使用 writing-plans 把 Task 4 精确接口、RED/GREEN、并发复验和提交检查点回填现有可靠性计划；随后按既定 inline execution 从非法输入 RED 开始。
+按既定 inline execution 执行 Task 4 聚焦计划 Task 1：先写领域非法输入与确定性指纹测试，运行并保留预期 RED，再写最小 GREEN 实现。
 
 ## 发布门禁
 

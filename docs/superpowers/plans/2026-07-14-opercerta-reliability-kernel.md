@@ -1008,6 +1008,8 @@ Execution evidence: migration and its RED/GREEN test were committed as `85e6538`
 
 ### Task 4: Idempotent work-order write under concurrency
 
+Task 4 的已确认领域契约见 `docs/superpowers/specs/2026-07-16-work-order-idempotency-contract-design.md`；逐文件 RED/GREEN、共享测试 fixture、并发复验和证据步骤以 `docs/superpowers/plans/2026-07-16-work-order-idempotency.md` 为详细执行来源。本节保留可靠性内核总里程碑，不替代该聚焦计划。
+
 **Files:**
 - Create: `src/opercerta/domain/work_orders.py`
 - Create: `src/opercerta/infrastructure/db/work_order_repository.py`
