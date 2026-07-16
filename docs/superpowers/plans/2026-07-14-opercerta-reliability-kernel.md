@@ -1232,7 +1232,7 @@ git commit -m "feat: recover approval workflows after restart"
 - Produces: a reproducible command record; it does not mark OperCerta released.
 - Produces: the next OperCerta-only implementation boundary: MCP tools and the full event → evidence → plan → approval → write → audit API slice.
 
-- [ ] **Step 1: Run fresh full verification**
+- [x] **Step 1: Run fresh full verification**
 
 ```powershell
 uv sync --frozen --all-groups
@@ -1249,7 +1249,9 @@ git status --short
 
 Expected: commands through `git diff --check` exit 0. `git status --short` may list only the documentation changes made in this task.
 
-- [ ] **Step 2: Record only observed facts**
+Execution note: the first direct `uv run alembic downgrade base` exited 1 before connecting because the independent process did not receive `OPERCERTA_DATABASE_URL`; no database mutation or credential expansion occurred. Re-running downgrade → upgrade → current with the established SecretStr, passwordless URL and temporary `PGPASSWORD` boundary exited 0, then the post-migration integration suite passed. Exact evidence is recorded in `docs/release-evidence/reliability-kernel.md`.
+
+- [x] **Step 2: Record only observed facts**
 
 Write the exact timestamp, Git commit, OS/Python/PostgreSQL versions, commands, exit codes, collected/passed test counts, and the four restart scenarios. State explicitly:
 
@@ -1262,11 +1264,11 @@ Next project permitted: no
 
 Do not copy planned thresholds into a results column.
 
-- [ ] **Step 3: Update repository status without claiming release**
+- [x] **Step 3: Update repository status without claiming release**
 
 README must say “可靠性内核已验证” only if Step 1 passed freshly. HANDOFF must point to the evidence file and state that the next work remains OperCerta MCP/full vertical slice.
 
-- [ ] **Step 4: Commit documentation and stop at the OperCerta boundary**
+- [x] **Step 4: Commit documentation and stop at the OperCerta boundary**
 
 ```powershell
 git add README.md IMPLEMENTATION_HANDOFF.md docs/release-evidence/reliability-kernel.md

@@ -1,10 +1,10 @@
 # OperCerta 当前状态
 
-最后核验：2026-07-16 12:24 Asia/Shanghai，Git 基线 commit `e93b551`。
+最后核验：2026-07-16 12:34 Asia/Shanghai，Git 基线 commit `88760be`。
 
 ## 当前阶段
 
-非法输入、确定性恢复决策、数据库迁移、原子审批竞态、幂等工单和 Task 5 四点 LangGraph 重启恢复均已按 TDD 实现。Task 5 证据已归档；可靠性内核 Task 6 总门禁尚未执行。
+可靠性内核 Task 1–6 已完成本地总门禁：非法输入、确定性恢复决策、数据库迁移、原子审批竞态、幂等工单、LangGraph interrupt/checkpoint 与四点重启恢复均有可复验代码和证据。完整产品与发布门禁尚未完成。
 
 ## 已验证事实
 
@@ -31,7 +31,6 @@
 - 工单十路并发目标用例以 20 个独立 Pytest 进程复验，实测 `20/20`；每轮断言一次创建、九次安全重放、同一 ID、一行工单和一条创建审计。证据见 `docs/release-evidence/work-order-idempotency.md`。
 - Task 5 已确认复用 `operations.request_payload` 的 `schema_version=1` 快照，不新增数据库迁移；审批落库后同时覆盖批准和拒绝恢复；状态与终态审计由独立 `OperationStateRepository` 原子写入。
 - 本地锁定版本核验：`AsyncPostgresSaver.from_conn_string` 提供 async context manager，`setup()` 必须显式调用；`LANGGRAPH_STRICT_MSGPACK` 在 `langgraph-checkpoint==4.1.1` 源码中有效，并需在默认 serializer 构造前设置。
-- 进度规划估算：可靠性内核约 60%–65%；完整 OperCerta 发布范围约 25%–30%。这是按已定义里程碑及剩余范围估算，不是测试成绩或可对外指标。
 - 风险分级复核只减少用户对内部技术细节的形式审批，不减少工程文档；规格、计划、RED/GREEN、故障诊断、数据库与重启证据、静态检查、迁移回滚、未完成范围和风险必须继续在本地留痕并纳入 Git。
 - Task 5 聚焦计划已把快照领域模型、原子状态仓储、独立 checkpointer、JSON-only 图、RecoveryCoordinator、批准/拒绝与四点 A/B 重启矩阵拆成六个可提交阶段；占位匹配为零，14 个 Python 代码块语法编译通过。这是计划自审，不是生产实现或测试通过证据。
 - Task 5 快照领域 RED 因稳定错误缺失退出 1；GREEN focused 为 `48 passed`、单元全集为 `77 passed`，Ruff/format 与 mypy（14 个源文件）通过，提交 `8fb054e`。
@@ -40,19 +39,20 @@
 - Task 5 reliability graph RED 因 workflow 模块缺失退出 1；GREEN focused 为 `3 passed`、workflow 集成为 `7 passed`，Ruff/format 与 mypy（18 个源文件）通过。测试断言 interrupt 时零审批、零工单，并覆盖无崩溃的批准完成与拒绝终止；提交 `2e6cbb4`。
 - Task 5 RecoveryCoordinator RED 因模块缺失退出 1；GREEN focused 为 `8 passed`、workflow 集成 `15 passed`，四点矩阵使用完全关闭的 saver A/graph A 与新 saver B/graph B。十个独立 Pytest 进程实测 `10/10`，每轮 `8 passed`。
 - Task 5 完整新鲜门禁为 `116 passed in 9.96s`；Ruff lint 通过、32 个文件 format check 通过、mypy 检查 19 个源文件通过。证据见 `docs/release-evidence/langgraph-restart-recovery.md`，实现提交 `e93b551`。
-- 进度规划估算：可靠性内核 Task 1–5 完成、Task 6 待执行，按既定 `10/10/20/20/30/10` 权重约为 90%。这是排期估算，不是测试成绩或对外指标。
+- Task 6 新鲜总门禁：依赖冻结同步成功；完整测试 `116 passed in 8.76s`；Ruff、32 文件 format check、mypy（19 个源文件）通过；secret-safe Alembic downgrade→upgrade 后为 `0001_reliability_kernel (head)`，迁移后集成测试 `39 passed in 8.74s`。
+- 可靠性内核按既定权重已达到 100% 的阶段完成口径；这只表示 Task 1–6 本地门禁完成，不是完整 OperCerta 发布进度、生产指标或对外效果数字。
 
 ## 当前阻塞与风险
 
-- 可靠性内核 Task 6 的迁移升降级、完整总证据和交接门禁尚未执行，不能声称可靠性内核总门禁或发布门禁完成。
+- MCP 五工具、完整 workflow、API/SSE、认证、前端、评测、安全回归、可观测性、Linux/Docker 和公开部署尚未完成，发布门禁保持关闭。
 - 一次预期失败的 Pytest/Psycopg traceback 曾展开旧的本地测试数据库连接密码；代码、Git 和文档未保存该值，fixture 已改为无密码 URL + 临时 `PGPASSWORD`，角色密码也已轮换和复验。
 - 2026-07-16 checkpointer 首次 GREEN 的 Psycopg 连接失败 traceback 再次展开当时的本地测试角色密码。新封装已改为无密码 DSN、临时 `PGPASSWORD` 和 `%20` query 编码，代码/Git/文档未保存该值；用户随后同步轮换 PostgreSQL 角色与 `.env.local`，focused checkpointer 回归新鲜 `4 passed`。
 - 当前 Git 没有配置远程仓库；本地 commit 不是远程备份。
 
 ## 下一步
 
-执行可靠性内核 Task 6：新鲜依赖同步、完整测试/静态检查、Alembic downgrade/upgrade、证据归档和边界交接；通过后冻结内核并转向 OperCerta 最小纵向闭环。
+冻结可靠性内核，下一步为 OperCerta 最小纵向闭环规格与 TDD 计划：event → evidence → plan → approval → simulated MCP write → verification → audit → API response。
 
 ## 发布门禁
 
-`OperCerta release gate: CLOSED`。本地环境通过不等于发布通过；Linux/Docker 验证和完整可靠性内核证据仍待完成。
+`OperCerta release gate: CLOSED`。本地可靠性内核通过不等于发布通过；最小纵向业务闭环、完整产品门禁和 Linux/Docker 一致性验证仍待完成。
