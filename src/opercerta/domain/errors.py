@@ -72,3 +72,101 @@ class RecoveryStateConflict(RuntimeError):
         self.operation_id = operation_id
         self.reason = reason
         super().__init__(self.code)
+
+
+class InventoryNotFound(LookupError):
+    code = "inventory_not_found"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class EvidenceUnavailable(RuntimeError):
+    code = "evidence_unavailable"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class EvidenceConflict(RuntimeError):
+    code = "evidence_conflict"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class EvidenceExpired(RuntimeError):
+    code = "evidence_expired"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class InvalidInventoryEvidence(ValueError):
+    code = "invalid_inventory_evidence"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class InvalidPolicyEvidence(ValueError):
+    code = "invalid_policy_evidence"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class ReplenishmentQuantityOutOfPolicy(ValueError):
+    code = "replenishment_quantity_out_of_policy"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class ApprovalExpired(RuntimeError):
+    code = "approval_expired"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class ApprovalSnapshotMismatch(RuntimeError):
+    code = "approval_snapshot_mismatch"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class UnknownTool(RuntimeError):
+    code = "unknown_tool"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class WorkOrderNotFound(LookupError):
+    code = "work_order_not_found"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class WorkOrderVerificationFailed(RuntimeError):
+    code = "work_order_verification_failed"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class WorkOrderStorageFailed(RuntimeError):
+    code = "work_order_storage_failed"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class DependencyUnavailable(RuntimeError):
+    code = "dependency_unavailable"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
