@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: postgres:18
+    env_file: .env.compose
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  bootstrap:
+    build: .
+    env_file: .env.compose
+    command: ["python", "-m", "opercerta.runtime.bootstrap"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  mcp:
+    build: .
+    env_file: .env.compose
+    command: ["python", "-m", "opercerta.runtime.mcp"]
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8001/health/ready').read()"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: .
+    env_file: .env.compose
+    command: ["python", "-m", "opercerta.runtime.api"]
+    ports:
+      - "${OPERCERTA_API_BIND:-127.0.0.1}:${PORT:-8080}:8080"
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
+      mcp:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8080/health/ready').read()"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  postgres_data:

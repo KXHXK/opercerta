@@ -2,6 +2,8 @@
 .env
 .env.*
 !.env.example
+.env.compose
+!.env.compose.example
 *.pem
 *.key
 
@@ -39,4 +41,3 @@ uploads/
 .vscode/
 .DS_Store
 Thumbs.db
-
