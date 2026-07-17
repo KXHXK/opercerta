@@ -1,8 +1,10 @@
 # Docker/Linux Runtime Implementation Plan
 
+> **环境修订优先级：** `docs/superpowers/specs/2026-07-17-wsl2-runtime-amendment-design.md` 已确认。本计划中涉及 Hyper-V VM 或 Ubuntu 24.04 的环境步骤，均以 WSL2 Ubuntu 26.04 替代；容器、测试和安全约束不变。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 在 Hyper-V 承载的 Ubuntu 24.04 LTS VM 中，以 Docker Compose 可重复启动当前库存补货后端，并提供安全 liveness/readiness 和真实闭环证据。
+**Goal:** 在 WSL2 承载的 Ubuntu 26.04 LTS 中，以 Docker Compose 可重复启动当前库存补货后端，并提供安全 liveness/readiness 和真实闭环证据。
 
 **Architecture:** 单一非 root Python 3.12 镜像提供 API、MCP 与一次性 bootstrap 命令。Compose 编排 `postgres`、`bootstrap`、`mcp`、`api`；bootstrap 是唯一执行 Alembic 迁移和 LangGraph checkpointer 初始化的服务，API/MCP 只能在它成功后启动且不能隐式改写 Schema。
 

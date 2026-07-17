@@ -24,7 +24,7 @@
 - 审批十路竞态独立重复 `10/10`；A/B 重启恢复独立重复 `10/10`，每轮 `7 passed`。这些只是本地重复证据。
 - 真实 FastMCP、FastAPI 和独立客户端三进程闭环通过：四工具名称匹配，创建进入 `awaiting_approval`，批准后 `completed`，重复审批 `409`，数据库一条审批、一条工单且终态审计顺序正确。证据见 `docs/release-evidence/inventory-replenishment-vertical-slice.md`。
 - Windows Uvicorn 0.51 默认 Proactor loop 与 Psycopg async 不兼容；真实服务验证使用 Uvicorn custom loop factory 明确选择 Selector loop。Linux/Docker 仍未验证。
-- Docker/Linux 运行时设计及其可执行 TDD 计划已获用户确认：使用 Hyper-V、Ubuntu 24.04 LTS VM、官方 Docker Engine 与 Compose；不使用当前 LTSC 2021 build 19044 不再官方支持的 Docker Desktop。规格见 `docs/superpowers/specs/2026-07-16-docker-linux-runtime-design.md`，计划见 `docs/superpowers/plans/2026-07-17-docker-linux-runtime.md`；尚未实施。
+- Docker/Linux 运行时已修订为 WSL2、Ubuntu 26.04 LTS、官方 Docker Engine 与 Compose；不使用 Docker Desktop、Hyper-V VM。修订见 `docs/superpowers/specs/2026-07-17-wsl2-runtime-amendment-design.md`，计划见 `docs/superpowers/plans/2026-07-17-docker-linux-runtime.md`；尚未完成真实验收。
 
 ## 新对话必须先做
 
