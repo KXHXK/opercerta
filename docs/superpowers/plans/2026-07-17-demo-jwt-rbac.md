@@ -48,7 +48,7 @@
 - Produces JwtAuthenticator.issue_demo_token(account: DemoAccount, now: datetime) -> str。
 - Produces JwtAuthenticator.authenticate(authorization: str | None, now: datetime) -> AuthenticatedActor。
 
-- [ ] **Step 1: 写失败的单元测试**
+- [x] **Step 1: 写失败的单元测试**
 
 ~~~python
 def test_issued_token_round_trips_to_fixed_demo_actor() -> None:
@@ -69,12 +69,12 @@ def test_missing_or_malformed_authorization_is_not_authenticated(
 
 再分别测试：过期 token、篡改签名、错误 iss、错误 aud、未知 role 均抛出 InvalidAccessToken；DemoAccount 只接受四个固定枚举；demo_token_enabled=False 时抛出 DemoTokenUnavailable。
 
-- [ ] **Step 2: 运行 RED**
+- [x] **Step 2: 运行 RED**
 
 Run: uv run pytest tests/unit/api/test_auth.py -q  
 Expected: 退出码 1，原因是 opercerta.api.auth 不存在；不修改 API 路由。
 
-- [ ] **Step 3: 实现最小认证模块**
+- [x] **Step 3: 实现最小认证模块**
 
 ~~~python
 class Role(StrEnum):
@@ -101,12 +101,12 @@ DEMO_ACTORS = {
 
 用 jwt.encode 签发含 sub、role、iss、aud、UTC iat/exp 和 jti=uuid4().hex 的 HS256 token。用 jwt.decode 的 algorithms=["HS256"]、issuer、audience 与 require=[sub, role, iss, aud, iat, exp, jti] 验证；只将 PyJWT 验证异常转为稳定本地异常，绝不回传库异常文本。
 
-- [ ] **Step 4: 运行 GREEN 与静态检查**
+- [x] **Step 4: 运行 GREEN 与静态检查**
 
 Run: uv run pytest tests/unit/api/test_auth.py -q; uv run ruff check src/opercerta/api/auth.py tests/unit/api/test_auth.py; uv run ruff format --check src/opercerta/api/auth.py tests/unit/api/test_auth.py; uv run mypy src/opercerta/api/auth.py  
 Expected: 全部退出码 0。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ~~~bash
 git add src/opercerta/api/auth.py tests/unit/api/test_auth.py
@@ -319,4 +319,3 @@ git commit -m "docs: record demo jwt rbac verification"
 - 规格覆盖：Task 1 覆盖 HS256、必需声明、短时 token 与禁用入口；Task 2 覆盖四角色、稳定 401/403、可信审批主体和零写入；Task 3 覆盖 Compose 设置及 smoke；Task 4 覆盖门禁、证据与未完成范围。
 - 占位检查：所有代码步骤、测试命令、RED/GREEN 预期和提交范围均已明确。
 - 类型一致性：JwtAuthenticator、AuthenticatedActor、Role、DemoAccount 在 Task 1 定义；Task 2 和 Task 3 只消费这些名称；ApprovalRequest 的 approver_id 在 Task 2 明确删除。
-
