@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
+from mcp.server.transport_security import TransportSecuritySettings
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from opercerta.domain.errors import (
@@ -46,6 +47,14 @@ def build_mcp_server(
     host: str = "127.0.0.1",
     port: int = 8001,
 ) -> FastMCP:
+    allowed_hosts = [
+        host,
+        f"{host}:{port}",
+        "localhost",
+        f"localhost:{port}",
+        "mcp",
+        f"mcp:{port}",
+    ]
     server = FastMCP(
         "OperCerta Tools",
         host=host,
@@ -53,6 +62,7 @@ def build_mcp_server(
         streamable_http_path="/mcp",
         json_response=True,
         stateless_http=True,
+        transport_security=TransportSecuritySettings(allowed_hosts=allowed_hosts),
     )
 
     @server.tool(name="inventory.get_snapshot", structured_output=True)

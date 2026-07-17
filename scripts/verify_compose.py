@@ -7,6 +7,7 @@ import subprocess
 from typing import Any
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
+from uuid import UUID
 
 
 def request(method: str, path: str, payload: dict[str, Any] | None = None) -> tuple[int, Any]:
@@ -22,6 +23,24 @@ def request(method: str, path: str, payload: dict[str, Any] | None = None) -> tu
         return error.code, json.loads(error.read())
 
 
+def postgres_scalar(sql: str) -> str:
+    command = [
+        "docker",
+        "compose",
+        "exec",
+        "-T",
+        "postgres",
+        "sh",
+        "-c",
+        'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atqc "$1"',
+        "sh",
+        sql,
+    ]
+    result = subprocess.run(command, check=False, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    return result.stdout.strip()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--recovery-only", action="store_true")
@@ -30,7 +49,7 @@ def main() -> None:
     assert request("GET", "/health/ready")[0] == 200
     if args.recovery_only:
         return
-    _, created = request(
+    created_status, created = request(
         "POST",
         "/api/v1/operations",
         {
@@ -40,7 +59,8 @@ def main() -> None:
             "object_id": "SKU-LOW-001",
         },
     )
-    operation_id = created["operation_id"]
+    assert created_status == 202
+    operation_id = str(UUID(created["operation_id"]))
     _, detail = request("GET", f"/api/v1/operations/{operation_id}")
     binding = detail["approval_binding"]
     approval = {
@@ -59,11 +79,20 @@ def main() -> None:
         "POST", f"/api/v1/operations/{operation_id}/approval", approval
     )
     assert duplicate_status == 409 and duplicate["code"] == "approval_already_decided"
-    query = (
-        "docker compose exec -T postgres sh -c "
-        '\'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atqc "SELECT 1"\''
+    assert (
+        postgres_scalar(f"SELECT COUNT(*) FROM approvals WHERE operation_id = '{operation_id}'")
+        == "1"
     )
-    assert subprocess.run(query, shell=True, check=False).returncode == 0
+    assert (
+        postgres_scalar(f"SELECT COUNT(*) FROM work_orders WHERE operation_id = '{operation_id}'")
+        == "1"
+    )
+    event_types = postgres_scalar(
+        "SELECT event_type FROM audit_events "
+        f"WHERE operation_id = '{operation_id}' ORDER BY sequence"
+    ).splitlines()
+    assert event_types.count("work_order_created") == 1
+    assert event_types[-1] == "operation_completed"
 
 
 if __name__ == "__main__":

@@ -19,14 +19,17 @@ NOW = datetime(2026, 7, 17, 8, 0, tzinfo=UTC)
 
 
 @asynccontextmanager
-async def open_mcp_session(app: object) -> AsyncIterator[ClientSession]:
+async def open_mcp_session(
+    app: object,
+    base_url: str = "http://127.0.0.1:8001",
+) -> AsyncIterator[ClientSession]:
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),
-        base_url="http://127.0.0.1:8001",
+        base_url=base_url,
         trust_env=False,
     ) as http_client:
         async with streamable_http_client(
-            "http://127.0.0.1:8001/mcp",
+            f"{base_url}/mcp",
             http_client=http_client,
         ) as (read, write, _):
             async with ClientSession(read, write) as session:
@@ -54,6 +57,28 @@ async def test_mcp_health_routes_coexist_with_inventory_tools(
             assert (await client.get("/health/ready")).json() == {"status": "ready"}
 
         async with open_mcp_session(app) as session:
+            listed = await session.list_tools()
+
+    assert {tool.name for tool in listed.tools} == {
+        "inventory.get_snapshot",
+        "policy.list_constraints",
+        "work_order.create",
+        "work_order.get",
+    }
+
+
+@pytest.mark.asyncio
+async def test_mcp_accepts_the_internal_docker_service_host(
+    engine: AsyncEngine,
+) -> None:
+    catalog = SyntheticCatalog.load(
+        ROOT / "data" / "synthetic" / "inventory.json",
+        ROOT / "data" / "synthetic" / "replenishment_policies.json",
+    )
+    app = create_mcp_app(catalog, engine, clock=lambda: NOW)
+
+    async with app.router.lifespan_context(app):
+        async with open_mcp_session(app, "http://mcp:8001") as session:
             listed = await session.list_tools()
 
     assert {tool.name for tool in listed.tools} == {
