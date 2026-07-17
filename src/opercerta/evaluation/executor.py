@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import UTC, datetime, timedelta
 from typing import cast
 from uuid import UUID, uuid4
@@ -37,6 +37,7 @@ class ApiCaseExecutor:
         runner: OperationRunner | None = None,
         catalog: SyntheticCatalog | None = None,
         gateway: McpToolGateway | None = None,
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         self._client = client
         self._authenticator = authenticator
@@ -45,6 +46,7 @@ class ApiCaseExecutor:
         self._runner = runner
         self._catalog = catalog
         self._gateway = gateway
+        self._clock = clock
         self.operation_ids: list[UUID] = []
 
     async def execute(self, case: EvalCase) -> CaseExecution:
@@ -106,7 +108,7 @@ class ApiCaseExecutor:
                                 detail.approval_binding,
                                 str(step.get("decision", "approved")),
                             ),
-                            datetime.now(UTC) + timedelta(days=1),
+                            self._clock() + timedelta(days=1),
                         )
                     except ApprovalExpired:
                         status_override = 409
@@ -146,7 +148,7 @@ class ApiCaseExecutor:
                         detail.approval_binding,
                         str(step.get("decision", "approved")),
                     ),
-                    datetime.now(UTC),
+                    self._clock(),
                 )
                 await self._require_runner().recover_all()
             elif action == "invoke_mcp_tool":
@@ -191,7 +193,7 @@ class ApiCaseExecutor:
     ) -> dict[str, str]:
         credential = step.get("credential")
         if account is None:
-            return {}
+            return {"Authorization": ""}
         if credential == "tampered":
             token = self._authenticator.issue_demo_token(account, datetime.now(UTC))
             return {"Authorization": f"Bearer x{token[1:]}"}

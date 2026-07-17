@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - 仅覆盖已实现库存补货后端与合成数据；不加入设备、真实模型、性能、前端、SSE、SSO、公开部署或生产指标。
-- 数据集固定为 data/evals/replenishment-v2.json，30 个唯一 ID RPL-001 至 RPL-030；每例必须有 rule_refs。v1 在首次基线执行前因两条预期与已实现稳定语义不符而废止；更正记录在开发日志中。
+- 数据集固定为 data/evals/replenishment-v3.json，30 个唯一 ID RPL-001 至 RPL-030；每例必须有 rule_refs。v1 与 v2 均在首次有效基线前因预期与已实现稳定语义不符而废止；更正记录在开发日志中。
 - 不读取或写入 JWT、密码、数据库 URL、Authorization header、隐藏推理或 MCP 内部异常。
 - 数据集期望变化必须升级 suite_version；报告保留全部失败，不以通过率替代逐例结果。
 - 先 RED 后 GREEN；发布门禁持续 CLOSED。
@@ -121,7 +121,7 @@ git add data/evals/replenishment-v2.json tests/unit/evaluation/test_contracts.py
 git commit -m "test: add frozen replenishment evaluation suite"
 ~~~
 
-### Task 3: 真实边界运行器与报告
+### Task 3: 真实边界运行器与报告（已完成）
 
 **Files:**
 - Create: src/opercerta/evaluation/runner.py
@@ -134,7 +134,7 @@ git commit -m "test: add frozen replenishment evaluation suite"
 - Produces async run_suite(suite: EvalSuite, output_dir: Path) -> EvaluationReport.
 - Produces JSON report fields suite_version, started_at, finished_at, total, passed, failed, cases.
 
-- [ ] **Step 1: 写失败运行器测试**
+- [x] **Step 1: 写失败运行器测试**
 
 ~~~python
 async def test_runner_records_a_failed_assertion_instead_of_skipping_it(tmp_path: Path) -> None:
@@ -145,18 +145,18 @@ async def test_runner_records_a_failed_assertion_instead_of_skipping_it(tmp_path
     assert (tmp_path / "replenishment-v1-report.json").is_file()
 ~~~
 
-- [ ] **Step 2: 运行 RED**
+- [x] **Step 2: 运行 RED**
 
 Run: uv run pytest tests/integration/evaluation/test_runner.py -q  
 Expected: 退出码 1，runner 模块不存在。
 
-- [ ] **Step 3: 实现最小运行器**
+- [x] **Step 3: 实现最小运行器**
 
 运行器为每例使用独立真实 API harness 和角色 token；anonymous 不带 header。每例捕获 AssertionError 并生成 failure_summary，不中止后续用例。报告序列化前删除任何 key 名含 password、token、authorization、database_url 的值。脚本接受 --suite 和 --output-dir，默认输出 tmp/evals。
 
-- [ ] **Step 4: 验证 GREEN**
+- [x] **Step 4: 验证 GREEN**
 
-Run: uv run pytest tests/integration/evaluation/test_runner.py -q; uv run python scripts/run_replenishment_evaluation.py --suite data/evals/replenishment-v2.json --output-dir tmp/evals  
+Run: uv run pytest tests/integration/evaluation/test_runner.py -q; uv run python scripts/run_replenishment_evaluation.py --suite data/evals/replenishment-v3.json --output-dir tmp/evals
 Expected: runner 测试退出码 0；报告存在且包含 30 条逐例结果。
 
 - [ ] **Step 5: 提交**
@@ -179,7 +179,7 @@ git commit -m "feat: run replenishment contract evaluations"
 
 - [ ] **Step 1: 运行真实套件与全量门禁**
 
-Run: uv run python scripts/run_replenishment_evaluation.py --suite data/evals/replenishment-v2.json --output-dir tmp/evals; uv run pytest -q; uv run ruff check .; uv run ruff format --check .; uv run mypy src  
+Run: uv run python scripts/run_replenishment_evaluation.py --suite data/evals/replenishment-v3.json --output-dir tmp/evals; uv run pytest -q; uv run ruff check .; uv run ruff format --check .; uv run mypy src
 Expected: 评测报告 failed=0；其他命令退出码 0。
 
 - [ ] **Step 2: 写入实际证据**

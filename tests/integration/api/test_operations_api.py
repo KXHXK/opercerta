@@ -58,6 +58,9 @@ class ApiHarness:
     operations: ReplenishmentOperationRepository
     mcp_server: McpServerHarness
     authenticator: JwtAuthenticator
+    runner: OperationRunner
+    approvals: ApprovalRepository
+    gateway: McpToolGateway
     operation_ids: list[UUID] = field(default_factory=list)
 
     def headers(self, account: DemoAccount) -> dict[str, str]:
@@ -173,6 +176,9 @@ async def open_api_harness(
                 operations=operations_repository,
                 mcp_server=mcp_server,
                 authenticator=authenticator,
+                runner=runner,
+                approvals=ApprovalRepository(engine),
+                gateway=McpToolGateway(mcp_server.url, timeout_seconds=2),
             )
             try:
                 yield harness

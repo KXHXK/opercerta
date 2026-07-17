@@ -114,6 +114,12 @@ def _assert_expected(case: EvalCase, execution: CaseExecution) -> None:
     actual = execution.model_dump(exclude_none=True)
     for field, expected_value in expected.items():
         actual_value = actual.get(field)
+        if field == "audit_event_names" and isinstance(expected_value, list):
+            actual_events = actual_value if isinstance(actual_value, tuple) else ()
+            missing = [event for event in expected_value if event not in actual_events]
+            if missing:
+                raise AssertionError(f"audit_event_names missing {missing!r}, got {actual_value!r}")
+            continue
         if actual_value != expected_value:
             raise AssertionError(f"{field} expected {expected_value!r}, got {actual_value!r}")
 

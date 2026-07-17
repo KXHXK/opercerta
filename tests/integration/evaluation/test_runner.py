@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from opercerta.evaluation.contracts import EvalCase, EvalSuite
-from opercerta.evaluation.runner import CaseExecution, run_suite
+from opercerta.evaluation.runner import CaseExecution, _assert_expected, run_suite
 
 
 class StatusExecutor:
@@ -16,6 +16,25 @@ class SecretFailingExecutor:
     async def execute(self, case: EvalCase) -> CaseExecution:
         del case
         raise RuntimeError("token=not-for-report password=also-not-for-report")
+
+
+def test_runner_accepts_required_audit_events_with_additional_real_events() -> None:
+    case = EvalCase(
+        id="RPL-001",
+        title="audit subset",
+        rule_refs=("test_rule",),
+        actor="operator",
+        steps=({"action": "return_status"},),
+        expected={"status_code": 202, "audit_event_names": ["approval_requested"]},
+    )
+
+    _assert_expected(
+        case,
+        CaseExecution(
+            status_code=202,
+            audit_event_names=("operation_created", "approval_requested"),
+        ),
+    )
 
 
 @pytest.mark.asyncio

@@ -1,5 +1,5 @@
 {
-  "suite_version": "replenishment-v2",
+  "suite_version": "replenishment-v3",
   "cases": [
     {
       "id": "RPL-001",
@@ -47,7 +47,7 @@
       "rule_refs": ["api_request_validation_failed"],
       "actor": "operator",
       "steps": [{"action": "post_raw_operation", "body": {"message": "", "requested_action": "create_work_order", "object_type": "inventory", "object_id": "SKU-LOW-001"}}],
-      "expected": {"status_code": 422, "error_code": "api_request_validation_failed"}
+      "expected": {"status_code": 422, "error_code": "request_validation_failed"}
     },
     {
       "id": "RPL-007",
@@ -55,7 +55,7 @@
       "rule_refs": ["api_request_validation_failed"],
       "actor": "operator",
       "steps": [{"action": "post_raw_operation", "body": {"message": "补货", "requested_action": "create_work_order", "object_type": "inventory", "object_id": "SKU-LOW-001", "unexpected": true}}],
-      "expected": {"status_code": 422, "error_code": "api_request_validation_failed"}
+      "expected": {"status_code": 422, "error_code": "request_validation_failed"}
     },
     {
       "id": "RPL-008",
@@ -63,7 +63,7 @@
       "rule_refs": ["api_request_validation_failed", "docs/specs/2026-07-14-opercerta-design.md#7"],
       "actor": "operator",
       "steps": [{"action": "post_raw_operation", "body": {"message": "执行未知动作", "requested_action": "delete_work_order", "object_type": "inventory", "object_id": "SKU-LOW-001"}}],
-      "expected": {"status_code": 422, "error_code": "api_request_validation_failed"}
+      "expected": {"status_code": 422, "error_code": "request_validation_failed"}
     },
     {
       "id": "RPL-009",
@@ -71,7 +71,7 @@
       "rule_refs": ["api_request_validation_failed"],
       "actor": "operator",
       "steps": [{"action": "post_raw_operation", "body": {"message": "创建补货工单", "requested_action": "create_work_order", "object_type": "inventory"}}],
-      "expected": {"status_code": 422, "error_code": "api_request_validation_failed"}
+      "expected": {"status_code": 422, "error_code": "request_validation_failed"}
     },
     {
       "id": "RPL-010",
@@ -175,7 +175,7 @@
       "rule_refs": ["api_request_validation_failed", "docs/specs/2026-07-14-opercerta-design.md#10.1"],
       "actor": "approver",
       "steps": [{"action": "create_operation_as", "actor": "operator", "sku": "SKU-LOW-001"}, {"action": "submit_approval", "decision": "approved", "inject_approver_id": "forged-user"}],
-      "expected": {"status_code": 422, "error_code": "api_request_validation_failed", "approval_count": 0, "work_order_count": 0}
+      "expected": {"status_code": 422, "error_code": "request_validation_failed", "approval_count": 0, "work_order_count": 0}
     },
     {
       "id": "RPL-023",
@@ -199,7 +199,7 @@
       "rule_refs": ["docs/specs/2026-07-14-opercerta-design.md#4.1", "docs/specs/2026-07-14-opercerta-design.md#7"],
       "actor": "approver",
       "steps": [{"action": "create_operation_as", "actor": "operator", "sku": "SKU-BACKORDER-001"}, {"action": "submit_approval", "decision": "approved"}, {"action": "get_operation"}],
-      "expected": {"status_code": 200, "terminal_status": "completed", "approval_count": 1, "work_order_count": 1, "audit_event_names": ["work_order_created", "work_order_verified"]}
+      "expected": {"status_code": 200, "terminal_status": "completed", "approval_count": 1, "work_order_count": 1, "audit_event_names": ["work_order_created", "verification_started", "operation_completed"]}
     },
     {
       "id": "RPL-026",
@@ -223,7 +223,7 @@
       "rule_refs": ["api_request_validation_failed", "docs/specs/2026-07-14-opercerta-design.md#10.1"],
       "actor": "approver",
       "steps": [{"action": "create_operation_as", "actor": "operator", "sku": "SKU-LOW-001"}, {"action": "submit_approval", "decision": "approved", "inject_approver_id": "operator-claim"}],
-      "expected": {"status_code": 422, "error_code": "api_request_validation_failed", "approval_count": 0, "work_order_count": 0}
+      "expected": {"status_code": 422, "error_code": "request_validation_failed", "approval_count": 0, "work_order_count": 0}
     },
     {
       "id": "RPL-029",

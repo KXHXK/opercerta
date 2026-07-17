@@ -45,9 +45,9 @@ def test_suite_rejects_duplicate_or_non_contiguous_ids() -> None:
 
 
 def test_frozen_replenishment_suite_has_all_30_rule_referenced_cases() -> None:
-    suite = load_suite(Path("data/evals/replenishment-v2.json"))
+    suite = load_suite(Path("data/evals/replenishment-v3.json"))
 
-    assert suite.suite_version == "replenishment-v2"
+    assert suite.suite_version == "replenishment-v3"
     assert [case.id for case in suite.cases] == [f"RPL-{number:03d}" for number in range(1, 31)]
     assert all(case.rule_refs for case in suite.cases)
     assert all(case.actor in EvalActor for case in suite.cases)
