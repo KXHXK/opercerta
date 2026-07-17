@@ -24,3 +24,16 @@ def test_compose_example_is_tracked_and_real_file_is_ignored() -> None:
 
     assert "POSTGRES_PASSWORD=CHANGE_ME" in example
     assert ".env.compose" in ignored
+
+
+def test_smoke_script_checks_health_duplicate_approval_and_database_facts() -> None:
+    script = Path("scripts/verify_compose.py").read_text(encoding="utf-8")
+
+    for required in (
+        "/health/live",
+        "/health/ready",
+        "approval_already_decided",
+        "docker compose exec -T postgres",
+    ):
+        assert required in script
+    assert "OPERCERTA_DATABASE_URL" not in script
