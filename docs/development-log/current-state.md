@@ -74,14 +74,14 @@
 
 - 设备场景、SSE、认证、前端、固定评测、安全回归、可观测性、Linux/Docker 和公开部署尚未完成，发布门禁保持关闭。
 - Windows 原生真实服务需要显式 Selector loop；尚未验证 Linux/Docker 下的默认事件循环、容器进程模型和健康检查。
-- Docker/Linux 运行时已确认采用 Hyper-V → Ubuntu 24.04 LTS VM → 官方 Docker Engine/Compose，不使用当前 LTSC 2021 build 19044 不再官方支持的 Docker Desktop。规格见 `docs/superpowers/specs/2026-07-16-docker-linux-runtime-design.md`；Hyper-V、Ubuntu VM、Docker 与容器实现均尚未执行。
+- Docker/Linux 运行时已确认采用 Hyper-V → Ubuntu 24.04 LTS VM → 官方 Docker Engine/Compose，不使用当前 LTSC 2021 build 19044 不再官方支持的 Docker Desktop。规格见 `docs/superpowers/specs/2026-07-16-docker-linux-runtime-design.md`，可执行 TDD 计划见 `docs/superpowers/plans/2026-07-17-docker-linux-runtime.md`；Hyper-V、Ubuntu VM、Docker 与容器实现均尚未执行。
 - 一次预期失败的 Pytest/Psycopg traceback 曾展开旧的本地测试数据库连接密码；代码、Git 和文档未保存该值，fixture 已改为无密码 URL + 临时 `PGPASSWORD`，角色密码也已轮换和复验。
 - 2026-07-16 checkpointer 首次 GREEN 的 Psycopg 连接失败 traceback 再次展开当时的本地测试角色密码。新封装已改为无密码 DSN、临时 `PGPASSWORD` 和 `%20` query 编码，代码/Git/文档未保存该值；用户随后同步轮换 PostgreSQL 角色与 `.env.local`，focused checkpointer 回归新鲜 `4 passed`。
 - 当前 Git 没有配置远程仓库；本地 commit 不是远程备份。
 
 ## 下一步
 
-继续只实施 OperCerta。下一步在用户复核 Docker/Linux 规格后，创建该阶段的 TDD 实施计划；计划确认后由用户手动启用 Hyper-V 并重启，再实施 Ubuntu VM、Docker、容器入口和健康检查。
+继续只实施 OperCerta。下一步由用户手动启用 Hyper-V 并重启，创建 Ubuntu 24.04 LTS VM、安装官方 Docker Engine/Compose；环境可用后按计划从 API 健康端点的 RED/GREEN 实施开始，再实施容器入口和真实 Compose 验收。
 
 ## 发布门禁
 
