@@ -8,6 +8,8 @@
 
 新增待实施规格：`docs/superpowers/specs/2026-07-18-replenishment-contract-evaluation-design.md`（30 条库存补货固定合成契约评测与反偏差规则）。
 
+新增待执行计划：`docs/superpowers/plans/2026-07-18-replenishment-contract-evaluation.md`（固定 30 条契约评测的 TDD 实施任务）。
+
 最后核验：2026-07-17，库存补货 Task 1–9 已完成 Windows 原生 PostgreSQL 后端本地门禁，并完成 WSL2 Ubuntu Compose 健康、业务 smoke 与重启恢复验证；发布门禁仍关闭。
 
 本文件是 OperCerta 重要文档的中文目录，不复制正文。自动压缩或新会话开始时先阅读本文件，再按“优先级”读取当前状态、过程日志、相关决策、交接和实施计划。
