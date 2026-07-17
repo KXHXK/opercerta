@@ -39,6 +39,8 @@ def test_compose_example_is_tracked_and_real_file_is_ignored() -> None:
 
     assert "POSTGRES_PASSWORD=CHANGE_ME" in example
     assert ".env.compose" in ignored
+    assert "OPERCERTA_JWT_SIGNING_KEY=CHANGE_ME_DEVELOPMENT_ONLY" in example
+    assert "OPERCERTA_DEMO_TOKEN_ENABLED=true" in example
 
 
 def test_smoke_script_checks_health_duplicate_approval_and_database_facts() -> None:
@@ -57,3 +59,5 @@ def test_smoke_script_checks_health_duplicate_approval_and_database_facts() -> N
         token in script for token in ('"docker",', '"compose",', '"exec",', '"-T",', '"postgres",')
     )
     assert "OPERCERTA_DATABASE_URL" not in script
+    assert '"/api/v1/auth/demo-token"' in script
+    assert '"approver_id"' not in script

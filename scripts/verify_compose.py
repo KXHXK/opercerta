@@ -10,12 +10,19 @@ from urllib.request import Request, urlopen
 from uuid import UUID
 
 
-def request(method: str, path: str, payload: dict[str, Any] | None = None) -> tuple[int, Any]:
+def request(
+    method: str,
+    path: str,
+    payload: dict[str, Any] | None = None,
+    headers: dict[str, str] | None = None,
+) -> tuple[int, Any]:
     base_url = os.environ.get("OPERCERTA_API_URL", "http://127.0.0.1:8080")
     data = json.dumps(payload).encode() if payload is not None else None
     http_request = Request(f"{base_url}{path}", data=data, method=method)
     if data is not None:
         http_request.add_header("Content-Type", "application/json")
+    for name, value in (headers or {}).items():
+        http_request.add_header(name, value)
     try:
         with urlopen(http_request, timeout=10) as response:
             return response.status, json.loads(response.read())
@@ -41,6 +48,12 @@ def postgres_scalar(sql: str) -> str:
     return result.stdout.strip()
 
 
+def demo_headers(account: str) -> dict[str, str]:
+    status, body = request("POST", "/api/v1/auth/demo-token", {"account": account})
+    assert status == 200
+    return {"Authorization": f"Bearer {body['access_token']}"}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--recovery-only", action="store_true")
@@ -49,6 +62,8 @@ def main() -> None:
     assert request("GET", "/health/ready")[0] == 200
     if args.recovery_only:
         return
+    operator_headers = demo_headers("operator")
+    approver_headers = demo_headers("approver")
     created_status, created = request(
         "POST",
         "/api/v1/operations",
@@ -58,13 +73,13 @@ def main() -> None:
             "object_type": "inventory",
             "object_id": "SKU-LOW-001",
         },
+        operator_headers,
     )
     assert created_status == 202
     operation_id = str(UUID(created["operation_id"]))
-    _, detail = request("GET", f"/api/v1/operations/{operation_id}")
+    _, detail = request("GET", f"/api/v1/operations/{operation_id}", headers=operator_headers)
     binding = detail["approval_binding"]
     approval = {
-        "approver_id": "compose.verifier",
         "decision": "approved",
         "reason": "compose smoke test",
         "expected_inventory_evidence_id": binding["inventory_evidence_id"],
@@ -74,9 +89,20 @@ def main() -> None:
         "expected_plan_hash": binding["plan_hash"],
         "expected_recommended_quantity": binding["recommended_quantity"],
     }
-    assert request("POST", f"/api/v1/operations/{operation_id}/approval", approval)[0] == 202
+    assert (
+        request(
+            "POST",
+            f"/api/v1/operations/{operation_id}/approval",
+            approval,
+            approver_headers,
+        )[0]
+        == 202
+    )
     duplicate_status, duplicate = request(
-        "POST", f"/api/v1/operations/{operation_id}/approval", approval
+        "POST",
+        f"/api/v1/operations/{operation_id}/approval",
+        approval,
+        approver_headers,
     )
     assert duplicate_status == 409 and duplicate["code"] == "approval_already_decided"
     assert (
