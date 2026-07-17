@@ -2,7 +2,7 @@
 
 ## 最新核验：JWT/RBAC 与固定契约评测已完成
 
-本地短时 JWT 与四角色 RBAC 已实施，审批主体只从 JWT `sub` 取得。库存补货固定合成契约评测当前有效版本为 `replenishment-v3`：真实 FastAPI、FastMCP、PostgreSQL 与恢复夹具运行 30 条，30 passed、0 failed；全量 pytest 为 323 passed。详见 `docs/release-evidence/demo-jwt-rbac.md` 和 `docs/release-evidence/replenishment-contract-evaluation.md`。
+本地短时 JWT 与四角色 RBAC 已实施，审批主体只从 JWT `sub` 取得。库存补货固定合成契约评测当前有效版本为 `replenishment-v3`：真实 FastAPI、FastMCP、PostgreSQL 与恢复夹具运行 30 条，30 passed、0 failed。已新增 SSE 审计快照回放与 `Last-Event-ID` 续传；全量 pytest 为 325 passed。详见 `docs/release-evidence/demo-jwt-rbac.md`、`docs/release-evidence/replenishment-contract-evaluation.md` 和 `docs/release-evidence/sse-audit-replay.md`。
 
 最后核验：2026-07-18 Asia/Shanghai；发布门禁仍为 `CLOSED`。
 
