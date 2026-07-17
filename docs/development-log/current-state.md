@@ -1,6 +1,6 @@
 # OperCerta 当前状态
 
-最后核验：2026-07-17 Asia/Shanghai；Task 9 本地总门禁和真实三进程传输闭环已执行，WSL2 Docker 运行时安装已开始但镜像拉取受网络阻断。
+最后核验：2026-07-17 Asia/Shanghai；Task 9 本地总门禁和 WSL2 Ubuntu Docker Compose 健康、业务 smoke 与重启恢复均已执行，发布门禁仍关闭。
 
 ## 当前阶段
 
@@ -72,17 +72,17 @@
 
 ## 当前阻塞与风险
 
-- 设备场景、SSE、认证、前端、固定评测、安全回归、可观测性、Linux/Docker 和公开部署尚未完成，发布门禁保持关闭。
-- Windows 原生真实服务需要显式 Selector loop；尚未验证 Linux/Docker 下的默认事件循环、容器进程模型和健康检查。
-- Docker/Linux 运行时已修订为 WSL2 → Ubuntu 26.04 LTS，不使用 Docker Desktop 或 Hyper-V VM。用户已确认因 `download.docker.com` 的 TLS 重置改用 Ubuntu 官方签名仓库，安装 `docker.io 29.1.3`、Compose `2.40.3`、Buildx `0.30.1`，且 `docker.service` 已启动。Docker Hub 直连超时后，经用户授权仅配置了实测可达的 DaoCloud、1ms、轩辕三个第三方 registry mirror；`hello-world` 已成功拉取、运行，digest 已留存。OperCerta 基础镜像、Compose 与业务 smoke test 均尚未验证。规格修订见 `docs/superpowers/specs/2026-07-17-wsl2-runtime-amendment-design.md`。
+- 设备场景、SSE、认证、前端、固定评测、安全回归、可观测性和公开部署尚未完成，发布门禁保持关闭。
+- Windows 原生真实服务需要显式 Selector loop；WSL2 Ubuntu Compose 已验证默认 Linux 容器进程、健康检查、MCP 服务名访问、独立 PostgreSQL volume 和 API/MCP 重启，但这不代表高可用或生产承诺。
+- Docker/Linux 运行时已修订为 WSL2 → Ubuntu 26.04 LTS，不使用 Docker Desktop 或 Hyper-V VM。Ubuntu 官方仓库的 Docker `29.1.3`、Compose `2.40.3`、Buildx `0.30.1` 已安装；Docker Hub 直连超时后，经用户授权配置了三个可达的第三方 registry mirror。OperCerta Compose 已通过构建、健康、真实业务数据库断言与重启恢复；完整证据见 `docs/release-evidence/docker-linux-runtime.md`，供应链例外见 `docs/superpowers/specs/2026-07-17-wsl2-runtime-amendment-design.md`。
 - 一次预期失败的 Pytest/Psycopg traceback 曾展开旧的本地测试数据库连接密码；代码、Git 和文档未保存该值，fixture 已改为无密码 URL + 临时 `PGPASSWORD`，角色密码也已轮换和复验。
 - 2026-07-16 checkpointer 首次 GREEN 的 Psycopg 连接失败 traceback 再次展开当时的本地测试角色密码。新封装已改为无密码 DSN、临时 `PGPASSWORD` 和 `%20` query 编码，代码/Git/文档未保存该值；用户随后同步轮换 PostgreSQL 角色与 `.env.local`，focused checkpointer 回归新鲜 `4 passed`。
 - 当前 Git 没有配置远程仓库；本地 commit 不是远程备份。
 
 ## 下一步
 
-继续只实施 OperCerta。下一步按 Docker/Linux 计划执行镜像构建、Compose、数据库断言和业务 smoke test；公共 registry mirror 的风险与每个实际镜像 digest 必须留证。
+继续只实施 OperCerta。下一步进入发布门禁剩余范围，优先认证/人工接管、固定评测、安全回归和可观测性；公共 registry mirror 的风险与后续每个实际镜像 digest 仍须留证。
 
 ## 发布门禁
 
-`OperCerta release gate: CLOSED`。Task 1–9 只证明库存补货后端纵向切片在 Windows 本地环境通过；Linux/Docker、完整产品面和公开部署仍待完成。
+`OperCerta release gate: CLOSED`。Task 1–9 与 WSL2 Docker Compose 只证明库存补货后端纵向切片在单节点本地环境通过；完整产品面和公开部署仍待完成。
