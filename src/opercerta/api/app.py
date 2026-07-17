@@ -2,7 +2,7 @@ import logging
 import os
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Literal
 from uuid import UUID
@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from starlette.requests import Request
 from starlette.types import Lifespan
 
+from opercerta.api.health import ReadinessProbe, UnavailableReadinessProbe, not_ready_report
 from opercerta.api.models import (
     ApprovalRequest,
     ApprovalResponse,
@@ -64,6 +65,7 @@ class ApiRequestValidationFailed(ValueError):
 class AppRuntime:
     runner: OperationRunner
     operations: ReplenishmentOperationRepository
+    readiness: ReadinessProbe = field(default_factory=UnavailableReadinessProbe)
 
 
 class ProductionSettings(BaseSettings):
@@ -184,6 +186,25 @@ def _build_app(
         ),
         lifespan=lifespan,
     )
+
+    @app.get("/health/live")
+    async def live() -> dict[str, str]:
+        return {"status": "live"}
+
+    @app.get("/health/ready")
+    async def ready() -> JSONResponse:
+        try:
+            report = await runtime_provider().readiness.check()
+        except Exception:
+            report = not_ready_report()
+        return JSONResponse(
+            status_code=(
+                status.HTTP_200_OK
+                if report.status == "ready"
+                else status.HTTP_503_SERVICE_UNAVAILABLE
+            ),
+            content=report.model_dump(),
+        )
 
     @app.exception_handler(RequestValidationError)
     async def request_validation_handler(
