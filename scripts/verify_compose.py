@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import subprocess
+import time
 from typing import Any
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
@@ -54,10 +55,27 @@ def demo_headers(account: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {body['access_token']}"}
 
 
+def wait_for_ready(timeout_seconds: float = 30) -> None:
+    deadline = time.monotonic() + timeout_seconds
+    while time.monotonic() < deadline:
+        try:
+            status, body = request("GET", "/health/ready")
+        except OSError:
+            status, body = 503, None
+        if status == 200 and body == {
+            "status": "ready",
+            "dependencies": {"database": "ready", "checkpoint": "ready", "mcp": "ready"},
+        }:
+            return
+        time.sleep(0.5)
+    raise AssertionError("API did not become ready before the smoke timeout")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--recovery-only", action="store_true")
     args = parser.parse_args()
+    wait_for_ready()
     assert request("GET", "/health/live") == (200, {"status": "live"})
     assert request("GET", "/health/ready")[0] == 200
     if args.recovery_only:

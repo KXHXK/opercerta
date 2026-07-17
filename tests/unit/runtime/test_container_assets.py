@@ -61,3 +61,5 @@ def test_smoke_script_checks_health_duplicate_approval_and_database_facts() -> N
     assert "OPERCERTA_DATABASE_URL" not in script
     assert '"/api/v1/auth/demo-token"' in script
     assert '"approver_id"' not in script
+    assert "wait_for_ready" in script
+    assert "time.monotonic" in script
