@@ -29,7 +29,7 @@
 ## 新对话必须先做
 
 1. 先阅读 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md` 和最近每日日志，再阅读相关设计、计划、交接和 Git 状态。
-2. 只实施 OperCerta；库存补货 Task 1–9 与 WSL2 Docker Compose 本地验收已完成。下一步进入认证/人工接管、固定评测、安全回归和可观测性等发布门禁剩余范围；公共 registry mirror 属于已记录的供应链例外，不启动其他项目。
+2. 只实施 OperCerta；库存补货 Task 1–9、WSL2 Docker Compose、演示 JWT/RBAC 与固定 30 条契约评测已完成本地验收。下一步只进入前端/SSE、真实生产身份、可观测性、CI/CD 与公开部署等发布门禁剩余范围；公共 registry mirror 属于已记录的供应链例外，不启动其他项目。
 3. 运行集成测试前，以不回显方式从已忽略 `.env.local` 加载 `OPERCERTA_DATABASE_URL`；不得提交该文件或任何凭据。
 4. 每个效果数字都保留基线、测试数据、测量脚本和结果证据；指标未测出前使用目标值或空值，不写成已实现结果。
 5. 使用公开或合成数据，从零编写全部代码和文档，不导入任何原单位源码、数据、截图、模型、品牌或内部规则。

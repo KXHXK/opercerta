@@ -2,7 +2,7 @@
 
 OperCerta 是面向库存异常、设备告警和运营工单的智能运营处置 Agent 独立作品仓库。
 
-> 当前状态：库存不足到补货工单的 FastAPI 后端纵向闭环已完成 Windows 原生 PostgreSQL 总门禁，并已通过 WSL2 Ubuntu 单节点 Docker Compose 的健康、业务 smoke 与重启恢复验证；前端、认证、评测和公开发布尚未完成，发布门禁保持关闭。
+> 当前状态：库存不足到补货工单的 FastAPI 后端纵向闭环、演示 JWT/RBAC 与 30 条固定合成契约评测已完成本地验证；前端、真实生产身份、可观测性和公开发布尚未完成，发布门禁保持关闭。
 
 ## 当前已验证范围
 
@@ -17,7 +17,7 @@ OperCerta 是面向库存异常、设备告警和运营工单的智能运营处�
 - 冻结依赖、`0002` 迁移升降级、审批竞态与 A/B 重启重复、真实 FastMCP + FastAPI 双服务进程和 PostgreSQL 终态事实。
 - WSL2 Ubuntu Compose 的非 root 应用镜像、独立 PostgreSQL named volume、API/MCP 健康检查、真实库存补货审批闭环、数据库断言和 API/MCP 重启恢复。
 
-Task 7 新鲜证据见 [补货执行与重启恢复证据](docs/release-evidence/replenishment-execution-restart.md)，Task 1–9 总证据见 [库存补货后端纵向闭环证据](docs/release-evidence/inventory-replenishment-vertical-slice.md)，Docker/Linux 证据见 [WSL2 Ubuntu Compose 运行时证据](docs/release-evidence/docker-linux-runtime.md)。这不是前端、评测或公开部署完成声明。
+Task 7 新鲜证据见 [补货执行与重启恢复证据](docs/release-evidence/replenishment-execution-restart.md)，Task 1–9 总证据见 [库存补货后端纵向闭环证据](docs/release-evidence/inventory-replenishment-vertical-slice.md)，Docker/Linux 证据见 [WSL2 Ubuntu Compose 运行时证据](docs/release-evidence/docker-linux-runtime.md)，评测证据见 [固定契约评测](docs/release-evidence/replenishment-contract-evaluation.md)。这不是前端、生产 IAM 或公开部署完成声明。
 
 ## 下一实施边界
 

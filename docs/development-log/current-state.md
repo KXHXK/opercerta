@@ -1,10 +1,10 @@
 # OperCerta 当前状态
 
-## 已确认、待实施：本地演示 JWT 与 RBAC
+## 最新核验：JWT/RBAC 与固定契约评测已完成
 
-下一实现边界是本地短时 JWT 和角色控制。认证后，审批人的主体将只从经过验证的 JWT `sub` 取得，不能由请求体伪造；库存补货的审批竞态、工单幂等和重启恢复语义保持不变。规格已确认，代码、测试、Compose smoke 与公开部署均尚未改动，发布门禁仍为 `CLOSED`。详见 `docs/superpowers/specs/2026-07-17-demo-jwt-rbac-design.md`。
+本地短时 JWT 与四角色 RBAC 已实施，审批主体只从 JWT `sub` 取得。库存补货固定合成契约评测当前有效版本为 `replenishment-v3`：真实 FastAPI、FastMCP、PostgreSQL 与恢复夹具运行 30 条，30 passed、0 failed；全量 pytest 为 323 passed。详见 `docs/release-evidence/demo-jwt-rbac.md` 和 `docs/release-evidence/replenishment-contract-evaluation.md`。
 
-最后核验：2026-07-17 Asia/Shanghai；Task 9 本地总门禁和 WSL2 Ubuntu Docker Compose 健康、业务 smoke 与重启恢复均已执行，发布门禁仍关闭。
+最后核验：2026-07-18 Asia/Shanghai；发布门禁仍为 `CLOSED`。
 
 ## 当前阶段
 
