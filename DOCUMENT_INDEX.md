@@ -1,6 +1,6 @@
 # OperCerta 文档索引
 
-最后核验：2026-07-17，库存补货 Task 1–9 已完成 Windows 原生 PostgreSQL 后端本地门禁；WSL2 Docker 已安装但镜像仓库访问受阻，发布门禁仍关闭。
+最后核验：2026-07-17，库存补货 Task 1–9 已完成 Windows 原生 PostgreSQL 后端本地门禁；WSL2 Docker 已通过第三方 mirror 基础拉取验证，OperCerta Compose 尚待验收，发布门禁仍关闭。
 
 本文件是 OperCerta 重要文档的中文目录，不复制正文。自动压缩或新会话开始时先阅读本文件，再按“优先级”读取当前状态、过程日志、相关决策、交接和实施计划。
 
@@ -19,12 +19,12 @@
 | `docs/superpowers/specs/2026-07-16-langgraph-restart-recovery-design.md` | Task 5 LangGraph 四点重启恢复契约 | 已确认 | 本次提交 | 1 |
 | `docs/superpowers/specs/2026-07-16-inventory-replenishment-vertical-slice-design.md` | 库存不足到补货工单真实 MCP 后端纵向闭环 | 已确认；实施计划已创建 | 本次提交 | 1 |
 | `docs/superpowers/specs/2026-07-16-docker-linux-runtime-design.md` | Docker/Linux、健康检查与 Ubuntu VM 运行时边界 | 已确认；实施计划已创建 | 本次提交 | 1 |
-| `docs/superpowers/specs/2026-07-17-wsl2-runtime-amendment-design.md` | WSL2 Ubuntu 26.04 环境修订及 Docker 包来源例外 | 已确认；Docker Hub 访问仍受阻 | 本次提交 | 1 |
+| `docs/superpowers/specs/2026-07-17-wsl2-runtime-amendment-design.md` | WSL2 Ubuntu 26.04 环境修订、Docker 包来源与 registry mirror 例外 | 已确认；基础拉取已验证 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-14-opercerta-reliability-kernel.md` | 可靠性内核 TDD 总计划 | Task 1–6 已执行 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-16-langgraph-restart-recovery.md` | Task 5 四点重启恢复可执行 TDD 计划 | 已执行；证据已归档 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-16-work-order-idempotency.md` | Task 4 幂等工单可执行 TDD 计划 | 已执行；证据已归档 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-16-inventory-replenishment-vertical-slice.md` | 首个库存补货后端纵向闭环可执行 TDD 计划 | Task 1–9 已执行 | 本次提交 | 1 |
-| `docs/superpowers/plans/2026-07-17-docker-linux-runtime.md` | Docker/Linux 运行时可执行 TDD 计划 | 已开始；Docker 已安装，镜像拉取受阻 | 本次提交 | 1 |
+| `docs/superpowers/plans/2026-07-17-docker-linux-runtime.md` | Docker/Linux 运行时可执行 TDD 计划 | 已开始；Docker 基础拉取通过，Compose 待验收 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-15-windows-native-postgres-environment.md` | PostgreSQL 环境计划 | 本机安装、连接与文档同步已完成 | `84a7b08` | 2 |
 | `docs/superpowers/plans/2026-07-15-development-log-bootstrap.md` | 日志初始化计划 | 执行记录见开发日志 | `6c97d5d` | 1 |
 | `docs/development-log/README.md` | 日志机制说明 | 已初始化 | `f70411f` | 1 |

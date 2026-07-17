@@ -74,14 +74,14 @@
 
 - 设备场景、SSE、认证、前端、固定评测、安全回归、可观测性、Linux/Docker 和公开部署尚未完成，发布门禁保持关闭。
 - Windows 原生真实服务需要显式 Selector loop；尚未验证 Linux/Docker 下的默认事件循环、容器进程模型和健康检查。
-- Docker/Linux 运行时已修订为 WSL2 → Ubuntu 26.04 LTS，不使用 Docker Desktop 或 Hyper-V VM。用户已确认因 `download.docker.com` 的 TLS 重置改用 Ubuntu 官方签名仓库，安装 `docker.io 29.1.3`、Compose `2.40.3`、Buildx `0.30.1`，且 `docker.service` 已启动。Docker Hub `registry-1.docker.io:443` 当前超时，基础镜像、digest、Compose 与业务 smoke test 均尚未验证。规格修订见 `docs/superpowers/specs/2026-07-17-wsl2-runtime-amendment-design.md`。
+- Docker/Linux 运行时已修订为 WSL2 → Ubuntu 26.04 LTS，不使用 Docker Desktop 或 Hyper-V VM。用户已确认因 `download.docker.com` 的 TLS 重置改用 Ubuntu 官方签名仓库，安装 `docker.io 29.1.3`、Compose `2.40.3`、Buildx `0.30.1`，且 `docker.service` 已启动。Docker Hub 直连超时后，经用户授权仅配置了实测可达的 DaoCloud、1ms、轩辕三个第三方 registry mirror；`hello-world` 已成功拉取、运行，digest 已留存。OperCerta 基础镜像、Compose 与业务 smoke test 均尚未验证。规格修订见 `docs/superpowers/specs/2026-07-17-wsl2-runtime-amendment-design.md`。
 - 一次预期失败的 Pytest/Psycopg traceback 曾展开旧的本地测试数据库连接密码；代码、Git 和文档未保存该值，fixture 已改为无密码 URL + 临时 `PGPASSWORD`，角色密码也已轮换和复验。
 - 2026-07-16 checkpointer 首次 GREEN 的 Psycopg 连接失败 traceback 再次展开当时的本地测试角色密码。新封装已改为无密码 DSN、临时 `PGPASSWORD` 和 `%20` query 编码，代码/Git/文档未保存该值；用户随后同步轮换 PostgreSQL 角色与 `.env.local`，focused checkpointer 回归新鲜 `4 passed`。
 - 当前 Git 没有配置远程仓库；本地 commit 不是远程备份。
 
 ## 下一步
 
-继续只实施 OperCerta。下一步先恢复 Docker Hub 或经审查替代 registry 的可验证访问；成功拉取测试镜像后，再按 Docker/Linux 计划执行镜像构建、Compose、数据库断言和业务 smoke test。
+继续只实施 OperCerta。下一步按 Docker/Linux 计划执行镜像构建、Compose、数据库断言和业务 smoke test；公共 registry mirror 的风险与每个实际镜像 digest 必须留证。
 
 ## 发布门禁
 
