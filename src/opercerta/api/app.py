@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Literal
+from urllib.parse import urlsplit, urlunsplit
 from uuid import UUID
 
 from fastapi import FastAPI, status
@@ -17,7 +18,12 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from starlette.requests import Request
 from starlette.types import Lifespan
 
-from opercerta.api.health import ReadinessProbe, UnavailableReadinessProbe, not_ready_report
+from opercerta.api.health import (
+    ProductionReadinessProbe,
+    ReadinessProbe,
+    UnavailableReadinessProbe,
+    not_ready_report,
+)
 from opercerta.api.models import (
     ApprovalRequest,
     ApprovalResponse,
@@ -162,7 +168,16 @@ async def _open_production_runtime(
                 ApprovalExpiryService(operations, clock),
                 clock,
             )
-            yield AppRuntime(runner=runner, operations=operations)
+            yield AppRuntime(
+                runner=runner,
+                operations=operations,
+                readiness=ProductionReadinessProbe(
+                    engine=engine,
+                    database_url=settings.database_url,
+                    mcp_health_url=mcp_health_url(settings.mcp_url),
+                    timeout_seconds=float(settings.mcp_timeout_seconds),
+                ),
+            )
     finally:
         if engine is not None:
             await engine.dispose()
@@ -370,6 +385,11 @@ def _build_app(
         return accepted_response(detail)
 
     return app
+
+
+def mcp_health_url(mcp_url: AnyHttpUrl) -> str:
+    parsed = urlsplit(str(mcp_url))
+    return urlunsplit((parsed.scheme, parsed.netloc, "/health/ready", "", ""))
 
 
 def accepted_response(detail: OperationDetail) -> OperationAccepted:

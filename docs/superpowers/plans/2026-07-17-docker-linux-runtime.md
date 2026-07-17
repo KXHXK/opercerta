@@ -191,8 +191,8 @@ Expected: FAIL，因为 MCP ASGI 包装层和生产探针尚不存在。
 async def check(self) -> ReadinessReport:
     states = {"database": "unavailable", "checkpoint": "unavailable", "mcp": "unavailable"}
     try:
-        with self._engine.connect() as connection:
-            connection.execute(text("SELECT 1"))
+        async with self._engine.connect() as connection:
+            await connection.execute(text("SELECT 1"))
         states["database"] = "ready"
     except Exception:
         return report_for(states)
