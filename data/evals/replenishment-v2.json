@@ -1,5 +1,5 @@
 {
-  "suite_version": "replenishment-v1",
+  "suite_version": "replenishment-v2",
   "cases": [
     {
       "id": "RPL-001",
@@ -191,7 +191,7 @@
       "rule_refs": ["approval_facts_changed", "docs/specs/2026-07-14-opercerta-design.md#9.2"],
       "actor": "approver",
       "steps": [{"action": "create_operation_as", "actor": "operator", "sku": "SKU-MUTABLE-001"}, {"action": "mutate_inventory", "sku": "SKU-MUTABLE-001"}, {"action": "submit_approval", "decision": "approved"}, {"action": "get_operation"}],
-      "expected": {"status_code": 200, "terminal_status": "failed", "error_code": "approval_facts_changed", "approval_count": 1, "work_order_count": 0}
+      "expected": {"status_code": 200, "terminal_status": "failed", "error_code": "approval_snapshot_mismatch", "approval_count": 1, "work_order_count": 0}
     },
     {
       "id": "RPL-025",
@@ -227,11 +227,11 @@
     },
     {
       "id": "RPL-029",
-      "title": "未知 MCP 工具不会进入业务流程",
+      "title": "未知 MCP 工具被工具白名单拒绝",
       "rule_refs": ["docs/specs/2026-07-14-opercerta-design.md#8"],
       "actor": "operator",
       "steps": [{"action": "invoke_mcp_tool", "tool": "inventory.delete_all"}],
-      "expected": {"status_code": 404, "error_code": "tool_not_allowed"}
+      "expected": {"status_code": 400, "error_code": "unknown_tool"}
     },
     {
       "id": "RPL-030",
@@ -239,7 +239,7 @@
       "rule_refs": ["replenishment_quantity_out_of_policy", "docs/specs/2026-07-14-opercerta-design.md#7"],
       "actor": "operator",
       "steps": [{"action": "create_operation", "sku": "SKU-LIMIT-001"}, {"action": "get_operation"}],
-      "expected": {"status_code": 200, "terminal_status": "rejected", "error_code": "replenishment_quantity_out_of_policy", "approval_count": 0, "work_order_count": 0}
+      "expected": {"status_code": 200, "terminal_status": "failed", "error_code": "replenishment_quantity_out_of_policy", "approval_count": 0, "work_order_count": 0}
     }
   ]
 }

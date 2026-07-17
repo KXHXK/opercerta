@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - 仅覆盖已实现库存补货后端与合成数据；不加入设备、真实模型、性能、前端、SSE、SSO、公开部署或生产指标。
-- 数据集固定为 data/evals/replenishment-v1.json，30 个唯一 ID RPL-001 至 RPL-030；每例必须有 rule_refs。
+- 数据集固定为 data/evals/replenishment-v2.json，30 个唯一 ID RPL-001 至 RPL-030；每例必须有 rule_refs。v1 在首次基线执行前因两条预期与已实现稳定语义不符而废止；更正记录在开发日志中。
 - 不读取或写入 JWT、密码、数据库 URL、Authorization header、隐藏推理或 MCP 内部异常。
 - 数据集期望变化必须升级 suite_version；报告保留全部失败，不以通过率替代逐例结果。
 - 先 RED 后 GREEN；发布门禁持续 CLOSED。
@@ -84,18 +84,18 @@ git commit -m "feat: define replenishment evaluation contracts"
 ### Task 2: 冻结 30 条合成数据集（已完成）
 
 **Files:**
-- Create: data/evals/replenishment-v1.json
+- Create: data/evals/replenishment-v2.json
 - Modify: tests/unit/evaluation/test_contracts.py
 
 **Interfaces:**
 - Consumes EvalSuite and load_suite from Task 1.
-- Produces suite_version=replenishment-v1 and exactly 30 cases.
+- Produces suite_version=replenishment-v2 and exactly 30 cases.
 
 - [x] **Step 1: 写失败数据集测试**
 
 ~~~python
 def test_frozen_replenishment_suite_has_all_30_rule_referenced_cases() -> None:
-    suite = load_suite(Path("data/evals/replenishment-v1.json"))
+    suite = load_suite(Path("data/evals/replenishment-v2.json"))
     assert [case.id for case in suite.cases] == [f"RPL-{number:03d}" for number in range(1, 31)]
     assert all(case.rule_refs for case in suite.cases)
 ~~~
@@ -117,7 +117,7 @@ Expected: 所有 schema、连续 ID、规则引用和 30 条断言通过。
 - [ ] **Step 5: 提交**
 
 ~~~bash
-git add data/evals/replenishment-v1.json tests/unit/evaluation/test_contracts.py
+git add data/evals/replenishment-v2.json tests/unit/evaluation/test_contracts.py
 git commit -m "test: add frozen replenishment evaluation suite"
 ~~~
 
@@ -156,7 +156,7 @@ Expected: 退出码 1，runner 模块不存在。
 
 - [ ] **Step 4: 验证 GREEN**
 
-Run: uv run pytest tests/integration/evaluation/test_runner.py -q; uv run python scripts/run_replenishment_evaluation.py --suite data/evals/replenishment-v1.json --output-dir tmp/evals  
+Run: uv run pytest tests/integration/evaluation/test_runner.py -q; uv run python scripts/run_replenishment_evaluation.py --suite data/evals/replenishment-v2.json --output-dir tmp/evals  
 Expected: runner 测试退出码 0；报告存在且包含 30 条逐例结果。
 
 - [ ] **Step 5: 提交**
@@ -179,7 +179,7 @@ git commit -m "feat: run replenishment contract evaluations"
 
 - [ ] **Step 1: 运行真实套件与全量门禁**
 
-Run: uv run python scripts/run_replenishment_evaluation.py --suite data/evals/replenishment-v1.json --output-dir tmp/evals; uv run pytest -q; uv run ruff check .; uv run ruff format --check .; uv run mypy src  
+Run: uv run python scripts/run_replenishment_evaluation.py --suite data/evals/replenishment-v2.json --output-dir tmp/evals; uv run pytest -q; uv run ruff check .; uv run ruff format --check .; uv run mypy src  
 Expected: 评测报告 failed=0；其他命令退出码 0。
 
 - [ ] **Step 2: 写入实际证据**
