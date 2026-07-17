@@ -30,6 +30,7 @@
 | `docs/development-log/README.md` | 日志机制说明 | 已初始化 | `f70411f` | 1 |
 | `docs/development-log/current-state.md` | 当前已验证状态 | 已同步 WSL2 Docker 安装与镜像仓库阻断事实 | 本次提交 | 1 |
 | `docs/development-log/interview-casebook.md` | 实施问题、诊断、修复与面试复盘案例 | 已初始化；只记录真实证据和限制 | 本次提交 | 1 |
+| `docs/development-log/learning-method.md` | 学习掌握、单变量实验与面试训练方法 | 已初始化；后续随实施持续补充 | 本次提交 | 1 |
 | `docs/development-log/daily/2026-07-15.md` | 当日过程记录 | 已初始化 | `f70411f` | 2 |
 | `docs/development-log/daily/2026-07-16.md` | 当日过程记录 | 已记录库存补货 Task 1–9 实施、调试与验证 | 本次提交 | 2 |
 | `docs/development-log/decisions/2026-07-15-windows-native-postgres.md` | 环境架构决策 | 已初始化 | `f70411f` | 2 |
