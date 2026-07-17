@@ -24,12 +24,12 @@
 - 审批十路竞态独立重复 `10/10`；A/B 重启恢复独立重复 `10/10`，每轮 `7 passed`。这些只是本地重复证据。
 - 真实 FastMCP、FastAPI 和独立客户端三进程闭环通过：四工具名称匹配，创建进入 `awaiting_approval`，批准后 `completed`，重复审批 `409`，数据库一条审批、一条工单且终态审计顺序正确。证据见 `docs/release-evidence/inventory-replenishment-vertical-slice.md`。
 - Windows Uvicorn 0.51 默认 Proactor loop 与 Psycopg async 不兼容；真实服务验证使用 Uvicorn custom loop factory 明确选择 Selector loop。Linux/Docker 仍未验证。
-- Docker/Linux 运行时已修订为 WSL2、Ubuntu 26.04 LTS、官方 Docker Engine 与 Compose；不使用 Docker Desktop、Hyper-V VM。修订见 `docs/superpowers/specs/2026-07-17-wsl2-runtime-amendment-design.md`，计划见 `docs/superpowers/plans/2026-07-17-docker-linux-runtime.md`；尚未完成真实验收。
+- Docker/Linux 运行时已修订为 WSL2、Ubuntu 26.04 LTS；不使用 Docker Desktop、Hyper-V VM。因 Docker 厂商 APT 源 TLS 被当前网络重置，经用户确认安装 Ubuntu 官方签名仓库的 Docker Engine `29.1.3`、Compose `2.40.3` 与 Buildx `0.30.1`，服务已启动。Docker Hub 镜像拉取仍超时，故尚未完成真实验收；修订与阻断证据见 `docs/superpowers/specs/2026-07-17-wsl2-runtime-amendment-design.md`。
 
 ## 新对话必须先做
 
 1. 先阅读 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md` 和最近每日日志，再阅读相关设计、计划、交接和 Git 状态。
-2. 只实施 OperCerta；库存补货 Task 1–9 已完成本地后端闭环。Docker/Linux 规格和 TDD 实施计划已确认；先由用户手动启用 Hyper-V、重启并完成 Ubuntu VM Docker 环境，再按计划实施该阶段，不启动其他项目。
+2. 只实施 OperCerta；库存补货 Task 1–9 已完成本地后端闭环。下一步先恢复 Docker Hub 或经审查替代 registry 的可验证访问，再拉取测试镜像并按 Docker/Linux TDD 计划完成 Compose 验收；不启动其他项目。
 3. 运行集成测试前，以不回显方式从已忽略 `.env.local` 加载 `OPERCERTA_DATABASE_URL`；不得提交该文件或任何凭据。
 4. 每个效果数字都保留基线、测试数据、测量脚本和结果证据；指标未测出前使用目标值或空值，不写成已实现结果。
 5. 使用公开或合成数据，从零编写全部代码和文档，不导入任何原单位源码、数据、截图、模型、品牌或内部规则。
