@@ -225,6 +225,63 @@ async def test_create_and_query_low_inventory_operation(
 
 
 @pytest.mark.asyncio
+async def test_authorized_audit_event_stream_replays_from_last_event_id(
+    engine: AsyncEngine,
+    checkpoint_database_url: SecretStr,
+    mcp_server: McpServerHarness,
+) -> None:
+    async with open_api_harness(engine, checkpoint_database_url, mcp_server) as harness:
+        accepted = await harness.create_operation()
+        operation_id = UUID(str(accepted["operation_id"]))
+        all_events = await harness.client.get(
+            f"/api/v1/operations/{operation_id}/events",
+            headers=harness.headers(DemoAccount.AUDITOR),
+        )
+        resumed = await harness.client.get(
+            f"/api/v1/operations/{operation_id}/events",
+            headers={
+                **harness.headers(DemoAccount.AUDITOR),
+                "Last-Event-ID": "2",
+            },
+        )
+
+    assert all_events.status_code == 200
+    assert all_events.headers["content-type"].startswith("text/event-stream")
+    assert "id: 1" in all_events.text
+    assert "event: operation_received" in all_events.text
+    assert resumed.status_code == 200
+    assert "id: 1" not in resumed.text
+    assert "id: 3" in resumed.text
+
+
+@pytest.mark.asyncio
+async def test_audit_event_stream_rejects_anonymous_and_invalid_cursor(
+    engine: AsyncEngine,
+    checkpoint_database_url: SecretStr,
+    mcp_server: McpServerHarness,
+) -> None:
+    async with open_api_harness(engine, checkpoint_database_url, mcp_server) as harness:
+        accepted = await harness.create_operation()
+        operation_id = UUID(str(accepted["operation_id"]))
+        anonymous = await harness.client.get(
+            f"/api/v1/operations/{operation_id}/events",
+            headers={"Authorization": ""},
+        )
+        invalid_cursor = await harness.client.get(
+            f"/api/v1/operations/{operation_id}/events",
+            headers={
+                **harness.headers(DemoAccount.AUDITOR),
+                "Last-Event-ID": "not-a-sequence",
+            },
+        )
+
+    assert anonymous.status_code == 401
+    assert anonymous.json()["code"] == "authentication_required"
+    assert invalid_cursor.status_code == 422
+    assert invalid_cursor.json()["code"] == "request_validation_failed"
+
+
+@pytest.mark.asyncio
 async def test_authentication_and_roles_protect_operations_before_writing(
     engine: AsyncEngine,
     checkpoint_database_url: SecretStr,

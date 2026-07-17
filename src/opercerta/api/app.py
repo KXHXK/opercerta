@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from collections.abc import AsyncIterator, Awaitable, Callable
@@ -15,6 +16,7 @@ from pydantic import AnyHttpUrl, Field, PositiveFloat, PositiveInt, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sse_starlette.sse import EventSourceResponse
 from starlette.requests import Request
 from starlette.types import Lifespan
 
@@ -447,6 +449,37 @@ def _build_app(
         detail = await runtime.operations.load_detail(operation_id)
         return detail_response(detail)
 
+    @app.get(
+        "/api/v1/operations/{operation_id}/events",
+        responses={
+            status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
+            status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ErrorResponse},
+            status.HTTP_503_SERVICE_UNAVAILABLE: {"model": ErrorResponse},
+        },
+    )
+    async def replay_audit_events(
+        operation_id: UUID,
+        actor: Annotated[
+            AuthenticatedActor,
+            Depends(require_roles(Role.OPERATOR, Role.APPROVER, Role.AUDITOR, Role.DEMO_ADMIN)),
+        ],
+        last_event_id: Annotated[str | None, Header()] = None,
+    ) -> EventSourceResponse:
+        del actor
+        after_sequence = parse_last_event_id(last_event_id)
+        detail = await runtime_provider().operations.load_detail(operation_id)
+
+        async def event_stream() -> AsyncIterator[dict[str, str]]:
+            for audit_event in detail.audit_events:
+                if audit_event.sequence > after_sequence:
+                    yield {
+                        "id": str(audit_event.sequence),
+                        "event": audit_event.event_type,
+                        "data": json.dumps(dict(audit_event.payload), ensure_ascii=False),
+                    }
+
+        return EventSourceResponse(event_stream())
+
     @app.post(
         "/api/v1/operations/{operation_id}/approval",
         status_code=status.HTTP_202_ACCEPTED,
@@ -481,6 +514,14 @@ def _build_app(
 def mcp_health_url(mcp_url: AnyHttpUrl) -> str:
     parsed = urlsplit(str(mcp_url))
     return urlunsplit((parsed.scheme, parsed.netloc, "/health/ready", "", ""))
+
+
+def parse_last_event_id(last_event_id: str | None) -> int:
+    if last_event_id is None:
+        return 0
+    if not last_event_id.isdecimal() or int(last_event_id) < 1:
+        raise ApiRequestValidationFailed
+    return int(last_event_id)
 
 
 def accepted_response(detail: OperationDetail) -> OperationAccepted:
