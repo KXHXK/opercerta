@@ -1,13 +1,13 @@
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, JsonValue, StrictInt, StringConstraints
 
+from opercerta.api.auth import DemoAccount
 from opercerta.domain.approvals import (
     ApprovalDecision,
     ApprovalReason,
-    ApproverId,
 )
 from opercerta.domain.contracts import OperationRequest
 from opercerta.domain.recovery import OperationStatus
@@ -39,7 +39,6 @@ class OperationAccepted(BaseModel):
 class ApprovalRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    approver_id: ApproverId
     decision: ApprovalDecision
     reason: ApprovalReason
     expected_inventory_evidence_id: UUID
@@ -58,6 +57,20 @@ class ApprovalRequest(BaseModel):
             plan_hash=self.expected_plan_hash,
             recommended_quantity=self.expected_recommended_quantity,
         )
+
+
+class DemoTokenRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    account: DemoAccount
+
+
+class DemoTokenResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    access_token: str
+    token_type: Literal["bearer"] = "bearer"
+    expires_in: int
 
 
 class ApprovalResponse(BaseModel):

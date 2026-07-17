@@ -1,14 +1,14 @@
 import logging
 import os
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Literal
+from typing import Annotated, Literal
 from urllib.parse import urlsplit, urlunsplit
 from uuid import UUID
 
-from fastapi import FastAPI, status
+from fastapi import Depends, FastAPI, Header, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import AnyHttpUrl, Field, PositiveFloat, PositiveInt, SecretStr
@@ -18,6 +18,16 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from starlette.requests import Request
 from starlette.types import Lifespan
 
+from opercerta.api.auth import (
+    AuthenticatedActor,
+    AuthenticationRequired,
+    DemoTokenUnavailable,
+    InvalidAccessToken,
+    JwtAuthenticator,
+    JwtSettings,
+    PermissionDenied,
+    Role,
+)
 from opercerta.api.health import (
     ProductionReadinessProbe,
     ReadinessProbe,
@@ -27,6 +37,8 @@ from opercerta.api.health import (
 from opercerta.api.models import (
     ApprovalRequest,
     ApprovalResponse,
+    DemoTokenRequest,
+    DemoTokenResponse,
     ErrorResponse,
     OperationAccepted,
     OperationDetailResponse,
@@ -71,6 +83,7 @@ class ApiRequestValidationFailed(ValueError):
 class AppRuntime:
     runner: OperationRunner
     operations: ReplenishmentOperationRepository
+    authenticator: JwtAuthenticator | None = None
     readiness: ReadinessProbe = field(default_factory=UnavailableReadinessProbe)
 
 
@@ -90,6 +103,11 @@ class ProductionSettings(BaseSettings):
     model_mode: Literal["mock"] = Field(
         validation_alias="OPERCERTA_MODEL_MODE",
     )
+    jwt_signing_key: SecretStr = Field(validation_alias="OPERCERTA_JWT_SIGNING_KEY")
+    jwt_issuer: str = Field(validation_alias="OPERCERTA_JWT_ISSUER")
+    jwt_audience: str = Field(validation_alias="OPERCERTA_JWT_AUDIENCE")
+    jwt_ttl_seconds: PositiveInt = Field(validation_alias="OPERCERTA_JWT_TTL_SECONDS")
+    demo_token_enabled: bool = Field(validation_alias="OPERCERTA_DEMO_TOKEN_ENABLED")
 
 
 RuntimeProvider = Callable[[], AppRuntime]
@@ -171,6 +189,15 @@ async def _open_production_runtime(
             yield AppRuntime(
                 runner=runner,
                 operations=operations,
+                authenticator=JwtAuthenticator(
+                    JwtSettings(
+                        signing_key=settings.jwt_signing_key,
+                        issuer=settings.jwt_issuer,
+                        audience=settings.jwt_audience,
+                        ttl_seconds=settings.jwt_ttl_seconds,
+                        demo_token_enabled=settings.demo_token_enabled,
+                    )
+                ),
                 readiness=ProductionReadinessProbe(
                     engine=engine,
                     database_url=settings.database_url,
@@ -305,6 +332,60 @@ def _build_app(
             "依赖服务暂时不可用。",
         )
 
+    @app.exception_handler(AuthenticationRequired)
+    async def authentication_required_handler(
+        request: Request, error: AuthenticationRequired
+    ) -> JSONResponse:
+        del request, error
+        return error_response(
+            status.HTTP_401_UNAUTHORIZED, AuthenticationRequired.code, "认证信息缺失"
+        )
+
+    @app.exception_handler(InvalidAccessToken)
+    async def invalid_access_token_handler(
+        request: Request, error: InvalidAccessToken
+    ) -> JSONResponse:
+        del request, error
+        return error_response(status.HTTP_401_UNAUTHORIZED, InvalidAccessToken.code, "访问令牌无效")
+
+    @app.exception_handler(PermissionDenied)
+    async def permission_denied_handler(request: Request, error: PermissionDenied) -> JSONResponse:
+        del request, error
+        return error_response(status.HTTP_403_FORBIDDEN, PermissionDenied.code, "无权执行此操作")
+
+    @app.exception_handler(DemoTokenUnavailable)
+    async def demo_token_unavailable_handler(
+        request: Request, error: DemoTokenUnavailable
+    ) -> JSONResponse:
+        del request, error
+        return error_response(
+            status.HTTP_403_FORBIDDEN, DemoTokenUnavailable.code, "演示令牌入口不可用"
+        )
+
+    def require_roles(*roles: Role) -> Callable[..., Awaitable[AuthenticatedActor]]:
+        async def dependency(
+            authorization: Annotated[str | None, Header()] = None,
+        ) -> AuthenticatedActor:
+            authenticator = runtime_provider().authenticator
+            if authenticator is None:
+                raise DependencyUnavailable
+            actor = authenticator.authenticate(authorization)
+            if actor.role not in roles:
+                raise PermissionDenied
+            return actor
+
+        return dependency
+
+    @app.post("/api/v1/auth/demo-token", response_model=DemoTokenResponse)
+    async def issue_demo_token(request: DemoTokenRequest) -> DemoTokenResponse:
+        authenticator = runtime_provider().authenticator
+        if authenticator is None:
+            raise DependencyUnavailable
+        return DemoTokenResponse(
+            access_token=authenticator.issue_demo_token(request.account, datetime.now(UTC)),
+            expires_in=authenticator.ttl_seconds,
+        )
+
     @app.exception_handler(Exception)
     async def unexpected_error_handler(
         request: Request,
@@ -332,7 +413,9 @@ def _build_app(
     )
     async def create_operation(
         operation_request: OperationRequest,
+        actor: Annotated[AuthenticatedActor, Depends(require_roles(Role.OPERATOR))],
     ) -> OperationAccepted:
+        del actor
         if (
             operation_request.requested_action is not ActionType.CREATE_WORK_ORDER
             or operation_request.object_type is not ObjectType.INVENTORY
@@ -352,7 +435,14 @@ def _build_app(
             status.HTTP_503_SERVICE_UNAVAILABLE: {"model": ErrorResponse},
         },
     )
-    async def get_operation(operation_id: UUID) -> OperationDetailResponse:
+    async def get_operation(
+        operation_id: UUID,
+        actor: Annotated[
+            AuthenticatedActor,
+            Depends(require_roles(Role.OPERATOR, Role.APPROVER, Role.AUDITOR, Role.DEMO_ADMIN)),
+        ],
+    ) -> OperationDetailResponse:
+        del actor
         runtime = runtime_provider()
         detail = await runtime.operations.load_detail(operation_id)
         return detail_response(detail)
@@ -371,10 +461,11 @@ def _build_app(
     async def submit_approval(
         operation_id: UUID,
         approval_request: ApprovalRequest,
+        actor: Annotated[AuthenticatedActor, Depends(require_roles(Role.APPROVER))],
     ) -> OperationAccepted:
         command = BoundApprovalCommand(
             operation_id=operation_id,
-            approver_id=approval_request.approver_id,
+            approver_id=actor.subject,
             decision=approval_request.decision,
             reason=approval_request.reason,
             expected_binding=approval_request.approval_binding(),

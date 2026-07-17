@@ -21,6 +21,7 @@ from opercerta.api.app import (
     create_app,
     create_production_app,
 )
+from opercerta.api.auth import DemoAccount, JwtAuthenticator, JwtSettings
 from opercerta.application.approval_expiry import ApprovalExpiryService
 from opercerta.application.operation_runner import OperationRunner
 from opercerta.domain.contracts import (
@@ -56,11 +57,17 @@ class ApiHarness:
     client: AsyncClient
     operations: ReplenishmentOperationRepository
     mcp_server: McpServerHarness
+    authenticator: JwtAuthenticator
     operation_ids: list[UUID] = field(default_factory=list)
+
+    def headers(self, account: DemoAccount) -> dict[str, str]:
+        token = self.authenticator.issue_demo_token(account, datetime.now(UTC))
+        return {"Authorization": f"Bearer {token}"}
 
     async def create_operation(self, sku: str = "SKU-LOW-001") -> dict[str, object]:
         response = await self.client.post(
             "/api/v1/operations",
+            headers=self.headers(DemoAccount.OPERATOR),
             json={
                 "message": f"为 {sku} 生成补货工单",
                 "requested_action": "create_work_order",
@@ -95,7 +102,6 @@ def approval_payload(
 ) -> dict[str, object]:
     binding = cast(dict[str, object], detail["approval_binding"])
     return {
-        "approver_id": "inventory.api.manager",
         "decision": decision,
         "reason": f"{decision} after reviewing API evidence",
         "expected_inventory_evidence_id": binding["inventory_evidence_id"],
@@ -118,6 +124,15 @@ async def open_api_harness(
     approval_ttl_seconds: int = 300,
 ) -> AsyncIterator[ApiHarness]:
     operations_repository = ReplenishmentOperationRepository(engine)
+    authenticator = JwtAuthenticator(
+        JwtSettings(
+            signing_key=SecretStr("integration-test-jwt-signing-key"),
+            issuer="opercerta-integration-test",
+            audience="opercerta-api-test",
+            ttl_seconds=300,
+            demo_token_enabled=True,
+        )
+    )
     async with open_checkpointer(checkpoint_database_url) as saver:
         graph = build_replenishment_graph(
             saver,
@@ -140,17 +155,24 @@ async def open_api_harness(
             AppRuntime(
                 runner=runner,
                 operations=operations_repository,
+                authenticator=authenticator,
             )
         )
         transport = ASGITransport(app=app, raise_app_exceptions=False)
+        operator_token = authenticator.issue_demo_token(
+            DemoAccount.OPERATOR,
+            datetime.now(UTC),
+        )
         async with AsyncClient(
             transport=transport,
             base_url="http://testserver",
+            headers={"Authorization": f"Bearer {operator_token}"},
         ) as client:
             harness = ApiHarness(
                 client=client,
                 operations=operations_repository,
                 mcp_server=mcp_server,
+                authenticator=authenticator,
             )
             try:
                 yield harness
@@ -197,6 +219,62 @@ async def test_create_and_query_low_inventory_operation(
 
 
 @pytest.mark.asyncio
+async def test_authentication_and_roles_protect_operations_before_writing(
+    engine: AsyncEngine,
+    checkpoint_database_url: SecretStr,
+    mcp_server: McpServerHarness,
+) -> None:
+    async with open_api_harness(
+        engine,
+        checkpoint_database_url,
+        mcp_server,
+    ) as harness:
+        unauthenticated = await harness.client.post(
+            "/api/v1/operations",
+            headers={"Authorization": "Bearer"},
+            json={
+                "message": "create a replenishment work order",
+                "requested_action": "create_work_order",
+                "object_type": "inventory",
+                "object_id": "SKU-LOW-001",
+            },
+        )
+        assert unauthenticated.status_code == 401
+        assert unauthenticated.json()["code"] == "authentication_required"
+        assert harness.operation_ids == []
+
+        accepted = await harness.create_operation()
+        operation_id = UUID(str(accepted["operation_id"]))
+        detail = (
+            await harness.client.get(
+                f"/api/v1/operations/{operation_id}",
+                headers=harness.headers(DemoAccount.OPERATOR),
+            )
+        ).json()
+        forbidden = await harness.client.post(
+            f"/api/v1/operations/{operation_id}/approval",
+            headers=harness.headers(DemoAccount.OPERATOR),
+            json=approval_payload(detail, "approved"),
+        )
+        assert forbidden.status_code == 403
+        assert forbidden.json()["code"] == "permission_denied"
+
+        approved = await harness.client.post(
+            f"/api/v1/operations/{operation_id}/approval",
+            headers=harness.headers(DemoAccount.APPROVER),
+            json=approval_payload(detail, "approved"),
+        )
+        assert approved.status_code == 202
+        final = (
+            await harness.client.get(
+                f"/api/v1/operations/{operation_id}",
+                headers=harness.headers(DemoAccount.AUDITOR),
+            )
+        ).json()
+        assert final["approval"]["approver_id"] == "demo.approver"
+
+
+@pytest.mark.asyncio
 async def test_approve_with_exact_binding_completes_and_duplicate_returns_409(
     engine: AsyncEngine,
     checkpoint_database_url: SecretStr,
@@ -214,6 +292,7 @@ async def test_approve_with_exact_binding_completes_and_duplicate_returns_409(
 
         approved = await harness.client.post(
             f"/api/v1/operations/{operation_id}/approval",
+            headers=harness.headers(DemoAccount.APPROVER),
             json=payload,
         )
         assert approved.status_code == 202
@@ -231,6 +310,7 @@ async def test_approve_with_exact_binding_completes_and_duplicate_returns_409(
 
         duplicate = await harness.client.post(
             f"/api/v1/operations/{operation_id}/approval",
+            headers=harness.headers(DemoAccount.APPROVER),
             json=payload,
         )
         assert duplicate.status_code == 409
@@ -258,6 +338,7 @@ async def test_reject_with_exact_binding_returns_rejected_without_work_order(
 
         rejected = await harness.client.post(
             f"/api/v1/operations/{operation_id}/approval",
+            headers=harness.headers(DemoAccount.APPROVER),
             json=approval_payload(detail, "rejected"),
         )
         assert rejected.status_code == 202
@@ -323,6 +404,7 @@ async def test_validation_missing_and_stale_binding_use_safe_error_envelopes(
         stale["expected_plan_hash"] = "0" * 64
         mismatch = await harness.client.post(
             f"/api/v1/operations/{operation_id}/approval",
+            headers=harness.headers(DemoAccount.APPROVER),
             json=stale,
         )
         assert mismatch.status_code == 409
@@ -358,6 +440,7 @@ async def test_expired_approval_returns_409_and_inventory_missing_is_queryable(
         detail = (await harness.client.get(f"/api/v1/operations/{operation_id}")).json()
         expired = await harness.client.post(
             f"/api/v1/operations/{operation_id}/approval",
+            headers=harness.headers(DemoAccount.APPROVER),
             json=approval_payload(detail, "approved"),
         )
         assert expired.status_code == 409
@@ -432,6 +515,11 @@ async def test_production_lifespan_loads_environment_and_recovers_once(
     monkeypatch.setenv("OPERCERTA_MCP_TIMEOUT_SECONDS", "2")
     monkeypatch.setenv("OPERCERTA_APPROVAL_TTL_SECONDS", "300")
     monkeypatch.setenv("OPERCERTA_MODEL_MODE", "mock")
+    monkeypatch.setenv("OPERCERTA_JWT_SIGNING_KEY", "production-lifespan-test-key")
+    monkeypatch.setenv("OPERCERTA_JWT_ISSUER", "opercerta-production-test")
+    monkeypatch.setenv("OPERCERTA_JWT_AUDIENCE", "opercerta-api-test")
+    monkeypatch.setenv("OPERCERTA_JWT_TTL_SECONDS", "300")
+    monkeypatch.setenv("OPERCERTA_DEMO_TOKEN_ENABLED", "true")
     app = create_production_app(clock=lambda: NOW)
 
     try:
@@ -441,7 +529,14 @@ async def test_production_lifespan_loads_environment_and_recovers_once(
                 transport=transport,
                 base_url="http://testserver",
             ) as client:
-                response = await client.get(f"/api/v1/operations/{operation_id}")
+                token = await client.post(
+                    "/api/v1/auth/demo-token",
+                    json={"account": "auditor"},
+                )
+                response = await client.get(
+                    f"/api/v1/operations/{operation_id}",
+                    headers={"Authorization": f"Bearer {token.json()['access_token']}"},
+                )
 
         assert response.status_code == 200
         assert response.json()["status"] == "awaiting_approval"
@@ -475,6 +570,11 @@ async def test_production_lifespan_restores_password_environment_on_engine_error
             "OPERCERTA_MCP_TIMEOUT_SECONDS": 2,
             "OPERCERTA_APPROVAL_TTL_SECONDS": 300,
             "OPERCERTA_MODEL_MODE": "mock",
+            "OPERCERTA_JWT_SIGNING_KEY": "production-engine-error-test-key",
+            "OPERCERTA_JWT_ISSUER": "opercerta-production-test",
+            "OPERCERTA_JWT_AUDIENCE": "opercerta-api-test",
+            "OPERCERTA_JWT_TTL_SECONDS": 300,
+            "OPERCERTA_DEMO_TOKEN_ENABLED": False,
         }
     )
     app = create_production_app(settings, clock=lambda: NOW)

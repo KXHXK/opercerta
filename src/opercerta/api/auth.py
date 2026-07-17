@@ -72,6 +72,13 @@ class InvalidAccessToken(RuntimeError):
         super().__init__(self.code)
 
 
+class PermissionDenied(RuntimeError):
+    code = "permission_denied"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
 class DemoTokenUnavailable(RuntimeError):
     code = "demo_token_unavailable"
 
