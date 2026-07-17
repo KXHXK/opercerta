@@ -18,7 +18,7 @@
 
 ---
 
-### Task 1: 评测数据契约
+### Task 1: 评测数据契约（已完成）
 
 **Files:**
 - Create: src/opercerta/evaluation/__init__.py
@@ -29,7 +29,7 @@
 - Produces EvalCase(id: str, title: str, rule_refs: tuple[str, ...], actor: EvalActor, steps: tuple[EvalStep, ...], expected: EvalExpected).
 - Produces load_suite(path: Path) -> EvalSuite and validate_suite(suite: EvalSuite) -> None.
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 ~~~python
 def test_suite_rejects_non_sequential_or_duplicate_case_ids() -> None:
@@ -41,12 +41,12 @@ def test_suite_rejects_non_sequential_or_duplicate_case_ids() -> None:
 
 再测试 rule_refs 为空、actor 非 anonymous/operator/approver/auditor/demo-admin、expected 缺失 status_code 均拒绝。
 
-- [ ] **Step 2: 运行 RED**
+- [x] **Step 2: 运行 RED**
 
 Run: uv run pytest tests/unit/evaluation/test_contracts.py -q  
 Expected: 退出码 1，opercerta.evaluation 模块不存在。
 
-- [ ] **Step 3: 实现最小 schema**
+- [x] **Step 3: 实现最小 schema**
 
 ~~~python
 class EvalActor(StrEnum):
@@ -69,19 +69,19 @@ class EvalCase(BaseModel):
 
 validate_suite 必须要求 30 个唯一且完整连续 ID、每例至少一条 rule_refs。
 
-- [ ] **Step 4: 验证 GREEN**
+- [x] **Step 4: 验证 GREEN**
 
 Run: uv run pytest tests/unit/evaluation/test_contracts.py -q; uv run ruff check src/opercerta/evaluation tests/unit/evaluation; uv run mypy src/opercerta/evaluation  
 Expected: 全部退出码 0。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ~~~bash
 git add src/opercerta/evaluation tests/unit/evaluation
 git commit -m "feat: define replenishment evaluation contracts"
 ~~~
 
-### Task 2: 冻结 30 条合成数据集
+### Task 2: 冻结 30 条合成数据集（已完成）
 
 **Files:**
 - Create: data/evals/replenishment-v1.json
@@ -91,7 +91,7 @@ git commit -m "feat: define replenishment evaluation contracts"
 - Consumes EvalSuite and load_suite from Task 1.
 - Produces suite_version=replenishment-v1 and exactly 30 cases.
 
-- [ ] **Step 1: 写失败数据集测试**
+- [x] **Step 1: 写失败数据集测试**
 
 ~~~python
 def test_frozen_replenishment_suite_has_all_30_rule_referenced_cases() -> None:
@@ -100,16 +100,16 @@ def test_frozen_replenishment_suite_has_all_30_rule_referenced_cases() -> None:
     assert all(case.rule_refs for case in suite.cases)
 ~~~
 
-- [ ] **Step 2: 运行 RED**
+- [x] **Step 2: 运行 RED**
 
 Run: uv run pytest tests/unit/evaluation/test_contracts.py::test_frozen_replenishment_suite_has_all_30_rule_referenced_cases -q  
 Expected: 退出码 1，数据文件不存在。
 
-- [ ] **Step 3: 写入数据集**
+- [x] **Step 3: 写入数据集**
 
 数据集按规格的 5/4/7/6/5/3 分组写入 RPL-001 至 RPL-030。每项 expected 至少声明 status_code；涉及 operation 的项还声明 terminal_status、approval_count、work_order_count 和 audit_event_names。每项 rule_refs 指向 docs/specs/2026-07-14-opercerta-design.md 或稳定错误码。
 
-- [ ] **Step 4: 验证 GREEN**
+- [x] **Step 4: 验证 GREEN**
 
 Run: uv run pytest tests/unit/evaluation/test_contracts.py -q  
 Expected: 所有 schema、连续 ID、规则引用和 30 条断言通过。
@@ -200,4 +200,3 @@ git commit -m "docs: record replenishment contract evaluation"
 
 - Task 1 覆盖 schema、角色、固定 ID 与规则引用；Task 2 覆盖冻结的 30 条合成数据；Task 3 覆盖真实边界、完整失败报告与脱敏；Task 4 覆盖门禁与诚实证据。
 - 类型名只在定义后的任务被使用；数据集、报告和 Git 忽略规则的边界明确。
-

@@ -1,7 +1,9 @@
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
-from opercerta.evaluation.contracts import EvalCase, EvalSuite
+from opercerta.evaluation.contracts import EvalActor, EvalCase, EvalSuite, load_suite
 
 
 def valid_case(case_id: str) -> dict[str, object]:
@@ -40,3 +42,12 @@ def test_suite_rejects_duplicate_or_non_contiguous_ids() -> None:
                 "cases": [valid_case("RPL-001"), valid_case("RPL-001")],
             }
         )
+
+
+def test_frozen_replenishment_suite_has_all_30_rule_referenced_cases() -> None:
+    suite = load_suite(Path("data/evals/replenishment-v1.json"))
+
+    assert suite.suite_version == "replenishment-v1"
+    assert [case.id for case in suite.cases] == [f"RPL-{number:03d}" for number in range(1, 31)]
+    assert all(case.rule_refs for case in suite.cases)
+    assert all(case.actor in EvalActor for case in suite.cases)

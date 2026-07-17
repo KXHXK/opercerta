@@ -1,0 +1,245 @@
+{
+  "suite_version": "replenishment-v1",
+  "cases": [
+    {
+      "id": "RPL-001",
+      "title": "低库存补货请求进入待审批",
+      "rule_refs": ["docs/specs/2026-07-14-opercerta-design.md#4.1"],
+      "actor": "operator",
+      "steps": [{"action": "create_operation", "sku": "SKU-LOW-001"}],
+      "expected": {"status_code": 202, "terminal_status": "awaiting_approval", "approval_count": 0, "work_order_count": 0, "audit_event_names": ["approval_requested"]}
+    },
+    {
+      "id": "RPL-002",
+      "title": "正常库存请求安全完成且不创建工单",
+      "rule_refs": ["docs/specs/2026-07-14-opercerta-design.md#4.1"],
+      "actor": "operator",
+      "steps": [{"action": "create_operation", "sku": "SKU-NORMAL-001"}],
+      "expected": {"status_code": 202, "terminal_status": "completed", "approval_count": 0, "work_order_count": 0, "audit_event_names": ["operation_completed"]}
+    },
+    {
+      "id": "RPL-003",
+      "title": "已创建操作可由授权角色读取",
+      "rule_refs": ["docs/specs/2026-07-14-opercerta-design.md#10.1"],
+      "actor": "auditor",
+      "steps": [{"action": "create_operation_as", "actor": "operator", "sku": "SKU-LOW-001"}, {"action": "get_operation"}],
+      "expected": {"status_code": 200, "terminal_status": "awaiting_approval", "approval_count": 0, "work_order_count": 0}
+    },
+    {
+      "id": "RPL-004",
+      "title": "未知库存对象安全失败",
+      "rule_refs": ["inventory_not_found", "docs/specs/2026-07-14-opercerta-design.md#12"],
+      "actor": "operator",
+      "steps": [{"action": "create_operation", "sku": "SKU-UNKNOWN-001"}, {"action": "get_operation"}],
+      "expected": {"status_code": 200, "terminal_status": "failed", "error_code": "inventory_not_found", "approval_count": 0, "work_order_count": 0}
+    },
+    {
+      "id": "RPL-005",
+      "title": "未知操作读取返回稳定错误",
+      "rule_refs": ["operation_not_found", "docs/specs/2026-07-14-opercerta-design.md#10.1"],
+      "actor": "operator",
+      "steps": [{"action": "get_unknown_operation"}],
+      "expected": {"status_code": 404, "error_code": "operation_not_found"}
+    },
+    {
+      "id": "RPL-006",
+      "title": "空消息被请求契约拒绝",
+      "rule_refs": ["api_request_validation_failed"],
+      "actor": "operator",
+      "steps": [{"action": "post_raw_operation", "body": {"message": "", "requested_action": "create_work_order", "object_type": "inventory", "object_id": "SKU-LOW-001"}}],
+      "expected": {"status_code": 422, "error_code": "api_request_validation_failed"}
+    },
+    {
+      "id": "RPL-007",
+      "title": "额外请求字段被严格模型拒绝",
+      "rule_refs": ["api_request_validation_failed"],
+      "actor": "operator",
+      "steps": [{"action": "post_raw_operation", "body": {"message": "补货", "requested_action": "create_work_order", "object_type": "inventory", "object_id": "SKU-LOW-001", "unexpected": true}}],
+      "expected": {"status_code": 422, "error_code": "api_request_validation_failed"}
+    },
+    {
+      "id": "RPL-008",
+      "title": "不允许的动作被请求契约拒绝",
+      "rule_refs": ["api_request_validation_failed", "docs/specs/2026-07-14-opercerta-design.md#7"],
+      "actor": "operator",
+      "steps": [{"action": "post_raw_operation", "body": {"message": "执行未知动作", "requested_action": "delete_work_order", "object_type": "inventory", "object_id": "SKU-LOW-001"}}],
+      "expected": {"status_code": 422, "error_code": "api_request_validation_failed"}
+    },
+    {
+      "id": "RPL-009",
+      "title": "缺失对象标识被请求契约拒绝",
+      "rule_refs": ["api_request_validation_failed"],
+      "actor": "operator",
+      "steps": [{"action": "post_raw_operation", "body": {"message": "创建补货工单", "requested_action": "create_work_order", "object_type": "inventory"}}],
+      "expected": {"status_code": 422, "error_code": "api_request_validation_failed"}
+    },
+    {
+      "id": "RPL-010",
+      "title": "匿名调用不能创建操作",
+      "rule_refs": ["authentication_required", "docs/specs/2026-07-14-opercerta-design.md#10.1"],
+      "actor": "anonymous",
+      "steps": [{"action": "create_operation", "sku": "SKU-LOW-001"}],
+      "expected": {"status_code": 401, "error_code": "authentication_required"}
+    },
+    {
+      "id": "RPL-011",
+      "title": "篡改的访问令牌被拒绝",
+      "rule_refs": ["invalid_access_token"],
+      "actor": "operator",
+      "steps": [{"action": "create_operation", "credential": "tampered", "sku": "SKU-LOW-001"}],
+      "expected": {"status_code": 401, "error_code": "invalid_access_token"}
+    },
+    {
+      "id": "RPL-012",
+      "title": "过期访问令牌被拒绝",
+      "rule_refs": ["invalid_access_token"],
+      "actor": "operator",
+      "steps": [{"action": "create_operation", "credential": "expired", "sku": "SKU-LOW-001"}],
+      "expected": {"status_code": 401, "error_code": "invalid_access_token"}
+    },
+    {
+      "id": "RPL-013",
+      "title": "错误签发方或受众令牌被拒绝",
+      "rule_refs": ["invalid_access_token"],
+      "actor": "operator",
+      "steps": [{"action": "create_operation", "credential": "wrong-issuer", "sku": "SKU-LOW-001"}],
+      "expected": {"status_code": 401, "error_code": "invalid_access_token"}
+    },
+    {
+      "id": "RPL-014",
+      "title": "运营角色不能提交审批",
+      "rule_refs": ["permission_denied", "docs/specs/2026-07-14-opercerta-design.md#2.1"],
+      "actor": "operator",
+      "steps": [{"action": "create_operation", "sku": "SKU-LOW-001"}, {"action": "submit_approval", "decision": "approved"}],
+      "expected": {"status_code": 403, "error_code": "permission_denied", "approval_count": 0, "work_order_count": 0}
+    },
+    {
+      "id": "RPL-015",
+      "title": "审计角色不能创建操作",
+      "rule_refs": ["permission_denied", "docs/specs/2026-07-14-opercerta-design.md#2.1"],
+      "actor": "auditor",
+      "steps": [{"action": "create_operation", "sku": "SKU-LOW-001"}],
+      "expected": {"status_code": 403, "error_code": "permission_denied"}
+    },
+    {
+      "id": "RPL-016",
+      "title": "演示管理员不能参与审批",
+      "rule_refs": ["permission_denied", "docs/specs/2026-07-14-opercerta-design.md#2.1"],
+      "actor": "demo-admin",
+      "steps": [{"action": "create_operation_as", "actor": "operator", "sku": "SKU-LOW-001"}, {"action": "submit_approval", "decision": "approved"}],
+      "expected": {"status_code": 403, "error_code": "permission_denied", "approval_count": 0, "work_order_count": 0}
+    },
+    {
+      "id": "RPL-017",
+      "title": "绑定事实一致时批准完成并创建一个工单",
+      "rule_refs": ["docs/specs/2026-07-14-opercerta-design.md#4.1", "docs/specs/2026-07-14-opercerta-design.md#9"],
+      "actor": "approver",
+      "steps": [{"action": "create_operation_as", "actor": "operator", "sku": "SKU-LOW-001"}, {"action": "submit_approval", "decision": "approved"}, {"action": "get_operation"}],
+      "expected": {"status_code": 200, "terminal_status": "completed", "approval_count": 1, "work_order_count": 1, "audit_event_names": ["approval_recorded", "work_order_created", "operation_completed"]}
+    },
+    {
+      "id": "RPL-018",
+      "title": "拒绝审批进入拒绝终态且无工单",
+      "rule_refs": ["docs/specs/2026-07-14-opercerta-design.md#4.1"],
+      "actor": "approver",
+      "steps": [{"action": "create_operation_as", "actor": "operator", "sku": "SKU-LOW-001"}, {"action": "submit_approval", "decision": "rejected"}, {"action": "get_operation"}],
+      "expected": {"status_code": 200, "terminal_status": "rejected", "approval_count": 1, "work_order_count": 0, "audit_event_names": ["approval_recorded", "operation_rejected"]}
+    },
+    {
+      "id": "RPL-019",
+      "title": "过期审批不能被接受",
+      "rule_refs": ["approval_expired", "docs/specs/2026-07-14-opercerta-design.md#12"],
+      "actor": "approver",
+      "steps": [{"action": "create_expired_operation", "sku": "SKU-LOW-001"}, {"action": "submit_approval", "decision": "approved"}],
+      "expected": {"status_code": 409, "error_code": "approval_expired", "approval_count": 0, "work_order_count": 0}
+    },
+    {
+      "id": "RPL-020",
+      "title": "审批绑定不匹配被拒绝",
+      "rule_refs": ["approval_snapshot_mismatch", "docs/specs/2026-07-14-opercerta-design.md#9.2"],
+      "actor": "approver",
+      "steps": [{"action": "create_operation_as", "actor": "operator", "sku": "SKU-LOW-001"}, {"action": "submit_approval", "decision": "approved", "binding": "mismatched"}],
+      "expected": {"status_code": 409, "error_code": "approval_snapshot_mismatch", "approval_count": 0, "work_order_count": 0}
+    },
+    {
+      "id": "RPL-021",
+      "title": "重复审批只接受首次决定",
+      "rule_refs": ["approval_already_decided", "docs/specs/2026-07-14-opercerta-design.md#12"],
+      "actor": "approver",
+      "steps": [{"action": "create_operation_as", "actor": "operator", "sku": "SKU-LOW-001"}, {"action": "submit_approval", "decision": "approved"}, {"action": "submit_approval", "decision": "approved"}],
+      "expected": {"status_code": 409, "error_code": "approval_already_decided", "approval_count": 1, "work_order_count": 1}
+    },
+    {
+      "id": "RPL-022",
+      "title": "审批主体仅从令牌取得",
+      "rule_refs": ["api_request_validation_failed", "docs/specs/2026-07-14-opercerta-design.md#10.1"],
+      "actor": "approver",
+      "steps": [{"action": "create_operation_as", "actor": "operator", "sku": "SKU-LOW-001"}, {"action": "submit_approval", "decision": "approved", "inject_approver_id": "forged-user"}],
+      "expected": {"status_code": 422, "error_code": "api_request_validation_failed", "approval_count": 0, "work_order_count": 0}
+    },
+    {
+      "id": "RPL-023",
+      "title": "批准后的写入以操作为幂等边界",
+      "rule_refs": ["docs/specs/2026-07-14-opercerta-design.md#9.2"],
+      "actor": "approver",
+      "steps": [{"action": "create_operation_as", "actor": "operator", "sku": "SKU-LOW-001"}, {"action": "submit_approval", "decision": "approved"}, {"action": "replay_recovery"}, {"action": "get_operation"}],
+      "expected": {"status_code": 200, "terminal_status": "completed", "approval_count": 1, "work_order_count": 1, "audit_event_names": ["work_order_created"]}
+    },
+    {
+      "id": "RPL-024",
+      "title": "审批后事实变化安全失败",
+      "rule_refs": ["approval_facts_changed", "docs/specs/2026-07-14-opercerta-design.md#9.2"],
+      "actor": "approver",
+      "steps": [{"action": "create_operation_as", "actor": "operator", "sku": "SKU-MUTABLE-001"}, {"action": "mutate_inventory", "sku": "SKU-MUTABLE-001"}, {"action": "submit_approval", "decision": "approved"}, {"action": "get_operation"}],
+      "expected": {"status_code": 200, "terminal_status": "failed", "error_code": "approval_facts_changed", "approval_count": 1, "work_order_count": 0}
+    },
+    {
+      "id": "RPL-025",
+      "title": "批准写入后回读验证完成",
+      "rule_refs": ["docs/specs/2026-07-14-opercerta-design.md#4.1", "docs/specs/2026-07-14-opercerta-design.md#7"],
+      "actor": "approver",
+      "steps": [{"action": "create_operation_as", "actor": "operator", "sku": "SKU-BACKORDER-001"}, {"action": "submit_approval", "decision": "approved"}, {"action": "get_operation"}],
+      "expected": {"status_code": 200, "terminal_status": "completed", "approval_count": 1, "work_order_count": 1, "audit_event_names": ["work_order_created", "work_order_verified"]}
+    },
+    {
+      "id": "RPL-026",
+      "title": "等待审批时重启保持等待且不自动批准",
+      "rule_refs": ["docs/specs/2026-07-14-opercerta-design.md#9.2"],
+      "actor": "operator",
+      "steps": [{"action": "create_operation", "sku": "SKU-LOW-001"}, {"action": "restart_and_recover"}, {"action": "get_operation"}],
+      "expected": {"status_code": 200, "terminal_status": "awaiting_approval", "approval_count": 0, "work_order_count": 0, "audit_event_names": ["approval_requested"]}
+    },
+    {
+      "id": "RPL-027",
+      "title": "审批落库后重启依据原决定恢复",
+      "rule_refs": ["docs/specs/2026-07-14-opercerta-design.md#4.1", "docs/specs/2026-07-14-opercerta-design.md#9.2"],
+      "actor": "approver",
+      "steps": [{"action": "create_operation_as", "actor": "operator", "sku": "SKU-LOW-001"}, {"action": "record_approval_then_restart", "decision": "approved"}, {"action": "get_operation"}],
+      "expected": {"status_code": 200, "terminal_status": "completed", "approval_count": 1, "work_order_count": 1}
+    },
+    {
+      "id": "RPL-028",
+      "title": "伪造审批人字段不能绕过令牌主体",
+      "rule_refs": ["api_request_validation_failed", "docs/specs/2026-07-14-opercerta-design.md#10.1"],
+      "actor": "approver",
+      "steps": [{"action": "create_operation_as", "actor": "operator", "sku": "SKU-LOW-001"}, {"action": "submit_approval", "decision": "approved", "inject_approver_id": "operator-claim"}],
+      "expected": {"status_code": 422, "error_code": "api_request_validation_failed", "approval_count": 0, "work_order_count": 0}
+    },
+    {
+      "id": "RPL-029",
+      "title": "未知 MCP 工具不会进入业务流程",
+      "rule_refs": ["docs/specs/2026-07-14-opercerta-design.md#8"],
+      "actor": "operator",
+      "steps": [{"action": "invoke_mcp_tool", "tool": "inventory.delete_all"}],
+      "expected": {"status_code": 404, "error_code": "tool_not_allowed"}
+    },
+    {
+      "id": "RPL-030",
+      "title": "受控数量超出策略时被拒绝",
+      "rule_refs": ["replenishment_quantity_out_of_policy", "docs/specs/2026-07-14-opercerta-design.md#7"],
+      "actor": "operator",
+      "steps": [{"action": "create_operation", "sku": "SKU-LIMIT-001"}, {"action": "get_operation"}],
+      "expected": {"status_code": 200, "terminal_status": "rejected", "error_code": "replenishment_quantity_out_of_policy", "approval_count": 0, "work_order_count": 0}
+    }
+  ]
+}
