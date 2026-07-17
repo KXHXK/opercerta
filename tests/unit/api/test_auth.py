@@ -110,10 +110,12 @@ def test_invalid_claims_are_rejected_without_exposing_jwt_details(
 def test_tampered_signature_is_rejected() -> None:
     authenticator = make_authenticator()
     token = authenticator.issue_demo_token(DemoAccount.AUDITOR, now())
-    replacement = "a" if token[-1] != "a" else "b"
+    header, payload, signature = token.split(".")
+    replacement = "a" if signature[0] != "a" else "b"
+    tampered = ".".join((header, payload, f"{replacement}{signature[1:]}"))
 
     with pytest.raises(InvalidAccessToken):
-        authenticator.authenticate(f"Bearer {token[:-1]}{replacement}")
+        authenticator.authenticate(f"Bearer {tampered}")
 
 
 def test_demo_token_issuer_is_explicitly_disabled_by_setting() -> None:
