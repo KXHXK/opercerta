@@ -1,9 +1,14 @@
 import io
 import logging
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from types import SimpleNamespace
 from typing import cast
+from uuid import UUID
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from pydantic import SecretStr
 from starlette.types import Receive, Scope, Send
 
 from opercerta.api.app import (
@@ -12,6 +17,7 @@ from opercerta.api.app import (
     ObservabilityMiddleware,
     create_app,
 )
+from opercerta.api.auth import DemoAccount, JwtAuthenticator, JwtSettings
 from opercerta.application.operation_runner import OperationRunner
 from opercerta.infrastructure.db.replenishment_operation_repository import (
     ReplenishmentOperationRepository,
@@ -28,6 +34,26 @@ def empty_runtime() -> AppRuntime:
         runner=cast(OperationRunner, object()),
         operations=cast(ReplenishmentOperationRepository, object()),
     )
+
+
+@dataclass
+class AuditOperations:
+    async def load_detail(self, operation_id: UUID) -> SimpleNamespace:
+        del operation_id
+        return SimpleNamespace(
+            audit_events=(
+                SimpleNamespace(
+                    sequence=1,
+                    event_type="operation_received",
+                    payload={},
+                ),
+                SimpleNamespace(
+                    sequence=2,
+                    event_type="approval_requested",
+                    payload={},
+                ),
+            )
+        )
 
 
 @pytest.mark.asyncio
@@ -101,3 +127,52 @@ async def test_unhandled_error_has_safe_503_request_id_metric_and_log() -> None:
     assert "request-token" not in logs
     assert "leaked-token" not in logs
     assert "password" not in logs
+
+
+@pytest.mark.asyncio
+async def test_sse_counts_only_events_after_last_event_id() -> None:
+    authenticator = JwtAuthenticator(
+        JwtSettings(
+            signing_key=SecretStr("observability-test-signing-key-32-bytes"),
+            issuer="opercerta-observability-test",
+            audience="opercerta-api-test",
+            ttl_seconds=300,
+            demo_token_enabled=True,
+        )
+    )
+    metrics = ApiMetrics.create()
+    runtime = AppRuntime(
+        runner=cast(OperationRunner, object()),
+        operations=cast(ReplenishmentOperationRepository, AuditOperations()),
+        authenticator=authenticator,
+    )
+    app = create_app(
+        runtime,
+        observability=ObservabilityConfig(
+            metrics=metrics,
+            metrics_enabled=True,
+        ),
+    )
+    token = authenticator.issue_demo_token(
+        DemoAccount.AUDITOR,
+        datetime.now(UTC),
+    )
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+        events = await client.get(
+            "/api/v1/operations/00000000-0000-4000-8000-000000000010/events",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Last-Event-ID": "1",
+            },
+        )
+        rendered = await client.get("/metrics")
+
+    assert events.status_code == 200
+    assert "id: 1" not in events.text
+    assert "id: 2" in events.text
+    assert (
+        'opercerta_audit_events_replayed_total{event_type="approval_requested"} 1.0'
+        in rendered.text
+    )
+    assert 'event_type="operation_received"' not in rendered.text

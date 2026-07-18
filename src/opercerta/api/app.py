@@ -593,6 +593,9 @@ def _build_app(
         async def event_stream() -> AsyncIterator[dict[str, str]]:
             for audit_event in detail.audit_events:
                 if audit_event.sequence > after_sequence:
+                    active_observability.metrics.count_audit_event(
+                        audit_event.event_type
+                    )
                     yield {
                         "id": str(audit_event.sequence),
                         "event": audit_event.event_type,
