@@ -1,8 +1,8 @@
 # OperCerta 当前状态
 
-## 下一实施边界：可观测性与安全回归基础
+## 最新核验：可观测性与安全回归基础已完成
 
-2026-07-18 已确认下一阶段先实现服务端 `request_id`、安全结构化日志、低基数 Prometheus 指标与相应安全回归；不在本阶段加入 OpenTelemetry、Grafana、Redis 业务依赖、生产 IAM、CI/CD、Caddy 或公开部署。规格见 `docs/superpowers/specs/2026-07-18-observability-security-regression-design.md`，实施计划尚未编写，发布门禁保持 `CLOSED`。
+2026-07-18 已实现服务端 `request_id`、异常后上下文清理、安全 JSON 日志、应用级低基数 Prometheus 指标、SSE 实际回放计数与默认关闭的 `/metrics`。完整后端门禁为 `332 passed in 74.58s`；Ruff clean；100 个文件格式正确；mypy 检查 50 个源文件无问题。前端防回退仍为 9 个测试文件、15 条测试通过且构建成功。证据见 `docs/release-evidence/observability-security-regression.md`；发布门禁保持 `CLOSED`。
 
 ## 最新核验：单页运营控制台已完成本地前端验证
 
@@ -84,7 +84,7 @@
 
 ## 当前阻塞与风险
 
-- 设备场景、SSE、认证、前端、固定评测、安全回归、可观测性和公开部署尚未完成，发布门禁保持关闭。
+- 设备场景、生产 IAM/SSO、人工接管、CI/CD、Caddy/HTTPS、集中指标采集/告警和公开部署尚未完成，发布门禁保持关闭。
 - Windows 原生真实服务需要显式 Selector loop；WSL2 Ubuntu Compose 已验证默认 Linux 容器进程、健康检查、MCP 服务名访问、独立 PostgreSQL volume 和 API/MCP 重启，但这不代表高可用或生产承诺。
 - Docker/Linux 运行时已修订为 WSL2 → Ubuntu 26.04 LTS，不使用 Docker Desktop 或 Hyper-V VM。Ubuntu 官方仓库的 Docker `29.1.3`、Compose `2.40.3`、Buildx `0.30.1` 已安装；Docker Hub 直连超时后，经用户授权配置了三个可达的第三方 registry mirror。OperCerta Compose 已通过构建、健康、真实业务数据库断言与重启恢复；完整证据见 `docs/release-evidence/docker-linux-runtime.md`，供应链例外见 `docs/superpowers/specs/2026-07-17-wsl2-runtime-amendment-design.md`。
 - 一次预期失败的 Pytest/Psycopg traceback 曾展开旧的本地测试数据库连接密码；代码、Git 和文档未保存该值，fixture 已改为无密码 URL + 临时 `PGPASSWORD`，角色密码也已轮换和复验。
@@ -93,8 +93,8 @@
 
 ## 下一步
 
-继续只实施 OperCerta。下一步进入发布门禁剩余范围，优先认证/人工接管、固定评测、安全回归和可观测性；公共 registry mirror 的风险与后续每个实际镜像 digest 仍须留证。
+继续只实施 OperCerta。下一步可在 CI 安全门禁与 Caddy/HTTPS 设计中择一继续；生产 IAM、人工接管和公开部署需要外部平台与发布权限时再单独确认。公共 registry mirror 的风险与后续每个实际镜像 digest 仍须留证。
 
 ## 发布门禁
 
-`OperCerta release gate: CLOSED`。Task 1–9 与 WSL2 Docker Compose 只证明库存补货后端纵向切片在单节点本地环境通过；完整产品面和公开部署仍待完成。
+`OperCerta release gate: CLOSED`。当前证据证明库存补货纵向切片、WSL2 Compose、演示身份、固定评测、单页控制台和可观测性安全基础在本地通过；完整产品面、生产身份、HTTPS、CI/CD 和公开部署仍待完成。

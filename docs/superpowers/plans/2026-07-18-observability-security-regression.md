@@ -32,7 +32,7 @@
 - Consumes: 当前锁定的 `fastapi==0.139.0` 与既有 325 条后端回归。
 - Produces: 锁定并安装的 `fastapi==0.139.2`；后续任务不得再次改依赖版本。
 
-- [ ] **Step 1: 运行版本 RED，证明当前环境尚未满足已核验版本**
+- [x] **Step 1: 运行版本 RED，证明当前环境尚未满足已核验版本**
 
 Run:
 
@@ -42,7 +42,7 @@ uv run python -c "from importlib.metadata import version; actual=version('fastap
 
 Expected: 退出码 1，断言显示当前版本为 `0.139.0`。
 
-- [ ] **Step 2: 只修改 FastAPI 直接依赖版本**
+- [x] **Step 2: 只修改 FastAPI 直接依赖版本**
 
 将 `pyproject.toml` 中：
 
@@ -56,7 +56,7 @@ Expected: 退出码 1，断言显示当前版本为 `0.139.0`。
 "fastapi==0.139.2",
 ```
 
-- [ ] **Step 3: 只升级 FastAPI 相关锁定并同步环境**
+- [x] **Step 3: 只升级 FastAPI 相关锁定并同步环境**
 
 Run:
 
@@ -74,7 +74,7 @@ uv sync --frozen --all-groups
 
 Expected: 退出码 0，不修改 `pyproject.toml`。
 
-- [ ] **Step 4: 运行版本 GREEN 与完整后端兼容性门禁**
+- [x] **Step 4: 运行版本 GREEN 与完整后端兼容性门禁**
 
 Run:
 
@@ -92,7 +92,7 @@ uv run pytest -q
 
 Expected: 退出码 0，零失败；记录实际通过数，不沿用旧数字。
 
-- [ ] **Step 5: 提交独立依赖升级**
+- [x] **Step 5: 提交独立依赖升级**
 
 ```powershell
 git add pyproject.toml uv.lock
@@ -113,7 +113,7 @@ git commit -m "chore: update fastapi patch release"
 - Consumes: Python `ContextVar` 与 `uuid4()`。
 - Produces: `new_request_id() -> str`、`request_context(request_id: str)` 上下文管理器、`current_request_id() -> str | None`。
 
-- [ ] **Step 1: 写并发隔离与恢复 RED 测试**
+- [x] **Step 1: 写并发隔离与恢复 RED 测试**
 
 ```python
 # tests/unit/observability/test_context.py
@@ -149,7 +149,7 @@ async def test_request_context_is_isolated_and_restored() -> None:
     assert current_request_id() is None
 ```
 
-- [ ] **Step 2: 运行 RED**
+- [x] **Step 2: 运行 RED**
 
 Run:
 
@@ -159,7 +159,7 @@ uv run pytest tests/unit/observability/test_context.py -q
 
 Expected: 收集失败，提示 `opercerta.observability` 不存在。
 
-- [ ] **Step 3: 实现最小 ContextVar 边界**
+- [x] **Step 3: 实现最小 ContextVar 边界**
 
 ```python
 # src/opercerta/observability/context.py
@@ -190,7 +190,7 @@ def request_context(request_id: str) -> Iterator[None]:
 
 两个 `__init__.py` 保持空文件，不重导出内部变量。
 
-- [ ] **Step 4: 运行 GREEN 与静态检查**
+- [x] **Step 4: 运行 GREEN 与静态检查**
 
 Run:
 
@@ -216,7 +216,7 @@ uv run mypy src
 
 Expected: 退出码 0。
 
-- [ ] **Step 5: 提交请求上下文**
+- [x] **Step 5: 提交请求上下文**
 
 ```powershell
 git add src/opercerta/observability tests/unit/observability
@@ -237,7 +237,7 @@ git commit -m "feat: isolate api request context"
 - Consumes: Task 2 的 `current_request_id()`。
 - Produces: `SafeJsonFormatter(service: str)`、`log_event(...)`、`configure_json_logging(service: str) -> None`；API 入口在 Uvicorn 启动前配置安全日志。
 
-- [ ] **Step 1: 写日志白名单 RED 测试**
+- [x] **Step 1: 写日志白名单 RED 测试**
 
 ```python
 # tests/unit/observability/test_logging.py
@@ -312,7 +312,7 @@ def test_api_main_configures_logging_and_binds_all_container_interfaces(monkeypa
     ]
 ```
 
-- [ ] **Step 2: 运行 RED**
+- [x] **Step 2: 运行 RED**
 
 Run:
 
@@ -322,7 +322,7 @@ uv run pytest tests/unit/observability/test_logging.py tests/unit/runtime/test_e
 
 Expected: 收集失败或入口断言失败，因为安全 formatter 与入口配置尚不存在。
 
-- [ ] **Step 3: 实现日志 formatter、事件函数和配置函数**
+- [x] **Step 3: 实现日志 formatter、事件函数和配置函数**
 
 ```python
 # src/opercerta/observability/logging.py
@@ -410,7 +410,7 @@ def main() -> None:
     )
 ```
 
-- [ ] **Step 4: 运行 GREEN 与回归**
+- [x] **Step 4: 运行 GREEN 与回归**
 
 Run:
 
@@ -436,7 +436,7 @@ uv run mypy src
 
 Expected: 退出码 0。
 
-- [ ] **Step 5: 提交安全日志**
+- [x] **Step 5: 提交安全日志**
 
 ```powershell
 git add src/opercerta/observability/logging.py src/opercerta/runtime/api.py tests/unit/observability/test_logging.py tests/unit/runtime/test_entrypoints.py
@@ -455,7 +455,7 @@ git commit -m "feat: emit allowlisted json logs"
 - Consumes: `prometheus-client==0.25.0`。
 - Produces: `ApiMetrics.create()`、`observe_http(...)`、`count_audit_event(event_type)`、`render() -> bytes`、`normalize_route()` 与固定白名单。
 
-- [ ] **Step 1: 写 registry 隔离和标签安全 RED 测试**
+- [x] **Step 1: 写 registry 隔离和标签安全 RED 测试**
 
 ```python
 # tests/unit/observability/test_metrics.py
@@ -484,7 +484,7 @@ def test_metrics_use_isolated_registry_and_low_cardinality_labels() -> None:
     assert 'route="unmatched"' not in rendered_b
 ```
 
-- [ ] **Step 2: 运行 RED**
+- [x] **Step 2: 运行 RED**
 
 Run:
 
@@ -494,7 +494,7 @@ uv run pytest tests/unit/observability/test_metrics.py -q
 
 Expected: 收集失败，提示 `opercerta.observability.metrics` 不存在。
 
-- [ ] **Step 3: 实现指标对象与归一化白名单**
+- [x] **Step 3: 实现指标对象与归一化白名单**
 
 ```python
 # src/opercerta/observability/metrics.py
@@ -609,7 +609,7 @@ class ApiMetrics:
         return generate_latest(self.registry)
 ```
 
-- [ ] **Step 4: 运行 GREEN、lint 与类型检查**
+- [x] **Step 4: 运行 GREEN、lint 与类型检查**
 
 Run:
 
@@ -635,7 +635,7 @@ uv run mypy src
 
 Expected: 退出码 0。
 
-- [ ] **Step 5: 提交指标 registry**
+- [x] **Step 5: 提交指标 registry**
 
 ```powershell
 git add src/opercerta/observability/metrics.py tests/unit/observability/test_metrics.py
@@ -656,7 +656,7 @@ git commit -m "feat: collect low-cardinality api metrics"
 - Consumes: Task 2 的请求上下文、Task 3 的 `log_event()`、Task 4 的 `ApiMetrics`。
 - Produces: `ObservabilityConfig`、`ObservabilityMiddleware`；`create_app(..., observability=...)`；`ProductionSettings.metrics_enabled`；默认关闭、显式启用的 `/metrics`。
 
-- [ ] **Step 1: 写恶意请求头、默认关闭和异常安全 RED 集成测试**
+- [x] **Step 1: 写恶意请求头、默认关闭和异常安全 RED 集成测试**
 
 ```python
 # tests/integration/api/test_observability_api.py
@@ -752,7 +752,7 @@ async def test_unhandled_error_has_safe_503_request_id_metric_and_log() -> None:
     assert "password" not in logs
 ```
 
-- [ ] **Step 2: 运行 RED**
+- [x] **Step 2: 运行 RED**
 
 Run:
 
@@ -762,7 +762,7 @@ uv run pytest tests/integration/api/test_observability_api.py -q
 
 Expected: 收集失败，因为 `ObservabilityConfig` 和 `ObservabilityMiddleware` 尚不存在。
 
-- [ ] **Step 3: 实现纯 ASGI middleware 与配置对象**
+- [x] **Step 3: 实现纯 ASGI middleware 与配置对象**
 
 在 `src/opercerta/api/app.py` 增加以下接口和所需导入：
 
@@ -890,7 +890,7 @@ if active_observability.metrics_enabled:
         )
 ```
 
-- [ ] **Step 4: 把 metrics 开关接入 ProductionSettings 和环境样例**
+- [x] **Step 4: 把 metrics 开关接入 ProductionSettings 和环境样例**
 
 在 `ProductionSettings` 增加默认关闭字段：
 
@@ -913,7 +913,7 @@ observability=ObservabilityConfig(metrics_enabled=production_settings.metrics_en
 OPERCERTA_METRICS_ENABLED=false
 ```
 
-- [ ] **Step 5: 运行 GREEN、现有 API 回归和静态检查**
+- [x] **Step 5: 运行 GREEN、现有 API 回归和静态检查**
 
 Run:
 
@@ -939,7 +939,7 @@ uv run mypy src
 
 Expected: 退出码 0。
 
-- [ ] **Step 6: 提交 HTTP 可观测边界**
+- [x] **Step 6: 提交 HTTP 可观测边界**
 
 ```powershell
 git add src/opercerta/api/app.py tests/integration/api/test_observability_api.py .env.example .env.compose.example
@@ -958,7 +958,7 @@ git commit -m "feat: correlate and observe api requests"
 - Consumes: Task 4 的 `ApiMetrics.count_audit_event()` 与 Task 5 的应用配置。
 - Produces: 每个实际 yield 的持久化审计事件恰好增加一次 `opercerta_audit_events_replayed_total`；`Last-Event-ID` 跳过的事件不计数。
 
-- [ ] **Step 1: 写 SSE 计数 RED 测试**
+- [x] **Step 1: 写 SSE 计数 RED 测试**
 
 在 `tests/integration/api/test_observability_api.py` 增加：
 
@@ -1026,7 +1026,7 @@ async def test_sse_counts_only_events_after_last_event_id() -> None:
     assert 'event_type="operation_received"' not in rendered.text
 ```
 
-- [ ] **Step 2: 运行 RED**
+- [x] **Step 2: 运行 RED**
 
 Run:
 
@@ -1036,7 +1036,7 @@ uv run pytest tests/integration/api/test_observability_api.py::test_sse_counts_o
 
 Expected: 失败，因为 SSE 生成器尚未调用 `count_audit_event()`。
 
-- [ ] **Step 3: 在实际 yield 前增加一次白名单计数**
+- [x] **Step 3: 在实际 yield 前增加一次白名单计数**
 
 把 SSE 生成器修改为：
 
@@ -1054,7 +1054,7 @@ async def event_stream() -> AsyncIterator[dict[str, str]]:
 
 不得在加载数据库快照时批量计数；只有向客户端实际 yield 的事件才计数。
 
-- [ ] **Step 4: 运行 GREEN 与 SSE/API 回归**
+- [x] **Step 4: 运行 GREEN 与 SSE/API 回归**
 
 Run:
 
@@ -1080,7 +1080,7 @@ uv run mypy src
 
 Expected: 退出码 0。
 
-- [ ] **Step 5: 提交 SSE 指标**
+- [x] **Step 5: 提交 SSE 指标**
 
 ```powershell
 git add src/opercerta/api/app.py tests/integration/api/test_observability_api.py
@@ -1104,7 +1104,7 @@ git commit -m "feat: count replayed audit events"
 - Consumes: Tasks 1–6 的提交和新鲜命令输出。
 - Produces: 可复查的本地验证证据、真实限制与下一发布门禁边界；不打开 release gate。
 
-- [ ] **Step 1: 运行完整后端测试**
+- [x] **Step 1: 运行完整后端测试**
 
 Run:
 
@@ -1114,7 +1114,7 @@ uv run pytest -q
 
 Expected: 退出码 0、零失败。把命令输出中的实际通过数和耗时原样记录到证据；不得预填或沿用 325。
 
-- [ ] **Step 2: 运行全部静态门禁**
+- [x] **Step 2: 运行全部静态门禁**
 
 Run:
 
@@ -1140,7 +1140,7 @@ uv run mypy src
 
 Expected: 退出码 0，记录实际源文件数。
 
-- [ ] **Step 3: 运行前端防回退门禁**
+- [x] **Step 3: 运行前端防回退门禁**
 
 Run:
 
@@ -1162,7 +1162,7 @@ Working directory: `web/`。
 
 Expected: TypeScript 与 Vite 构建退出码 0。
 
-- [ ] **Step 4: 生成只包含实际事实的中文证据**
+- [x] **Step 4: 生成只包含实际事实的中文证据**
 
 `docs/release-evidence/observability-security-regression.md` 必须按以下固定章节写入：
 
@@ -1187,7 +1187,7 @@ Expected: TypeScript 与 Vite 构建退出码 0。
 
 不得写性能提升、成功率、SLA、生产可用或已经上线。
 
-- [ ] **Step 5: 同步索引、当前状态、README、交接和当日日志**
+- [x] **Step 5: 同步索引、当前状态、README、交接和当日日志**
 
 每个文档只写以下已验证口径：
 
@@ -1199,7 +1199,7 @@ Expected: TypeScript 与 Vite 构建退出码 0。
 
 同时把本计划已完成步骤改为 `- [x]`，不得删除原 RED/GREEN 命令。
 
-- [ ] **Step 6: 检查敏感内容、占位和差异质量**
+- [x] **Step 6: 检查敏感内容、占位和差异质量**
 
 Run:
 
@@ -1217,6 +1217,8 @@ rg -n "Bearer [A-Za-z0-9._-]+|postgresql[^ ]*://[^ ]+:[^ ]+@" README.md IMPLEMEN
 
 Expected: 退出码 1，表示运行代码和发布证据没有令牌或带密码连接串。合成攻击样本只保存在测试文件，不纳入凭据扫描结论。
 
+实际结果：首次扫描退出码 0，只命中既有固定评测执行器的 tampered/wrong-issuer Authorization 合成器；`git blame` 指向 `df5422cc`。保留该已审计攻击样本并显式排除 `src/opercerta/evaluation/executor.py` 后，同一范围零匹配、退出码 1。该例外已写入本轮证据和开发日志，没有改写字符串规避扫描。
+
 Run:
 
 ```powershell
@@ -1225,7 +1227,7 @@ git diff --check
 
 Expected: 退出码 0。
 
-- [ ] **Step 7: 提交证据与交接**
+- [x] **Step 7: 提交证据与交接**
 
 ```powershell
 git add README.md DOCUMENT_INDEX.md IMPLEMENTATION_HANDOFF.md docs
