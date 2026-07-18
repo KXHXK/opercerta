@@ -3,12 +3,19 @@ import type { ApprovalBinding, OperationAccepted, OperationDetail } from "./cont
 export type { ApprovalBinding } from "./contracts";
 
 export class ApiClient {
-  constructor(private readonly authorizationHeader: () => string) {}
+  constructor(
+    private readonly authorizationHeader: () => string,
+    private readonly apiBaseUrl = ""
+  ) {}
+
+  private endpoint(path: string): string {
+    return `${this.apiBaseUrl}${path}`;
+  }
 
   async issueToken(
     role: "operator" | "approver" | "auditor" | "demo-admin"
   ): Promise<string> {
-    const response = await fetch("/api/v1/auth/demo-token", {
+    const response = await fetch(this.endpoint("/api/v1/auth/demo-token"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ account: role })
@@ -19,7 +26,7 @@ export class ApiClient {
   }
 
   async createOperation(sku: string): Promise<OperationAccepted> {
-    const response = await fetch("/api/v1/operations", {
+    const response = await fetch(this.endpoint("/api/v1/operations"), {
       method: "POST",
       headers: {
         Authorization: this.authorizationHeader(),
@@ -37,7 +44,7 @@ export class ApiClient {
   }
 
   async getOperation(operationId: string): Promise<OperationDetail> {
-    const response = await fetch(`/api/v1/operations/${operationId}`, {
+    const response = await fetch(this.endpoint(`/api/v1/operations/${operationId}`), {
       headers: { Authorization: this.authorizationHeader() }
     });
     if (!response.ok) throw new Error(`api_status_${response.status}`);
@@ -49,7 +56,7 @@ export class ApiClient {
     binding: ApprovalBinding,
     decision: "approved" | "rejected"
   ): Promise<void> {
-    const response = await fetch(`/api/v1/operations/${operationId}/approval`, {
+    const response = await fetch(this.endpoint(`/api/v1/operations/${operationId}/approval`), {
       method: "POST",
       headers: {
         Authorization: this.authorizationHeader(),

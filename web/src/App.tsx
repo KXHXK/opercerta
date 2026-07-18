@@ -13,13 +13,13 @@ import { DemoSession, type DemoRole } from "./session";
 import { ConsoleUnavailable } from "./showcase/ConsoleUnavailable";
 import { ShowcasePage } from "./showcase/ShowcasePage";
 
-function ConsoleApp() {
-  const tokenClient = useMemo(() => new ApiClient(() => ""), []);
+function ConsoleApp({ apiBaseUrl }: { apiBaseUrl: string }) {
+  const tokenClient = useMemo(() => new ApiClient(() => "", apiBaseUrl), [apiBaseUrl]);
   const session = useMemo(
     () => new DemoSession((role) => tokenClient.issueToken(role)),
     [tokenClient]
   );
-  const client = useMemo(() => new ApiClient(() => session.authorizationHeader()), [session]);
+  const client = useMemo(() => new ApiClient(() => session.authorizationHeader(), apiBaseUrl), [apiBaseUrl, session]);
   const [role, setRole] = useState<DemoRole>("operator");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [detail, setDetail] = useState<OperationDetailData | null>(null);
@@ -124,7 +124,8 @@ function ConsoleApp() {
 export default function App() {
   if (window.location.pathname === "/") return <ShowcasePage />;
   if (window.location.pathname === "/console") {
-    return resolveConsoleApiBaseUrl(window.location.hostname) === null ? <ConsoleUnavailable /> : <ConsoleApp />;
+    const apiBaseUrl = resolveConsoleApiBaseUrl(window.location.hostname);
+    return apiBaseUrl === null ? <ConsoleUnavailable /> : <ConsoleApp apiBaseUrl={apiBaseUrl} />;
   }
   return <main className="console-unavailable"><h1>页面不存在</h1><a href="/">返回项目专题</a></main>;
 }

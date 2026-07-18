@@ -62,6 +62,18 @@ it("issues a demo token without storing it", async () => {
   expect(localStorage.length).toBe(0);
 });
 
+it("prefixes requests with an explicitly configured API base URL", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(
+    new Response(JSON.stringify({ access_token: "short-lived-token" }), { status: 200 })
+  );
+  vi.stubGlobal("fetch", fetchMock);
+  const client = new ApiClient(() => "", "http://127.0.0.1:8080");
+
+  await client.issueToken("operator");
+
+  expect(fetchMock).toHaveBeenCalledWith("http://127.0.0.1:8080/api/v1/auth/demo-token", expect.any(Object));
+});
+
 it("creates and reads an inventory replenishment operation", async () => {
   const fetchMock = vi
     .fn()
