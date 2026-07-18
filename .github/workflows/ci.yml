@@ -116,3 +116,39 @@ jobs:
         run: npm run test:run
       - name: Build frontend
         run: npm run build
+
+  compose-smoke:
+    name: compose-smoke
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    needs: [repository-safety, python-quality, backend-tests, frontend]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+      - name: Create isolated Compose environment
+        shell: bash
+        run: |
+          cp .env.compose.example .env.compose
+          sed -i 's/CHANGE_ME_DEVELOPMENT_ONLY/ci-only-signing-key-at-least-32-bytes/' .env.compose
+          sed -i 's/CHANGE_ME/ci-only-database-password/' .env.compose
+      - name: Build and start Compose services
+        run: docker compose up --build -d
+      - name: Verify replenishment smoke
+        run: python scripts/verify_compose.py
+      - name: Restart API and MCP
+        run: docker compose restart api mcp
+      - name: Verify health after restart
+        run: python scripts/verify_compose.py --recovery-only
+      - name: Show safe Compose status on failure
+        if: failure()
+        run: docker compose ps
+      - name: Remove Compose services and volumes
+        if: always()
+        run: docker compose down -v --remove-orphans

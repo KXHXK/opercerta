@@ -56,3 +56,20 @@ def test_ci_fast_jobs_use_frozen_python_postgres_and_frontend_gates() -> None:
     assert "npm ci" in text
     assert "npm run test:run" in text
     assert "npm run build" in text
+
+
+def test_ci_compose_smoke_is_main_or_manual_only_and_always_cleans_up() -> None:
+    text = workflow_text()
+
+    assert "name: compose-smoke" in text
+    assert "needs: [repository-safety, python-quality, backend-tests, frontend]" in text
+    assert "github.event_name == 'workflow_dispatch'" in text
+    assert "github.ref == 'refs/heads/main'" in text
+    assert "docker compose up --build -d" in text
+    assert "python scripts/verify_compose.py" in text
+    assert "docker compose restart api mcp" in text
+    assert "python scripts/verify_compose.py --recovery-only" in text
+    assert "if: failure()" in text
+    assert "docker compose ps" in text
+    assert "if: always()" in text
+    assert "docker compose down -v --remove-orphans" in text
