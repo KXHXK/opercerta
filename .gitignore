@@ -37,6 +37,7 @@ uploads/
 *.sqlite3
 
 # Editors and operating systems
+.worktrees/
 .idea/
 .vscode/
 .DS_Store
