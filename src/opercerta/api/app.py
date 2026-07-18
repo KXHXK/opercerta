@@ -5,20 +5,23 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from time import monotonic_ns
 from typing import Annotated, Literal
 from urllib.parse import urlsplit, urlunsplit
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, Header, status
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
+from prometheus_client import CONTENT_TYPE_LATEST
 from pydantic import AnyHttpUrl, Field, PositiveFloat, PositiveInt, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from sse_starlette.sse import EventSourceResponse
+from starlette.datastructures import MutableHeaders
 from starlette.requests import Request
-from starlette.types import Lifespan
+from starlette.types import ASGIApp, Lifespan, Message, Receive, Scope, Send
 
 from opercerta.api.auth import (
     AuthenticatedActor,
@@ -69,6 +72,9 @@ from opercerta.infrastructure.db.replenishment_operation_repository import (
     ReplenishmentOperationRepository,
 )
 from opercerta.infrastructure.mcp_gateway import McpToolGateway
+from opercerta.observability.context import new_request_id, request_context
+from opercerta.observability.logging import log_event
+from opercerta.observability.metrics import ApiMetrics
 from opercerta.workflow.replenishment_graph import build_replenishment_graph
 from opercerta.workflow.replenishment_recovery import (
     ReplenishmentRecoveryCoordinator,
@@ -87,6 +93,90 @@ class AppRuntime:
     operations: ReplenishmentOperationRepository
     authenticator: JwtAuthenticator | None = None
     readiness: ReadinessProbe = field(default_factory=UnavailableReadinessProbe)
+
+
+@dataclass(frozen=True, slots=True)
+class ObservabilityConfig:
+    metrics: ApiMetrics = field(default_factory=ApiMetrics.create)
+    metrics_enabled: bool = False
+    request_id_factory: Callable[[], str] = new_request_id
+    clock_ns: Callable[[], int] = monotonic_ns
+
+
+class ObservabilityMiddleware:
+    def __init__(
+        self,
+        app: ASGIApp,
+        *,
+        metrics: ApiMetrics,
+        request_id_factory: Callable[[], str] = new_request_id,
+        clock_ns: Callable[[], int] = monotonic_ns,
+    ) -> None:
+        self._app = app
+        self._metrics = metrics
+        self._request_id_factory = request_id_factory
+        self._clock_ns = clock_ns
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self._app(scope, receive, send)
+            return
+
+        request_id = self._request_id_factory()
+        started_at = self._clock_ns()
+        status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        response_started = False
+
+        async def send_with_request_id(message: Message) -> None:
+            nonlocal response_started, status_code
+            if message["type"] == "http.response.start":
+                response_started = True
+                status_code = int(message["status"])
+                MutableHeaders(scope=message)["X-Request-ID"] = request_id
+            await send(message)
+
+        with request_context(request_id):
+            try:
+                await self._app(scope, receive, send_with_request_id)
+            except Exception:
+                if response_started:
+                    raise
+                response = error_response(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    DependencyUnavailable.code,
+                    "依赖服务暂时不可用。",
+                )
+                status_code = response.status_code
+                log_event(
+                    LOGGER,
+                    logging.ERROR,
+                    "api_unhandled_error",
+                    status_code=status_code,
+                    error_code=DependencyUnavailable.code,
+                )
+                await response(scope, receive, send_with_request_id)
+            finally:
+                route_object = scope.get("route")
+                route = getattr(route_object, "path", None)
+                duration_seconds = max(
+                    (self._clock_ns() - started_at) / 1_000_000_000,
+                    0.0,
+                )
+                self._metrics.observe_http(
+                    str(scope.get("method", "OTHER")),
+                    route if isinstance(route, str) else None,
+                    status_code,
+                    duration_seconds,
+                )
+                log_event(
+                    LOGGER,
+                    logging.INFO,
+                    "http_request_completed",
+                    route=route if isinstance(route, str) else "unmatched",
+                    method=str(scope.get("method", "OTHER")),
+                    status_code=status_code,
+                    duration_ms=duration_seconds * 1000,
+                )
 
 
 class ProductionSettings(BaseSettings):
@@ -110,13 +200,21 @@ class ProductionSettings(BaseSettings):
     jwt_audience: str = Field(validation_alias="OPERCERTA_JWT_AUDIENCE")
     jwt_ttl_seconds: PositiveInt = Field(validation_alias="OPERCERTA_JWT_TTL_SECONDS")
     demo_token_enabled: bool = Field(validation_alias="OPERCERTA_DEMO_TOKEN_ENABLED")
+    metrics_enabled: bool = Field(
+        default=False,
+        validation_alias="OPERCERTA_METRICS_ENABLED",
+    )
 
 
 RuntimeProvider = Callable[[], AppRuntime]
 
 
-def create_app(runtime: AppRuntime) -> FastAPI:
-    return _build_app(lambda: runtime)
+def create_app(
+    runtime: AppRuntime,
+    *,
+    observability: ObservabilityConfig | None = None,
+) -> FastAPI:
+    return _build_app(lambda: runtime, observability=observability)
 
 
 def create_production_app(
@@ -147,7 +245,13 @@ def create_production_app(
             finally:
                 active_runtime = None
 
-    return _build_app(runtime_provider, lifespan=lifespan)
+    return _build_app(
+        runtime_provider,
+        lifespan=lifespan,
+        observability=ObservabilityConfig(
+            metrics_enabled=production_settings.metrics_enabled,
+        ),
+    )
 
 
 @asynccontextmanager
@@ -220,7 +324,9 @@ def _build_app(
     runtime_provider: RuntimeProvider,
     *,
     lifespan: Lifespan[FastAPI] | None = None,
+    observability: ObservabilityConfig | None = None,
 ) -> FastAPI:
+    active_observability = observability or ObservabilityConfig()
     app = FastAPI(
         title="OperCerta API",
         version="0.1.0",
@@ -230,6 +336,21 @@ def _build_app(
         ),
         lifespan=lifespan,
     )
+    app.add_middleware(
+        ObservabilityMiddleware,
+        metrics=active_observability.metrics,
+        request_id_factory=active_observability.request_id_factory,
+        clock_ns=active_observability.clock_ns,
+    )
+
+    if active_observability.metrics_enabled:
+
+        @app.get("/metrics", include_in_schema=False)
+        async def metrics_endpoint() -> Response:
+            return Response(
+                content=active_observability.metrics.render(),
+                headers={"Content-Type": CONTENT_TYPE_LATEST},
+            )
 
     @app.get("/health/live")
     async def live() -> dict[str, str]:
