@@ -1,5 +1,9 @@
 # OperCerta 当前状态
 
+## 最新核验：公开静态项目专题已完成本地前端验证
+
+2026-07-18 已把 Vite 根路径调整为不依赖后端的静态项目专题，`/console` 保留真实本地演示；公开主机未配置 API 时只显示本地启动说明，不提供公网写入。专题如实展示业务闭环、技术架构、五类可靠性证据和未完成边界。当前前端新鲜门禁为 11 个测试文件、21 条测试通过且生产构建成功；Netlify 静态配置已有契约测试。尚未执行外部部署，发布门禁仍为 `CLOSED`。
+
 ## 最新核验：Private GitHub Actions 分层 CI 已完成
 
 2026-07-18 已建立 Private `KXHXK/opercerta` 和只读、固定 Action SHA 的分层 Actions。PR `#1` run `29642286517` 的四个快速 job 成功，`compose-smoke` 按设计跳过；main run `29642363033` 的五个 job 全部成功，远程实测后端 `339 passed in 29.46s`、前端 9 个测试文件/15 条测试、Ruff、104 文件格式检查、mypy 50 个源文件、Compose 业务 smoke、API/MCP 重启恢复与无条件清理。Private 分支保护 API 因当前账户能力返回 HTTP 403，未启用并采用人工 PR 全绿后合并规则。证据见 `docs/release-evidence/github-actions-ci.md`；发布门禁保持 `CLOSED`。

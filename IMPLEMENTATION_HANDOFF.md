@@ -28,7 +28,7 @@
 - secret-safe 迁移完成 `0001_reliability_kernel → 0002_inventory_replenishment (head)`，迁移后集成测试 `131 passed in 55.39s`。
 - 审批十路竞态独立重复 `10/10`；A/B 重启恢复独立重复 `10/10`，每轮 `7 passed`。这些只是本地重复证据。
 - 真实 FastMCP、FastAPI 和独立客户端三进程闭环通过：四工具名称匹配，创建进入 `awaiting_approval`，批准后 `completed`，重复审批 `409`，数据库一条审批、一条工单且终态审计顺序正确。证据见 `docs/release-evidence/inventory-replenishment-vertical-slice.md`。
-- Windows Uvicorn 0.51 默认 Proactor loop 与 Psycopg async 不兼容；真实服务验证使用 Uvicorn custom loop factory 明确选择 Selector loop。Linux/Docker 仍未验证。
+- Windows Uvicorn 0.51 默认 Proactor loop 与 Psycopg async 不兼容；真实服务验证使用 Uvicorn custom loop factory 明确选择 Selector loop。Linux/Docker Compose 已完成本地单节点验证，但未形成生产高可用承诺。
 - Docker/Linux 运行时已修订为 WSL2、Ubuntu 26.04 LTS；不使用 Docker Desktop、Hyper-V VM。因 Docker 厂商 APT 源 TLS 被当前网络重置，经用户确认安装 Ubuntu 官方签名仓库的 Docker Engine `29.1.3`、Compose `2.40.3` 与 Buildx `0.30.1`。Docker Hub 直连超时后，经用户授权配置三个实测可达的第三方 registry mirror。OperCerta Compose 的构建、健康、真实审批工单数据库断言和 API/MCP 重启恢复已通过；完整证据见 `docs/release-evidence/docker-linux-runtime.md`，发布门禁仍关闭。
 
 ## 新对话必须先做

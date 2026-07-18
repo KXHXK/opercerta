@@ -6,6 +6,8 @@
 
 新增验证证据：`docs/release-evidence/github-actions-ci.md`（Private remote、PR/main 真实 Actions、339 条后端回归、前端门禁、Compose 重启恢复和分支保护 HTTP 403 能力限制；发布门禁仍关闭）。
 
+新增公开展示设计与计划：`docs/superpowers/specs/2026-07-18-public-portfolio-showcase-design.md`、`docs/superpowers/plans/2026-07-18-public-portfolio-showcase.md`；面试流程见 `docs/demo-script.md`。静态专题已完成本地验证，尚未部署，发布门禁仍关闭。
+
 新增已实施规格：`docs/superpowers/specs/2026-07-18-observability-security-regression-design.md`（服务端请求关联、安全结构化日志、低基数 Prometheus 指标与安全回归；本地门禁已通过）。
 
 新增已执行计划：`docs/superpowers/plans/2026-07-18-observability-security-regression.md`（FastAPI 补丁升级、请求上下文、安全 JSON 日志、低基数指标、HTTP/SSE 集成与完整门禁的七项原子任务）。
