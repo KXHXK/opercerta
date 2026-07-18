@@ -1,5 +1,9 @@
 # OperCerta 当前状态
 
+## 下一实施边界：可观测性与安全回归基础
+
+2026-07-18 已确认下一阶段先实现服务端 `request_id`、安全结构化日志、低基数 Prometheus 指标与相应安全回归；不在本阶段加入 OpenTelemetry、Grafana、Redis 业务依赖、生产 IAM、CI/CD、Caddy 或公开部署。规格见 `docs/superpowers/specs/2026-07-18-observability-security-regression-design.md`，实施计划尚未编写，发布门禁保持 `CLOSED`。
+
 ## 最新核验：单页运营控制台已完成本地前端验证
 
 2026-07-18（Asia/Shanghai）新增 Vite + React 单页运营控制台：内存演示 JWT、operator 创建处置、详情读取、approver 绑定审批、fetch SSE 审计快照回放与明确的 CLOSED 门禁均已实现。前端门禁实测为 9 个测试文件、15 个测试通过，生产构建通过。同轮后端回归为 `325 passed in 91.25s`，Ruff/format/mypy 均通过。该证据只证明客户端编排、构建及本机回归；不替代完整浏览器端到端或公开发布。详见 `docs/release-evidence/single-page-console.md`。

@@ -1,5 +1,7 @@
 # OperCerta 文档索引
 
+新增已确认规格：`docs/superpowers/specs/2026-07-18-observability-security-regression-design.md`（服务端请求关联、安全结构化日志、低基数 Prometheus 指标与安全回归；待制定实施计划）。
+
 新增验证证据：`docs/release-evidence/single-page-console.md`（本地单页运营控制台的前端测试与构建；不代表完整端到端或公开发布）。
 
 新增开发日志：`docs/development-log/daily/2026-07-18.md`（前端 TDD、测试隔离诊断、依赖问题与真实验证结果）。
