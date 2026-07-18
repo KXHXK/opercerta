@@ -2,7 +2,7 @@
 
 ## 下一实施边界：Private GitHub Actions 分层 CI
 
-2026-07-18 已确认采用 Private GitHub 仓库与分层 Actions：PR/push 运行仓库安全、Python 静态门禁、PostgreSQL 18 完整后端测试和前端门禁；`main`/手动运行追加 Compose 业务 smoke 与重启恢复。设计见 `docs/superpowers/specs/2026-07-18-github-actions-ci-security-gate-design.md`。当前只完成设计，尚未创建远程仓库、workflow 或真实 GitHub run；发布门禁保持 `CLOSED`。
+2026-07-18 已确认采用 Private GitHub 仓库与分层 Actions：PR/push 运行仓库安全、Python 静态门禁、PostgreSQL 18 完整后端测试和前端门禁；`main`/手动运行追加 Compose 业务 smoke 与重启恢复。设计见 `docs/superpowers/specs/2026-07-18-github-actions-ci-security-gate-design.md`，实施计划见 `docs/superpowers/plans/2026-07-18-github-actions-ci-security-gate.md`。当前尚未创建远程仓库、workflow 或真实 GitHub run；发布门禁保持 `CLOSED`。
 
 ## 最新核验：可观测性与安全回归基础已完成
 
@@ -97,7 +97,7 @@
 
 ## 下一步
 
-继续只实施 OperCerta。下一步按已确认设计编写 GitHub Actions CI 实施计划；创建 Private 仓库前仍需确认实际 GitHub owner/身份。Caddy/HTTPS、生产 IAM、人工接管和公开部署不在本阶段。公共 registry mirror 的风险与后续每个实际镜像 digest 仍须留证。
+继续只实施 OperCerta。下一步按已确认计划实施本地安全扫描器和 Actions workflow；创建 Private 仓库前仍需确认实际 GitHub owner/身份。Caddy/HTTPS、生产 IAM、人工接管和公开部署不在本阶段。公共 registry mirror 的风险与后续每个实际镜像 digest 仍须留证。
 
 ## 发布门禁
 

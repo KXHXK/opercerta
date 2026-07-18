@@ -1,7 +1,7 @@
 # OperCerta GitHub Actions 分层 CI 安全门禁设计
 
 日期：2026-07-18（Asia/Shanghai）
-状态：已确认，待实施计划
+状态：已确认，实施计划已创建
 仓库边界：只实施 OperCerta
 
 ## 1. 目标

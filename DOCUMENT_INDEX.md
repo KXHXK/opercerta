@@ -1,6 +1,8 @@
 # OperCerta 文档索引
 
-新增已确认规格：`docs/superpowers/specs/2026-07-18-github-actions-ci-security-gate-design.md`（Private GitHub 仓库、分层 Actions、PostgreSQL 18、前后端门禁、Compose smoke、供应链固定与主分支保护；待编写实施计划）。
+新增已确认规格：`docs/superpowers/specs/2026-07-18-github-actions-ci-security-gate-design.md`（Private GitHub 仓库、分层 Actions、PostgreSQL 18、前后端门禁、Compose smoke、供应链固定与主分支保护；实施计划已创建）。
+
+新增待执行计划：`docs/superpowers/plans/2026-07-18-github-actions-ci-security-gate.md`（仓库安全扫描器、四个快速 job、main Compose smoke、Private remote、真实 Actions、主分支保护与证据交接六项任务）。
 
 新增已实施规格：`docs/superpowers/specs/2026-07-18-observability-security-regression-design.md`（服务端请求关联、安全结构化日志、低基数 Prometheus 指标与安全回归；本地门禁已通过）。
 
@@ -54,6 +56,7 @@
 | `docs/superpowers/plans/2026-07-15-windows-native-postgres-environment.md` | PostgreSQL 环境计划 | 本机安装、连接与文档同步已完成 | `84a7b08` | 2 |
 | `docs/superpowers/plans/2026-07-15-development-log-bootstrap.md` | 日志初始化计划 | 执行记录见开发日志 | `6c97d5d` | 1 |
 | `docs/superpowers/plans/2026-07-18-observability-security-regression.md` | 可观测性与安全回归七项原子 TDD 计划 | 已执行；证据已归档 | `db69f71` | 1 |
+| `docs/superpowers/plans/2026-07-18-github-actions-ci-security-gate.md` | Private GitHub Actions CI 安全门禁实施计划 | 已创建；待执行 | 本次提交 | 1 |
 | `docs/development-log/README.md` | 日志机制说明 | 已初始化 | `f70411f` | 1 |
 | `docs/development-log/current-state.md` | 当前已验证状态 | 已同步可观测性安全基础与剩余发布边界 | 本次提交 | 1 |
 | `docs/development-log/interview-casebook.md` | 实施问题、诊断、修复与面试复盘案例 | 已初始化；只记录真实证据和限制 | 本次提交 | 1 |
