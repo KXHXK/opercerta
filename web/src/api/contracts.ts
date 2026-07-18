@@ -13,6 +13,16 @@ export type OperationAccepted = {
   created_at: string;
 };
 
+export type WorkOrderSummary = {
+  id: string;
+  status: string;
+};
+
+export type OperationResult = {
+  outcome: string;
+  work_order_id: string;
+};
+
 export type OperationDetail = {
   operation_id: string;
   status: string;
@@ -22,8 +32,8 @@ export type OperationDetail = {
   plan: Record<string, unknown> | null;
   approval_binding: ApprovalBinding | null;
   approval: { decision: "approved" | "rejected"; reason: string } | null;
-  work_order: Record<string, unknown> | null;
-  result: Record<string, unknown> | null;
+  work_order: WorkOrderSummary | null;
+  result: OperationResult | null;
   error: { code: string; message: string } | null;
   last_audit_sequence: number;
 };

@@ -6,6 +6,8 @@
 
 新增验证证据：`docs/release-evidence/github-actions-ci.md`（Private remote、PR/main 真实 Actions、339 条后端回归、前端门禁、Compose 重启恢复和分支保护 HTTP 403 能力限制；发布门禁仍关闭）。
 
+新增验证证据：`docs/release-evidence/public-portfolio-showcase.md`（本地合成库存审批、唯一工单、审计序列 1–10 与静态专题截图；外部 URL 尚未部署，发布门禁仍关闭）。
+
 新增公开展示设计与计划：`docs/superpowers/specs/2026-07-18-public-portfolio-showcase-design.md`、`docs/superpowers/plans/2026-07-18-public-portfolio-showcase.md`；面试流程见 `docs/demo-script.md`。静态专题已完成本地验证，尚未部署，发布门禁仍关闭。
 
 新增已实施规格：`docs/superpowers/specs/2026-07-18-observability-security-regression-design.md`（服务端请求关联、安全结构化日志、低基数 Prometheus 指标与安全回归；本地门禁已通过）。
@@ -81,6 +83,7 @@
 | `docs/release-evidence/single-page-console.md` | 本地单页运营控制台测试与构建证据 | 本地前端验证通过；不代表公开发布 | `f88ddc5` | 1 |
 | `docs/release-evidence/observability-security-regression.md` | request_id、安全日志、低基数指标与安全回归证据 | 本地门禁通过；发布门禁仍关闭 | 本次提交 | 1 |
 | `docs/release-evidence/github-actions-ci.md` | Private remote、PR/main 分层 CI、Compose 重启恢复与保护能力证据 | 远程门禁通过；分支保护受账户能力限制；发布门禁仍关闭 | 本次提交 | 1 |
+| `docs/release-evidence/public-portfolio-showcase.md` | 公开专题的本地审批、工单、审计与截图证据 | 本地真实流程已验证；外部静态 URL 待授权部署 | 本次提交 | 1 |
 
 ## 计划创建
 

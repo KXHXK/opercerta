@@ -17,7 +17,14 @@ export function ShowcasePage() {
         <p className="section-index">03 / RELIABILITY</p><h2>工程证据</h2>
         <div className="evidence-grid">{EVIDENCE.map(([title, text]) => <article key={title}><h3>{title}</h3><p>{text}</p></article>)}</div>
       </section>
-      <section className="showcase-section boundary-section"><p className="section-index">04 / BOUNDARY</p><h2>尚未完成</h2><p className="gate">OperCerta release gate: CLOSED</p><ul>{LIMITATIONS.map((item) => <li key={item}>{item}</li>)}</ul><p>源码与完整测试证据可在受控审查或面试中提供。</p></section>
+      <section className="showcase-section">
+        <p className="section-index">04 / LOCAL EVIDENCE</p><h2>真实流程截图</h2>
+        <div className="showcase-proof-grid">
+          <figure><img src="/evidence/console-approval-flow.png" alt="本地合成数据的绑定审批流程" /><figcaption>本地合成数据：等待审批、推荐数量与审批角色绑定。</figcaption></figure>
+          <figure><img src="/evidence/console-audit-flow.png" alt="本地合成数据的持久化审计流程" /><figcaption>本地合成数据：审计序列回放至处置完成。</figcaption></figure>
+        </div>
+      </section>
+      <section className="showcase-section boundary-section"><p className="section-index">05 / BOUNDARY</p><h2>尚未完成</h2><p className="gate">OperCerta release gate: CLOSED</p><ul>{LIMITATIONS.map((item) => <li key={item}>{item}</li>)}</ul><p>源码与完整测试证据可在受控审查或面试中提供。</p></section>
       <footer className="showcase-footer">OPERATIONS SHOULD BE EXPLAINABLE, REVERSIBLE AND AUDITABLE.</footer>
     </main>
   );

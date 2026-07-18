@@ -30,3 +30,10 @@ it("states verified scope and unfinished boundaries without presenting public so
   expect(screen.getByText(/release gate: CLOSED/i)).toBeInTheDocument();
   expect(screen.queryByRole("link", { name: /GitHub/i })).not.toBeInTheDocument();
 });
+
+it("labels both screenshots as local synthetic-data evidence", () => {
+  render(<ShowcasePage />);
+
+  expect(screen.getByAltText(/本地合成数据.*审批流程/)).toBeInTheDocument();
+  expect(screen.getByAltText(/本地合成数据.*审计流程/)).toBeInTheDocument();
+});
