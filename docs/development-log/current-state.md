@@ -1,5 +1,9 @@
 # OperCerta 当前状态
 
+## 最新核验：单页运营控制台已完成本地前端验证
+
+2026-07-18（Asia/Shanghai）新增 Vite + React 单页运营控制台：内存演示 JWT、operator 创建处置、详情读取、approver 绑定审批、fetch SSE 审计快照回放与明确的 CLOSED 门禁均已实现。前端门禁实测为 9 个测试文件、15 个测试通过，生产构建通过。同轮后端回归为 `325 passed in 91.25s`，Ruff/format/mypy 均通过。该证据只证明客户端编排、构建及本机回归；不替代完整浏览器端到端或公开发布。详见 `docs/release-evidence/single-page-console.md`。
+
 ## 最新核验：JWT/RBAC 与固定契约评测已完成
 
 本地短时 JWT 与四角色 RBAC 已实施，审批主体只从 JWT `sub` 取得。库存补货固定合成契约评测当前有效版本为 `replenishment-v3`：真实 FastAPI、FastMCP、PostgreSQL 与恢复夹具运行 30 条，30 passed、0 failed。已新增 SSE 审计快照回放与 `Last-Event-ID` 续传；全量 pytest 为 325 passed。详见 `docs/release-evidence/demo-jwt-rbac.md`、`docs/release-evidence/replenishment-contract-evaluation.md` 和 `docs/release-evidence/sse-audit-replay.md`。

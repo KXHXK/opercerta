@@ -61,3 +61,52 @@ it("issues a demo token without storing it", async () => {
   });
   expect(localStorage.length).toBe(0);
 });
+
+it("creates and reads an inventory replenishment operation", async () => {
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ operation_id: "operation-1", status: "awaiting_approval", created_at: "2026-07-18T00:00:00Z" }),
+        { status: 202, headers: { "content-type": "application/json" } }
+      )
+    )
+    .mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          operation_id: "operation-1",
+          status: "awaiting_approval",
+          request: { message: "补货 SKU-LOW-001" },
+          evidence: [],
+          assessment: null,
+          plan: null,
+          approval_binding: null,
+          approval: null,
+          work_order: null,
+          result: null,
+          error: null,
+          last_audit_sequence: 2
+        }),
+        { status: 200, headers: { "content-type": "application/json" } }
+      )
+    );
+  vi.stubGlobal("fetch", fetchMock);
+  const client = new ApiClient(() => "Bearer memory-only");
+
+  await expect(client.createOperation("SKU-LOW-001")).resolves.toMatchObject({ operation_id: "operation-1" });
+  await expect(client.getOperation("operation-1")).resolves.toMatchObject({ last_audit_sequence: 2 });
+
+  expect(fetchMock).toHaveBeenNthCalledWith(1, "/api/v1/operations", {
+    method: "POST",
+    headers: { Authorization: "Bearer memory-only", "Content-Type": "application/json" },
+    body: JSON.stringify({
+      message: "为 SKU-LOW-001 创建库存补货工单",
+      requested_action: "create_work_order",
+      object_type: "inventory",
+      object_id: "SKU-LOW-001"
+    })
+  });
+  expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/v1/operations/operation-1", {
+    headers: { Authorization: "Bearer memory-only" }
+  });
+});

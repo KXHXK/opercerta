@@ -2,6 +2,8 @@
 
 ## 当前检查点
 
+- 2026-07-18 已完成本地单页运营控制台：React/Vite、内存 JWT、创建/读取/审批编排与 fetch SSE 审计快照回放。前端门禁为 9 个测试文件、15 个测试通过，构建通过；证据见 `docs/release-evidence/single-page-console.md`。这不是生产身份、完整浏览器端到端或公开发布验证。
+
 - 书面设计已经总审通过并冻结为实施基线；当前文档目录见根目录 `DOCUMENT_INDEX.md`。
 - 可靠性内核 Task 1–6 已完成本地总门禁；Task 6 新鲜完整测试为 `116 passed`，迁移 downgrade→upgrade 后集成测试为 `39 passed`，Ruff/format/mypy 通过。总证据见 `docs/release-evidence/reliability-kernel.md`。
 - Windows 原生 PostgreSQL 18.4 已验证为本地集成测试数据库：服务仅监听 `127.0.0.1:55432`，普通 IPv4 回环使用 SCRAM；证据见 `docs/release-evidence/native-postgres-environment.md`。

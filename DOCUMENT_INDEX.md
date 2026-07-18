@@ -1,5 +1,9 @@
 # OperCerta 文档索引
 
+新增验证证据：`docs/release-evidence/single-page-console.md`（本地单页运营控制台的前端测试与构建；不代表完整端到端或公开发布）。
+
+新增开发日志：`docs/development-log/daily/2026-07-18.md`（前端 TDD、测试隔离诊断、依赖问题与真实验证结果）。
+
 新增待实施规格：`docs/superpowers/specs/2026-07-17-demo-jwt-rbac-design.md`（本地演示 JWT、RBAC 与审批身份边界；已确认，尚未实施）。
 
 新增待执行计划：`docs/superpowers/plans/2026-07-17-demo-jwt-rbac.md`（本地 JWT/RBAC 的四项 TDD 实施任务；尚未执行）。

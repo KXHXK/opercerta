@@ -1,11 +1,6 @@
-export type ApprovalBinding = {
-  inventory_evidence_id: string;
-  policy_evidence_id: string;
-  rule_version: string;
-  decision_facts_hash: string;
-  plan_hash: string;
-  recommended_quantity: number;
-};
+import type { ApprovalBinding, OperationAccepted, OperationDetail } from "./contracts";
+
+export type { ApprovalBinding } from "./contracts";
 
 export class ApiClient {
   constructor(private readonly authorizationHeader: () => string) {}
@@ -21,6 +16,32 @@ export class ApiClient {
     if (!response.ok) throw new Error(`api_status_${response.status}`);
     const body = (await response.json()) as { access_token: string };
     return body.access_token;
+  }
+
+  async createOperation(sku: string): Promise<OperationAccepted> {
+    const response = await fetch("/api/v1/operations", {
+      method: "POST",
+      headers: {
+        Authorization: this.authorizationHeader(),
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: `为 ${sku} 创建库存补货工单`,
+        requested_action: "create_work_order",
+        object_type: "inventory",
+        object_id: sku
+      })
+    });
+    if (!response.ok) throw new Error(`api_status_${response.status}`);
+    return (await response.json()) as OperationAccepted;
+  }
+
+  async getOperation(operationId: string): Promise<OperationDetail> {
+    const response = await fetch(`/api/v1/operations/${operationId}`, {
+      headers: { Authorization: this.authorizationHeader() }
+    });
+    if (!response.ok) throw new Error(`api_status_${response.status}`);
+    return (await response.json()) as OperationDetail;
   }
 
   async submitApproval(

@@ -15,7 +15,27 @@ h1 { font-size: clamp(1.5rem, 3vw, 2.4rem); margin: 0; }
 .gate { border: 1px solid #8b5e34; border-radius: 999px; color: #ffcb85; margin: 0; padding: .4rem .75rem; }
 .console-grid { display: grid; gap: 1rem; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 2rem; }
 .panel { background: #172033; border: 1px solid #2d3a52; border-radius: 1rem; min-height: 18rem; padding: 1.25rem; }
+.panel h2 { font-size: 1rem; letter-spacing: .02em; margin: 0 0 1rem; }
 .boundary { color: #a9b7c8; font-size: .9rem; margin-top: 1.25rem; }
+.boundary p { margin: .45rem 0; }
+.console-message { background: #142a36; border-left: 3px solid #79d9cf; color: #d9f6f1; margin: 1.25rem 0 0; padding: .75rem 1rem; }
+.field-label { color: #a9b7c8; display: block; font-size: .85rem; margin: 1rem 0 .4rem; }
+select, input { background: #101827; border: 1px solid #405170; border-radius: .5rem; color: #e7eef5; min-height: 2.5rem; padding: .45rem .65rem; width: 100%; }
+button { background: #1c807b; border: 1px solid #65cfc3; border-radius: .5rem; color: #f5fffe; cursor: pointer; font-weight: 700; margin-top: .75rem; min-height: 2.5rem; padding: .45rem .8rem; }
+button:hover:not(:disabled) { background: #249b94; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #ffcb85; outline-offset: 2px; }
+button:disabled { cursor: not-allowed; opacity: .52; }
+.inline-fields { align-items: end; display: grid; gap: .5rem; grid-template-columns: 1fr auto; }
+.inline-fields button { margin: 0; }
+.panel-note { color: #a9b7c8; font-size: .9rem; line-height: 1.5; }
+.decision-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.decision-actions button:last-child { background: #744348; border-color: #d6868d; }
+.fact-list { display: grid; gap: .8rem; margin: 0; }
+.fact-list div { border-bottom: 1px solid #2d3a52; padding-bottom: .7rem; }
+.fact-list dt { color: #a9b7c8; font-size: .78rem; margin-bottom: .25rem; }
+.fact-list dd { margin: 0; overflow-wrap: anywhere; }
+.status-label { color: #79d9cf; font-weight: 700; }
+.mono-value { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .82rem; }
 .audit-timeline { display: grid; gap: 1rem; list-style: none; margin: 1.25rem 0 0; padding: 0; }
 .audit-timeline__entry { align-items: start; display: grid; gap: .75rem; grid-template-columns: .75rem 1fr; }
 .audit-timeline__marker { background: #79d9cf; border: 3px solid #233149; border-radius: 50%; box-shadow: 0 0 0 1px #79d9cf; height: .75rem; margin-top: .2rem; width: .75rem; }
@@ -26,4 +46,6 @@ h1 { font-size: clamp(1.5rem, 3vw, 2.4rem); margin: 0; }
   .console-shell { padding: 1rem; }
   .console-header { flex-direction: column; }
   .console-grid { grid-template-columns: 1fr; }
+  .inline-fields { grid-template-columns: 1fr; }
+  .inline-fields button { margin-top: 0; }
 }
