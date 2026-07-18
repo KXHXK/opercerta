@@ -69,6 +69,14 @@ readiness 实际返回 `status=ready`，`database`、`checkpoint`、`mcp` 均为
 
 首次生产部署虽返回成功，但线上仍是旧控制台，资源指纹也与功能工作树不符。`netlify build --dry --debug` 证明 Netlify 把 Git 公共根目录解析到主 checkout，并将相对 `web/dist` 指向主工作区。修复没有修改业务代码，而是对已验证的功能工作树产物执行显式 `--dir=web/dist --no-build` 部署；随后用 HTTPS 响应类型和资源指纹重新核验。
 
+## 个人作品集入口验证
+
+- 在 `D:\CODEX\resume\portfolio\app\page.tsx` 的现有用户改造基础上追加第 04 张 OperCerta 卡片，外链使用本页记录的真实 HTTPS 地址。
+- 入口实现前的契约探针按预期因名称、URL 和安全外链属性缺失而失败；实现后同一契约通过。
+- 作品集原 `npm run build` 在 Windows 因 POSIX 环境变量语法失败；该失败在入口实现前已经复现。仅对当前子进程指定 Git Bash 为 npm script shell 后，原 build script 完整通过。
+- 构建后的 SSR HTML 真实包含 `OperCerta`，且同一外链带有正确 URL、`target="_blank"` 与 `rel="noreferrer"`。
+- 作品集工作区此前已有大量用户未提交改动，`app/page.tsx` 也是整文件未提交重写。本轮没有暂存或提交该文件，避免吸收用户已有 hunk；作品集尚未生产部署。
+
 ## 边界
 
-公开页面展示的是本地合成数据流程证据，不是在线生产后端。页面不会连接 API、MCP、PostgreSQL 或 LangGraph，也不提供公开写入口。生产 IAM/SSO、设备场景、真实模型评测、完整浏览器 E2E、公开 API 与原设计发布门禁仍未完成。
+公开页面展示的是本地合成数据流程证据，不是在线生产后端。页面不会连接 API、MCP、PostgreSQL 或 LangGraph，也不提供公开写入口。个人作品集入口已完成本地构建但尚未部署。生产 IAM/SSO、设备场景、真实模型评测、完整浏览器 E2E、公开 API 与原设计发布门禁仍未完成。
