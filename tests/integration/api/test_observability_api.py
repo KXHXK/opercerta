@@ -57,9 +57,7 @@ class AuditOperations:
 
 
 @pytest.mark.asyncio
-async def test_server_request_id_ignores_untrusted_header_and_metrics_default_off() -> (
-    None
-):
+async def test_server_request_id_ignores_untrusted_header_and_metrics_default_off() -> None:
     app = create_app(
         empty_runtime(),
         observability=ObservabilityConfig(

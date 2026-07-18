@@ -20,9 +20,7 @@ def test_api_main_configures_logging_and_binds_all_container_interfaces(
     monkeypatch.setattr(
         api.uvicorn,
         "run",
-        lambda app, host, port, log_config: events.append(
-            ("uvicorn", app, host, port, log_config)
-        ),
+        lambda app, host, port, log_config: events.append(("uvicorn", app, host, port, log_config)),
     )
 
     api.main()
