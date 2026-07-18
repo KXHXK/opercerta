@@ -1,5 +1,9 @@
 # OperCerta 当前状态
 
+## 下一实施边界：Private GitHub Actions 分层 CI
+
+2026-07-18 已确认采用 Private GitHub 仓库与分层 Actions：PR/push 运行仓库安全、Python 静态门禁、PostgreSQL 18 完整后端测试和前端门禁；`main`/手动运行追加 Compose 业务 smoke 与重启恢复。设计见 `docs/superpowers/specs/2026-07-18-github-actions-ci-security-gate-design.md`。当前只完成设计，尚未创建远程仓库、workflow 或真实 GitHub run；发布门禁保持 `CLOSED`。
+
 ## 最新核验：可观测性与安全回归基础已完成
 
 2026-07-18 已实现服务端 `request_id`、异常后上下文清理、安全 JSON 日志、应用级低基数 Prometheus 指标、SSE 实际回放计数与默认关闭的 `/metrics`。完整后端门禁为 `332 passed in 74.58s`；Ruff clean；100 个文件格式正确；mypy 检查 50 个源文件无问题。前端防回退仍为 9 个测试文件、15 条测试通过且构建成功。证据见 `docs/release-evidence/observability-security-regression.md`；发布门禁保持 `CLOSED`。
@@ -93,7 +97,7 @@
 
 ## 下一步
 
-继续只实施 OperCerta。下一步可在 CI 安全门禁与 Caddy/HTTPS 设计中择一继续；生产 IAM、人工接管和公开部署需要外部平台与发布权限时再单独确认。公共 registry mirror 的风险与后续每个实际镜像 digest 仍须留证。
+继续只实施 OperCerta。下一步按已确认设计编写 GitHub Actions CI 实施计划；创建 Private 仓库前仍需确认实际 GitHub owner/身份。Caddy/HTTPS、生产 IAM、人工接管和公开部署不在本阶段。公共 registry mirror 的风险与后续每个实际镜像 digest 仍须留证。
 
 ## 发布门禁
 

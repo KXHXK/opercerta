@@ -1,5 +1,7 @@
 # OperCerta 文档索引
 
+新增已确认规格：`docs/superpowers/specs/2026-07-18-github-actions-ci-security-gate-design.md`（Private GitHub 仓库、分层 Actions、PostgreSQL 18、前后端门禁、Compose smoke、供应链固定与主分支保护；待编写实施计划）。
+
 新增已实施规格：`docs/superpowers/specs/2026-07-18-observability-security-regression-design.md`（服务端请求关联、安全结构化日志、低基数 Prometheus 指标与安全回归；本地门禁已通过）。
 
 新增已执行计划：`docs/superpowers/plans/2026-07-18-observability-security-regression.md`（FastAPI 补丁升级、请求上下文、安全 JSON 日志、低基数指标、HTTP/SSE 集成与完整门禁的七项原子任务）。
@@ -43,6 +45,7 @@
 | `docs/superpowers/specs/2026-07-16-docker-linux-runtime-design.md` | Docker/Linux、健康检查与 Ubuntu VM 运行时边界 | 已确认；实施计划已创建 | 本次提交 | 1 |
 | `docs/superpowers/specs/2026-07-17-wsl2-runtime-amendment-design.md` | WSL2 Ubuntu 26.04 环境修订、Docker 包来源与 registry mirror 例外 | 已确认；基础拉取已验证 | 本次提交 | 1 |
 | `docs/superpowers/specs/2026-07-18-observability-security-regression-design.md` | 请求关联、安全日志、低基数指标与安全回归设计 | 已实施并完成本地门禁 | `29b2c97` | 1 |
+| `docs/superpowers/specs/2026-07-18-github-actions-ci-security-gate-design.md` | Private GitHub Actions 分层 CI 安全门禁设计 | 已确认；待实施计划 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-14-opercerta-reliability-kernel.md` | 可靠性内核 TDD 总计划 | Task 1–6 已执行 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-16-langgraph-restart-recovery.md` | Task 5 四点重启恢复可执行 TDD 计划 | 已执行；证据已归档 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-16-work-order-idempotency.md` | Task 4 幂等工单可执行 TDD 计划 | 已执行；证据已归档 | 本次提交 | 1 |
