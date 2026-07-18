@@ -102,6 +102,15 @@
 - **限制：** 临时保活只适合本地演示；长期开发应通过常驻终端、Docker Desktop/系统服务策略或明确的 WSL 生命周期管理解决。
 - **面试表达：** “四个服务同秒正常退出更像编排器或运行时生命周期问题，而不是四个应用同时崩溃；我用数据库 shutdown 日志确认了这一点。”
 
+## 12. 部署成功不等于部署了正确产物
+
+- **问题：** Netlify CLI 首次生产部署退出码为 0，但线上仍显示旧控制台，证据图 URL 也返回 HTML。
+- **根因：** 功能分支位于嵌套 Git worktree；Netlify 将 repository root 回退到主 checkout，使相对发布目录解析为主工作区的旧 `web/dist`。
+- **修复：** 先用 `netlify build --dry --debug` 证明目录解析链，再显式部署功能工作树内已经测试的 `web/dist`，没有为了部署问题修改业务代码。
+- **验证：** 比较本地与线上 JS/CSS 指纹；验证两张图片均为 `image/png`；验证 `/api/*` 仍是 HTML 静态回退；记录最终 deploy id 与日志 URL。
+- **限制：** 当前是人工 CLI 静态部署，不是 Git 自动部署；公开后端、身份和数据写入仍然关闭。
+- **面试表达：** “我没有把 CLI 的 success 当成上线证据，而是用资源指纹和 Content-Type 验证实际产物；最终定位为 worktree 基目录解析错误。”
+
 ## 相关证据
 
 - `docs/release-evidence/approval-atomicity.md`

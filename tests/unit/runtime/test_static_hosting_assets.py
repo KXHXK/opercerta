@@ -18,3 +18,9 @@ def test_vite_local_proxy_targets_the_compose_api_port() -> None:
     content = (ROOT / "web" / "vite.config.ts").read_text(encoding="utf-8")
 
     assert '"/api": "http://127.0.0.1:8080"' in content
+
+
+def test_netlify_local_link_state_is_ignored() -> None:
+    content = (ROOT / ".gitignore").read_text(encoding="utf-8")
+
+    assert ".netlify/" in content

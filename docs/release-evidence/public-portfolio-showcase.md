@@ -1,10 +1,12 @@
-# OperCerta 公开专题本地证据
+# OperCerta 公开专题部署证据
 
 **核验日期：** 2026-07-18
 
-**证据范围：** 本地 WSL2 Ubuntu、Docker Compose、Vite 控制台、合成库存数据
+**证据范围：** 本地 WSL2 Ubuntu、Docker Compose、Vite 控制台、合成库存数据，以及 Netlify 静态生产部署
 
-**发布状态：** 静态专题尚未外部部署；OperCerta release gate 仍为 `CLOSED`
+**静态专题地址：** <https://opercerta-kxh.netlify.app>
+
+**发布状态：** 静态专题已部署；OperCerta 原产品 release gate 仍为 `CLOSED`
 
 ## 本地运行事实
 
@@ -54,6 +56,19 @@ readiness 实际返回 `status=ready`，`database`、`checkpoint`、`mcp` 均为
 - `npm run test:run`：11 个测试文件、24 条测试通过。
 - `npm run build`：成功生成 Vite 静态产物。
 
+## Netlify 生产部署验证
+
+- Netlify site id：`c9a55c47-8ee1-4d38-be4d-aeb8355cfa74`。
+- 最终生产 deploy id：`6a5ba2ebacf340a5a0649f91`。
+- 部署日志：<https://app.netlify.com/projects/opercerta-kxh/deploys/6a5ba2ebacf340a5a0649f91>。
+- `GET /` 与 `GET /console`：均为 `200 text/html`。
+- 线上标题：`OperCerta | 可恢复运营 Agent`。
+- 线上资源指纹：`index-CUPW156B.js`、`index-0pGkm15M.css`，与本次功能工作树构建产物一致。
+- 两张证据图均为 `200 image/png`。
+- `GET /api/v1/auth/demo-token` 返回 `200 text/html`，证明 Netlify 只做 SPA 静态回退，没有伪装或暴露 API。
+
+首次生产部署虽返回成功，但线上仍是旧控制台，资源指纹也与功能工作树不符。`netlify build --dry --debug` 证明 Netlify 把 Git 公共根目录解析到主 checkout，并将相对 `web/dist` 指向主工作区。修复没有修改业务代码，而是对已验证的功能工作树产物执行显式 `--dir=web/dist --no-build` 部署；随后用 HTTPS 响应类型和资源指纹重新核验。
+
 ## 边界
 
-这是本地合成数据演示证据，不是在线生产演示。公开页面不会连接 API、MCP、PostgreSQL 或 LangGraph，也不提供公开写入口。Netlify 站点创建与生产静态部署仍需用户明确授权；生产 IAM/SSO、设备场景、真实模型评测、完整浏览器 E2E 与原设计发布门禁仍未完成。
+公开页面展示的是本地合成数据流程证据，不是在线生产后端。页面不会连接 API、MCP、PostgreSQL 或 LangGraph，也不提供公开写入口。生产 IAM/SSO、设备场景、真实模型评测、完整浏览器 E2E、公开 API 与原设计发布门禁仍未完成。

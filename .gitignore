@@ -22,6 +22,7 @@ htmlcov/
 
 # Frontend
 node_modules/
+.netlify/
 .next/
 dist/
 build/
