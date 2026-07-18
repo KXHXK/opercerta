@@ -1,8 +1,8 @@
 # OperCerta 当前状态
 
-## 下一实施边界：Private GitHub Actions 分层 CI
+## 最新核验：Private GitHub Actions 分层 CI 已完成
 
-2026-07-18 已确认采用 Private GitHub 仓库与分层 Actions：PR/push 运行仓库安全、Python 静态门禁、PostgreSQL 18 完整后端测试和前端门禁；`main`/手动运行追加 Compose 业务 smoke 与重启恢复。设计见 `docs/superpowers/specs/2026-07-18-github-actions-ci-security-gate-design.md`，实施计划见 `docs/superpowers/plans/2026-07-18-github-actions-ci-security-gate.md`。当前尚未创建远程仓库、workflow 或真实 GitHub run；发布门禁保持 `CLOSED`。
+2026-07-18 已建立 Private `KXHXK/opercerta` 和只读、固定 Action SHA 的分层 Actions。PR `#1` run `29642286517` 的四个快速 job 成功，`compose-smoke` 按设计跳过；main run `29642363033` 的五个 job 全部成功，远程实测后端 `339 passed in 29.46s`、前端 9 个测试文件/15 条测试、Ruff、104 文件格式检查、mypy 50 个源文件、Compose 业务 smoke、API/MCP 重启恢复与无条件清理。Private 分支保护 API 因当前账户能力返回 HTTP 403，未启用并采用人工 PR 全绿后合并规则。证据见 `docs/release-evidence/github-actions-ci.md`；发布门禁保持 `CLOSED`。
 
 ## 最新核验：可观测性与安全回归基础已完成
 
@@ -88,17 +88,17 @@
 
 ## 当前阻塞与风险
 
-- 设备场景、生产 IAM/SSO、人工接管、CI/CD、Caddy/HTTPS、集中指标采集/告警和公开部署尚未完成，发布门禁保持关闭。
+- 设备场景、生产 IAM/SSO、人工接管、自动部署、Caddy/HTTPS、集中指标采集/告警和公开部署尚未完成，发布门禁保持关闭。
 - Windows 原生真实服务需要显式 Selector loop；WSL2 Ubuntu Compose 已验证默认 Linux 容器进程、健康检查、MCP 服务名访问、独立 PostgreSQL volume 和 API/MCP 重启，但这不代表高可用或生产承诺。
 - Docker/Linux 运行时已修订为 WSL2 → Ubuntu 26.04 LTS，不使用 Docker Desktop 或 Hyper-V VM。Ubuntu 官方仓库的 Docker `29.1.3`、Compose `2.40.3`、Buildx `0.30.1` 已安装；Docker Hub 直连超时后，经用户授权配置了三个可达的第三方 registry mirror。OperCerta Compose 已通过构建、健康、真实业务数据库断言与重启恢复；完整证据见 `docs/release-evidence/docker-linux-runtime.md`，供应链例外见 `docs/superpowers/specs/2026-07-17-wsl2-runtime-amendment-design.md`。
 - 一次预期失败的 Pytest/Psycopg traceback 曾展开旧的本地测试数据库连接密码；代码、Git 和文档未保存该值，fixture 已改为无密码 URL + 临时 `PGPASSWORD`，角色密码也已轮换和复验。
 - 2026-07-16 checkpointer 首次 GREEN 的 Psycopg 连接失败 traceback 再次展开当时的本地测试角色密码。新封装已改为无密码 DSN、临时 `PGPASSWORD` 和 `%20` query 编码，代码/Git/文档未保存该值；用户随后同步轮换 PostgreSQL 角色与 `.env.local`，focused checkpointer 回归新鲜 `4 passed`。
-- 当前 Git 没有配置远程仓库；本地 commit 不是远程备份。
+- 当前 Git 已配置 Private `origin`，`main` 跟踪 `origin/main`。当前账户对 Private 仓库启用 branch protection 返回 HTTP 403，因此保护未启用；所有改动必须人工坚持 PR、四个快速 job 全绿后合并，并在合并后核验 `compose-smoke`。
 
 ## 下一步
 
-继续只实施 OperCerta。下一步按已确认计划实施本地安全扫描器和 Actions workflow；创建 Private 仓库前仍需确认实际 GitHub owner/身份。Caddy/HTTPS、生产 IAM、人工接管和公开部署不在本阶段。公共 registry mirror 的风险与后续每个实际镜像 digest 仍须留证。
+继续只实施 OperCerta。Private GitHub Actions 分层 CI 已完成真实远程验证；下一决策边界为 Caddy/HTTPS 设计或生产 IAM/人工接管，之后才处理自动部署和公开发布。公共 registry mirror 的风险与后续每个实际镜像 digest 仍须留证。
 
 ## 发布门禁
 
-`OperCerta release gate: CLOSED`。当前证据证明库存补货纵向切片、WSL2 Compose、演示身份、固定评测、单页控制台和可观测性安全基础在本地通过；完整产品面、生产身份、HTTPS、CI/CD 和公开部署仍待完成。
+`OperCerta release gate: CLOSED`。当前证据证明库存补货纵向切片、WSL2 Compose、演示身份、固定评测、单页控制台、可观测性安全基础与 Private GitHub Actions 分层 CI 通过；完整产品面、生产身份、HTTPS、自动部署和公开发布仍待完成。

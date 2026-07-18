@@ -37,7 +37,7 @@
 - Produces: `tracked_paths(root: Path) -> tuple[Path, ...]`, `scan_repository(root: Path) -> tuple[str, ...]`, `main() -> int`.
 - Exit contract: zero findings returns 0; any forbidden path, placeholder, credential pattern, unpinned Action, write permission or changed attack allowlist returns 1.
 
-- [ ] **Step 1: 写安全扫描 RED 测试**
+- [x] **Step 1: 写安全扫描 RED 测试**
 
 ```python
 # tests/unit/scripts/test_verify_repository_safety.py
@@ -121,7 +121,7 @@ steps:
     assert any("write permission" in item for item in findings)
 ```
 
-- [ ] **Step 2: 运行 RED**
+- [x] **Step 2: 运行 RED**
 
 Run:
 
@@ -131,7 +131,7 @@ uv run pytest tests/unit/scripts/test_verify_repository_safety.py -q
 
 Expected: collection exits 1 with `ModuleNotFoundError: No module named 'scripts.verify_repository_safety'`.
 
-- [ ] **Step 3: 实现最小扫描器**
+- [x] **Step 3: 实现最小扫描器**
 
 ```python
 # scripts/verify_repository_safety.py
@@ -260,7 +260,7 @@ if __name__ == "__main__":
 
 Create empty `scripts/__init__.py` and `tests/unit/scripts/__init__.py`.
 
-- [ ] **Step 4: 运行 GREEN、真实仓库扫描和静态检查**
+- [x] **Step 4: 运行 GREEN、真实仓库扫描和静态检查**
 
 Run:
 
@@ -287,7 +287,7 @@ uv run ruff format --check scripts tests/unit/scripts
 
 Expected: both exit 0.
 
-- [ ] **Step 5: 提交扫描器**
+- [x] **Step 5: 提交扫描器**
 
 ```powershell
 git add scripts/__init__.py scripts/verify_repository_safety.py tests/unit/scripts
@@ -306,7 +306,7 @@ git commit -m "feat: verify repository safety"
 - Consumes: Task 1 CLI, `uv.lock`, `web/package-lock.json`, PostgreSQL 18 and existing pytest fixtures.
 - Produces: stable job/check names `repository-safety`, `python-quality`, `backend-tests`, `frontend`.
 
-- [ ] **Step 1: 写快速 workflow 契约 RED 测试**
+- [x] **Step 1: 写快速 workflow 契约 RED 测试**
 
 ```python
 # tests/unit/runtime/test_ci_assets.py
@@ -368,7 +368,7 @@ def test_ci_fast_jobs_use_frozen_python_postgres_and_frontend_gates() -> None:
     assert "npm run build" in text
 ```
 
-- [ ] **Step 2: 运行 RED**
+- [x] **Step 2: 运行 RED**
 
 Run:
 
@@ -378,7 +378,7 @@ uv run pytest tests/unit/runtime/test_ci_assets.py -q
 
 Expected: both tests fail with `GitHub Actions workflow is missing`.
 
-- [ ] **Step 3: 实现四个快速 job**
+- [x] **Step 3: 实现四个快速 job**
 
 ```yaml
 # .github/workflows/ci.yml
@@ -502,7 +502,7 @@ jobs:
         run: npm run build
 ```
 
-- [ ] **Step 4: 运行 GREEN 与扫描器回归**
+- [x] **Step 4: 运行 GREEN 与扫描器回归**
 
 Run:
 
@@ -529,7 +529,7 @@ uv run ruff format --check scripts tests/unit
 
 Expected: both exit 0.
 
-- [ ] **Step 5: 提交快速门禁**
+- [x] **Step 5: 提交快速门禁**
 
 ```powershell
 git add .github/workflows/ci.yml tests/unit/runtime/test_ci_assets.py
@@ -548,7 +548,7 @@ git commit -m "ci: add fast github actions gates"
 - Consumes: Task 2 four fast jobs and `scripts/verify_compose.py`.
 - Produces: stable job/check name `compose-smoke`, safe failure diagnostics and unconditional cleanup.
 
-- [ ] **Step 1: 写 Compose workflow RED 测试**
+- [x] **Step 1: 写 Compose workflow RED 测试**
 
 Append:
 
@@ -571,7 +571,7 @@ def test_ci_compose_smoke_is_main_or_manual_only_and_always_cleans_up() -> None:
     assert "docker compose down -v --remove-orphans" in text
 ```
 
-- [ ] **Step 2: 运行 RED**
+- [x] **Step 2: 运行 RED**
 
 Run:
 
@@ -581,7 +581,7 @@ uv run pytest tests/unit/runtime/test_ci_assets.py::test_ci_compose_smoke_is_mai
 
 Expected: fail because `compose-smoke` is absent.
 
-- [ ] **Step 3: 在 workflow 末尾增加 Compose job**
+- [x] **Step 3: 在 workflow 末尾增加 Compose job**
 
 ```yaml
   compose-smoke:
@@ -621,7 +621,7 @@ Expected: fail because `compose-smoke` is absent.
         run: docker compose down -v --remove-orphans
 ```
 
-- [ ] **Step 4: 运行 GREEN、完整本地后端与前端门禁**
+- [x] **Step 4: 运行 GREEN、完整本地后端与前端门禁**
 
 Run:
 
@@ -653,7 +653,7 @@ npm run build
 
 Expected: all exit 0; record actual test file/test counts and build result.
 
-- [ ] **Step 5: 提交 Compose 门禁**
+- [x] **Step 5: 提交 Compose 门禁**
 
 ```powershell
 git add .github/workflows/ci.yml tests/unit/runtime/test_ci_assets.py
@@ -671,7 +671,7 @@ git commit -m "ci: verify compose on main"
 - Consumes: authenticated GitHub connector or `gh`, clean `ci/github-actions-gate` branch and Tasks 1–3 commits.
 - Produces: Private `opercerta` repository, configured `origin`, initial PR run and merged `main` run.
 
-- [ ] **Step 1: 核验 GitHub 身份并设置人工确认点**
+- [x] **Step 1: 核验 GitHub 身份并设置人工确认点**
 
 Run:
 
@@ -682,7 +682,7 @@ gh api user --jq .login
 
 Expected: authenticated account login is printed without token. Show that login to the user and obtain explicit confirmation that it is the intended owner before creating the repository. If `gh` is unavailable, use the installed GitHub connector; if neither is authenticated, stop and ask the user to complete GitHub authentication.
 
-- [ ] **Step 2: 核验本地分支、工作区与远程名称可用性**
+- [x] **Step 2: 核验本地分支、工作区与远程名称可用性**
 
 Run:
 
@@ -703,7 +703,7 @@ gh repo view "$owner/opercerta" --json nameWithOwner,visibility,url
 
 Expected for a new repository: exit 1/not found. If it exists, stop; do not overwrite or reuse it without user direction.
 
-- [ ] **Step 3: 创建 Private 仓库并验证可见性**
+- [x] **Step 3: 创建 Private 仓库并验证可见性**
 
 ```powershell
 $owner = gh api user --jq .login
@@ -713,7 +713,7 @@ gh repo view "$owner/opercerta" --json nameWithOwner,visibility,url
 
 Expected: JSON reports the confirmed owner, repository `opercerta`, and `visibility: PRIVATE`.
 
-- [ ] **Step 4: 配置 origin，先推 main 基线，再推 CI 分支并创建 PR**
+- [x] **Step 4: 配置 origin，先推 main 基线，再推 CI 分支并创建 PR**
 
 ```powershell
 $owner = gh api user --jq .login
@@ -725,7 +725,7 @@ gh pr create --base main --head (git branch --show-current) --title "ci: add git
 
 Expected: both branches push without force, and one open PR targets `main`.
 
-- [ ] **Step 5: 观察 PR 快速门禁，失败时按证据修复**
+- [x] **Step 5: 观察 PR 快速门禁，失败时按证据修复**
 
 ```powershell
 $commit = git rev-parse HEAD
@@ -742,7 +742,7 @@ gh run view $runId --json headSha,event,status,conclusion,jobs,url
 
 Expected: `repository-safety`、`python-quality`、`backend-tests`、`frontend` success；`compose-smoke` skipped on PR. If any job fails, inspect only that job with `gh run view $runId --log-failed`, identify the root cause, add or tighten a local regression test, commit the fix, push normally and repeat this step. Do not use `continue-on-error`, remove assertions or expose environment variables.
 
-- [ ] **Step 6: 合并 PR 并观察 main 的全部五个 job**
+- [x] **Step 6: 合并 PR 并观察 main 的全部五个 job**
 
 ```powershell
 gh pr merge --merge --delete-branch=false
@@ -773,7 +773,7 @@ Expected: main run has all five jobs success, including `compose-smoke`; commit 
 - Consumes: Task 4 successful main run and authenticated owner.
 - Produces: verified branch protection requiring the four fast checks, or an evidence-backed account limitation.
 
-- [ ] **Step 1: 读取当前 protection 状态**
+- [x] **Step 1: 读取当前 protection 状态**
 
 ```powershell
 $owner = gh api user --jq .login
@@ -782,7 +782,7 @@ gh api "repos/$owner/opercerta/branches/main/protection"
 
 Expected before configuration: 404/unprotected or existing settings that must be shown to the user before modification. Never overwrite unexpected existing protection silently.
 
-- [ ] **Step 2: 启用不要求外部 reviewer 的 protection**
+- [x] **Step 2: 启用不要求外部 reviewer 的 protection**
 
 Run in PowerShell with the confirmed owner:
 
@@ -816,7 +816,7 @@ $payload | gh api --method PUT "repos/$owner/opercerta/branches/main/protection"
 
 Expected: success JSON. If GitHub returns a plan/capability error, do not retry by weakening repository visibility or purchasing a plan; capture the status/code for Task 6 and use the documented manual rule.
 
-- [ ] **Step 3: 回读并验证保护事实**
+- [x] **Step 3: 回读并验证保护事实**
 
 ```powershell
 $owner = gh api user --jq .login
@@ -842,7 +842,7 @@ Expected if supported: four exact fast contexts; `enforce_admins: true`、`force
 - Consumes: actual PR/main run JSON, current Git commit, repository visibility and protection response.
 - Produces: Chinese evidence with observed facts only and a clean local `main` tracking `origin/main`.
 
-- [ ] **Step 1: 采集远程只读事实，不采集 token**
+- [x] **Step 1: 采集远程只读事实，不采集 token**
 
 Run:
 
@@ -857,7 +857,7 @@ git branch -vv
 
 Expected: Private repository, default branch `main`, successful current main run, clean worktree and local main tracking origin/main. Record only the actual returned run ID/SHA/event/conclusion/URL.
 
-- [ ] **Step 2: 写中文远程 CI 证据**
+- [x] **Step 2: 写中文远程 CI 证据**
 
 Create `docs/release-evidence/github-actions-ci.md` with exactly these sections and only observed values from Step 1 and Tasks 4–5:
 
@@ -883,7 +883,7 @@ Create `docs/release-evidence/github-actions-ci.md` with exactly these sections 
 明确未实现 CodeQL/GHAS、漏洞扫描、自动部署、Caddy/HTTPS、生产 IAM 或公开仓库，release gate 为 CLOSED。
 ```
 
-- [ ] **Step 3: 同步 README、索引、当前状态、交接和日志**
+- [x] **Step 3: 同步 README、索引、当前状态、交接和日志**
 
 Only state facts proven by remote output:
 
@@ -896,7 +896,7 @@ Only state facts proven by remote output:
 
 Mark completed plan checkboxes `- [x]` without deleting RED/GREEN commands or failure diagnostics.
 
-- [ ] **Step 4: 运行最终本地门禁与敏感扫描**
+- [x] **Step 4: 运行最终本地门禁与敏感扫描**
 
 Run from repository root:
 
