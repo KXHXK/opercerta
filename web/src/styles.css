@@ -25,6 +25,40 @@ button { background: #1c807b; border: 1px solid #65cfc3; border-radius: .5rem; c
 button:hover:not(:disabled) { background: #249b94; }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #ffcb85; outline-offset: 2px; }
 button:disabled { cursor: not-allowed; opacity: .52; }
+
+.showcase-shell { background: radial-gradient(circle at 80% 10%, #153f46 0, #111827 34rem); min-height: 100vh; overflow: hidden; }
+.showcase-nav { align-items: center; border-bottom: 1px solid #304155; display: flex; justify-content: space-between; margin: 0 auto; max-width: 1320px; padding: 1.25rem 2rem; }
+.showcase-nav a { color: #dce8f3; text-decoration: none; }
+.showcase-nav div { display: flex; gap: 1.5rem; }
+.showcase-logo { font: 800 .85rem/1 ui-monospace, monospace; letter-spacing: .18em; }
+.showcase-hero { margin: 0 auto; max-width: 1320px; padding: clamp(5rem, 12vw, 10rem) 2rem; position: relative; }
+.showcase-hero::after { border: 1px solid #79d9cf55; border-radius: 50%; content: ""; height: 26rem; position: absolute; right: -7rem; top: 1rem; width: 26rem; }
+.showcase-hero h1 { font-size: clamp(4.5rem, 15vw, 12rem); letter-spacing: -.07em; line-height: .8; position: relative; z-index: 1; }
+.showcase-lead { color: #f4fbff; font-size: clamp(1.4rem, 3vw, 2.8rem); max-width: 24ch; }
+.showcase-hero > p:not(.eyebrow) { max-width: 52rem; }
+.showcase-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 2rem; }
+.showcase-actions a { border: 1px solid #79d9cf; border-radius: 999px; color: #f4fffd; padding: .8rem 1.2rem; text-decoration: none; }
+.showcase-actions a:first-child { background: #1c807b; }
+.showcase-section { border-top: 1px solid #304155; margin: 0 auto; max-width: 1320px; padding: clamp(3rem, 7vw, 6rem) 2rem; }
+.showcase-section h2 { font-size: clamp(2.2rem, 6vw, 5rem); margin: .5rem 0 2rem; }
+.section-index { color: #79d9cf; font: .78rem/1 ui-monospace, monospace; letter-spacing: .14em; }
+.workflow-line { color: #dfeaf4; font-size: clamp(1.25rem, 3vw, 2.4rem); line-height: 1.5; }
+.stack-grid { display: grid; gap: .75rem; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.stack-grid span { background: #172033; border: 1px solid #304155; border-radius: .75rem; color: #dfeaf4; padding: 1.4rem; }
+.evidence-grid { display: grid; gap: 1px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.evidence-grid article { background: #172033; min-height: 11rem; padding: 2rem; }
+.evidence-grid h3 { color: #79d9cf; font-size: 1.2rem; }
+.evidence-grid p, .boundary-section { color: #a9b7c8; line-height: 1.7; }
+.showcase-proof-grid { display: grid; gap: 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.showcase-proof-grid figure { background: #172033; border: 1px solid #304155; border-radius: 1rem; margin: 0; overflow: hidden; }
+.showcase-proof-grid img { background: #0f1726; display: block; height: 32rem; object-fit: contain; width: 100%; }
+.showcase-proof-grid figcaption { color: #a9b7c8; line-height: 1.6; padding: 1rem 1.25rem; }
+.boundary-section ul { display: flex; flex-wrap: wrap; gap: .6rem; list-style: none; padding: 0; }
+.boundary-section li { border: 1px solid #8b5e34; border-radius: 999px; color: #ffcb85; padding: .55rem .85rem; }
+.showcase-footer { color: #79d9cf; font: .78rem/1.6 ui-monospace, monospace; letter-spacing: .12em; margin: 0 auto; max-width: 1320px; padding: 2rem; }
+.console-unavailable, .not-found { margin: 10vh auto; max-width: 42rem; padding: 2rem; }
+.console-unavailable code { background: #172033; border: 1px solid #304155; display: block; margin: 1.5rem 0; padding: 1rem; }
+.showcase-shell a:focus-visible { outline: 3px solid #ffcb85; outline-offset: 4px; }
 .inline-fields { align-items: end; display: grid; gap: .5rem; grid-template-columns: 1fr auto; }
 .inline-fields button { margin: 0; }
 .panel-note { color: #a9b7c8; font-size: .9rem; line-height: 1.5; }
@@ -48,4 +82,10 @@ button:disabled { cursor: not-allowed; opacity: .52; }
   .console-grid { grid-template-columns: 1fr; }
   .inline-fields { grid-template-columns: 1fr; }
   .inline-fields button { margin-top: 0; }
+  .showcase-nav { padding: 1rem; }
+  .showcase-nav div { gap: .8rem; }
+  .showcase-hero, .showcase-section { padding-left: 1rem; padding-right: 1rem; }
+  .showcase-hero::after { opacity: .45; }
+  .stack-grid, .evidence-grid, .showcase-proof-grid { grid-template-columns: 1fr; }
+  .showcase-proof-grid img { height: auto; max-height: 38rem; }
 }

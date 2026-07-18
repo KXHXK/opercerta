@@ -2,6 +2,8 @@
 
 ## 当前检查点
 
+- 2026-07-19 公开专题功能工作树最终本地门禁通过：后端 `342 passed in 65.94s`、Ruff clean、105 文件 format check、mypy 50 个源文件、仓库安全扫描、前端 11 文件/24 条测试和 Vite 构建均通过。首次门禁在后端通过后因测试文件多余空行触发 Ruff `I001`，最小修复后从头重跑整条门禁。下一步为功能分支 PR 与 main Compose smoke；原 release gate 仍为 `CLOSED`。
+- 2026-07-18 已将不连接后端的 OperCerta 静态专题生产部署到 <https://opercerta-kxh.netlify.app>。最终 deploy id `6a5ba2ebacf340a5a0649f91`；线上标题、JS/CSS 指纹、两张 PNG 证据图和 `/api/*` 静态回退均已核验。个人作品集已在本地加入该 URL 并通过 Vinext 构建/SSR HTML 验证，但因既有用户脏改动未暂存、未提交、未部署。该部署只展示合成数据证据，不改变生产 IAM、HTTPS 后端、自动部署、公开 API 等未完成边界，原 release gate 仍为 `CLOSED`。证据见 `docs/release-evidence/public-portfolio-showcase.md`。
 - 2026-07-18 已建立 Private `KXHXK/opercerta` 与分层 GitHub Actions。PR `#1` run `29642286517` 的四个快速 job 通过；main run `29642363033` 的五个 job 全部通过，远程日志记录后端 `339 passed`、前端 9 个测试文件/15 条测试，以及 Compose 业务 smoke、API/MCP 重启恢复和无条件清理。证据见 `docs/release-evidence/github-actions-ci.md`。Private 分支保护因当前账户能力返回 HTTP 403，未启用；必须继续执行人工 PR 全绿后合并规则。发布门禁仍为 `CLOSED`。
 - 2026-07-18 已完成可观测性与安全回归基础：FastAPI `0.139.2`、服务端 request_id、异常后上下文清理、安全 JSON 日志、应用级低基数 Prometheus 指标、SSE 实际回放计数和默认关闭的 `/metrics`。完整后端门禁为 `332 passed in 74.58s`，Ruff、100 文件 format check、mypy 50 个源文件通过；证据见 `docs/release-evidence/observability-security-regression.md`。发布门禁仍为 `CLOSED`。
 
@@ -28,13 +30,13 @@
 - secret-safe 迁移完成 `0001_reliability_kernel → 0002_inventory_replenishment (head)`，迁移后集成测试 `131 passed in 55.39s`。
 - 审批十路竞态独立重复 `10/10`；A/B 重启恢复独立重复 `10/10`，每轮 `7 passed`。这些只是本地重复证据。
 - 真实 FastMCP、FastAPI 和独立客户端三进程闭环通过：四工具名称匹配，创建进入 `awaiting_approval`，批准后 `completed`，重复审批 `409`，数据库一条审批、一条工单且终态审计顺序正确。证据见 `docs/release-evidence/inventory-replenishment-vertical-slice.md`。
-- Windows Uvicorn 0.51 默认 Proactor loop 与 Psycopg async 不兼容；真实服务验证使用 Uvicorn custom loop factory 明确选择 Selector loop。Linux/Docker 仍未验证。
+- Windows Uvicorn 0.51 默认 Proactor loop 与 Psycopg async 不兼容；真实服务验证使用 Uvicorn custom loop factory 明确选择 Selector loop。Linux/Docker Compose 已完成本地单节点验证，但未形成生产高可用承诺。
 - Docker/Linux 运行时已修订为 WSL2、Ubuntu 26.04 LTS；不使用 Docker Desktop、Hyper-V VM。因 Docker 厂商 APT 源 TLS 被当前网络重置，经用户确认安装 Ubuntu 官方签名仓库的 Docker Engine `29.1.3`、Compose `2.40.3` 与 Buildx `0.30.1`。Docker Hub 直连超时后，经用户授权配置三个实测可达的第三方 registry mirror。OperCerta Compose 的构建、健康、真实审批工单数据库断言和 API/MCP 重启恢复已通过；完整证据见 `docs/release-evidence/docker-linux-runtime.md`，发布门禁仍关闭。
 
 ## 新对话必须先做
 
 1. 先阅读 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md` 和最近每日日志，再阅读相关设计、计划、交接和 Git 状态。
-2. 只实施 OperCerta；库存补货 Task 1–9、WSL2 Docker Compose、演示 JWT/RBAC、固定 30 条契约评测、单页控制台、可观测性安全基础与 Private GitHub Actions 分层 CI 已有证据。下一步只进入生产身份/人工接管、Caddy/HTTPS、自动部署与公开发布等剩余门禁；公共 registry mirror 与 Private 分支保护账户限制均已留证，不启动其他项目。
+2. 只实施 OperCerta；库存补货 Task 1–9、WSL2 Docker Compose、演示 JWT/RBAC、固定 30 条契约评测、单页控制台、可观测性安全基础、Private GitHub Actions 分层 CI 与静态专题部署已有证据。下一步只处理作品集入口，再进入生产身份/人工接管、Caddy/HTTPS 后端、自动部署与公开 API 等剩余门禁；公共 registry mirror 与 Private 分支保护账户限制均已留证，不启动其他项目。
 3. 运行集成测试前，以不回显方式从已忽略 `.env.local` 加载 `OPERCERTA_DATABASE_URL`；不得提交该文件或任何凭据。
 4. 每个效果数字都保留基线、测试数据、测量脚本和结果证据；指标未测出前使用目标值或空值，不写成已实现结果。
 5. 使用公开或合成数据，从零编写全部代码和文档，不导入任何原单位源码、数据、截图、模型、品牌或内部规则。

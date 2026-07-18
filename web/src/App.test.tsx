@@ -1,9 +1,22 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import App from "./App";
 
 afterEach(() => vi.unstubAllGlobals());
+beforeEach(() => window.history.pushState({}, "", "/console"));
+
+it("renders the static showcase at the root without calling fetch", () => {
+  const fetchMock = vi.fn();
+  vi.stubGlobal("fetch", fetchMock);
+  window.history.pushState({}, "", "/");
+
+  render(<App />);
+
+  expect(screen.getByRole("heading", { name: "OperCerta" })).toBeInTheDocument();
+  expect(screen.getByText(/release gate: CLOSED/i)).toBeInTheDocument();
+  expect(fetchMock).not.toHaveBeenCalled();
+});
 
 it("renders the OperCerta console shell", () => {
   render(<App />);

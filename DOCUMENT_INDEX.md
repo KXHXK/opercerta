@@ -6,6 +6,10 @@
 
 新增验证证据：`docs/release-evidence/github-actions-ci.md`（Private remote、PR/main 真实 Actions、339 条后端回归、前端门禁、Compose 重启恢复和分支保护 HTTP 403 能力限制；发布门禁仍关闭）。
 
+新增验证证据：`docs/release-evidence/public-portfolio-showcase.md`（本地合成库存审批、唯一工单、审计序列 1–10、静态专题截图及 Netlify 生产 URL/资源指纹；原发布门禁仍关闭）。
+
+新增公开展示设计与计划：`docs/superpowers/specs/2026-07-18-public-portfolio-showcase-design.md`、`docs/superpowers/plans/2026-07-18-public-portfolio-showcase.md`；面试流程见 `docs/demo-script.md`。静态专题已部署至 <https://opercerta-kxh.netlify.app>，原发布门禁仍关闭。
+
 新增已实施规格：`docs/superpowers/specs/2026-07-18-observability-security-regression-design.md`（服务端请求关联、安全结构化日志、低基数 Prometheus 指标与安全回归；本地门禁已通过）。
 
 新增已执行计划：`docs/superpowers/plans/2026-07-18-observability-security-regression.md`（FastAPI 补丁升级、请求上下文、安全 JSON 日志、低基数指标、HTTP/SSE 集成与完整门禁的七项原子任务）。
@@ -15,6 +19,8 @@
 新增验证证据：`docs/release-evidence/single-page-console.md`（本地单页运营控制台的前端测试与构建；不代表完整端到端或公开发布）。
 
 新增开发日志：`docs/development-log/daily/2026-07-18.md`（前端 TDD、测试隔离诊断、依赖问题与真实验证结果）。
+
+新增开发日志：`docs/development-log/daily/2026-07-19.md`（公开专题最终本地门禁、Ruff `I001` 根因与完整重跑证据）。
 
 新增已实施规格：`docs/superpowers/specs/2026-07-17-demo-jwt-rbac-design.md`（本地演示 JWT、RBAC 与审批身份边界；本地验证已完成）。
 
@@ -34,8 +40,8 @@
 
 | 路径 | 用途 | 状态 | 最后核验 commit | 优先级 |
 | --- | --- | --- | --- | --- |
-| `README.md` | 项目概览与使用边界 | 已同步 Private GitHub Actions 远程门禁与剩余发布边界 | 本次提交 | 2 |
-| `IMPLEMENTATION_HANDOFF.md` | 会话交接与下一动作 | 已同步远程 CI 证据、保护能力限制与下一边界 | 本次提交 | 3 |
+| `README.md` | 项目概览与使用边界 | 已同步静态专题 URL、远程门禁与剩余发布边界 | 本次提交 | 2 |
+| `IMPLEMENTATION_HANDOFF.md` | 会话交接与下一动作 | 已同步静态部署证据、远程 CI 与下一边界 | 本次提交 | 3 |
 | `docs/specs/2026-07-14-agent-project-naming-design.md` | 命名设计 | 已冻结基线 | `c7fa618` | 4 |
 | `docs/specs/AI_Agent四项目总体设计规格.md` | 总体设计 | 已冻结基线 | `48d299c` | 5 |
 | `docs/specs/2026-07-14-agent-portfolio-design.md` | 组合设计 | 已冻结基线 | `48d299c` | 5 |
@@ -79,6 +85,7 @@
 | `docs/release-evidence/single-page-console.md` | 本地单页运营控制台测试与构建证据 | 本地前端验证通过；不代表公开发布 | `f88ddc5` | 1 |
 | `docs/release-evidence/observability-security-regression.md` | request_id、安全日志、低基数指标与安全回归证据 | 本地门禁通过；发布门禁仍关闭 | 本次提交 | 1 |
 | `docs/release-evidence/github-actions-ci.md` | Private remote、PR/main 分层 CI、Compose 重启恢复与保护能力证据 | 远程门禁通过；分支保护受账户能力限制；发布门禁仍关闭 | 本次提交 | 1 |
+| `docs/release-evidence/public-portfolio-showcase.md` | 公开专题的本地审批、工单、审计、截图与线上部署证据 | 静态 URL 已验证；原发布门禁仍关闭 | 本次提交 | 1 |
 
 ## 计划创建
 

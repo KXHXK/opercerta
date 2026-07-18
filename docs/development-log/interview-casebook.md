@@ -80,9 +80,36 @@
 
 ## 9. 当前未完成范围也应能诚实说明
 
-- **已完成：** 库存补货后端、可靠性内核、Docker Compose 单节点验证。
-- **未完成：** 设备场景、JWT/RBAC、SSE、React、真实模型、Redis、固定评测、安全回归、可观测性、CI/CD 和公开部署。
+- **已完成：** 库存补货后端、可靠性内核、Docker Compose 单节点验证、本地 JWT/RBAC、SSE 审计回放、React 控制台、固定合成契约评测、安全回归、基础可观测性与 GitHub Actions 分层 CI。
+- **未完成：** 设备场景、生产 IAM/SSO、真实模型评测、完整浏览器 E2E、生产高可用与公开 API 部署；静态专题也必须在真实 URL 验证后才能称为已部署。
 - **面试表达：** “我优先证明了高风险写操作的可靠性内核，完整产品能力仍按发布门禁分阶段推进；不会把本地后端证据说成生产上线。”
+
+## 10. 源码正确但旧镜像仍会让接口 404
+
+- **问题：** 浏览器能读取 operation 详情，但审计 SSE 回放失败；API 日志显示 `/events` 返回 404。
+- **根因：** 工作区源码已有审计路由，正在运行的容器镜像却创建于实现之前；`docker compose up -d` 只复用了旧镜像。
+- **修复：** 比对容器创建时间、源码路由和访问日志，确认边界后重新构建 `api`、`mcp`、`bootstrap` 镜像，而不是修改已经正确的路由代码。
+- **验证：** 同一 operation 的事件地址返回 `200 OK` 与 `text/event-stream`，浏览器回放序列 1–10。
+- **限制：** 本地 Compose 默认不等同于镜像仓库供应链；正式部署仍需不可变 tag/digest 和部署 commit 关联。
+- **面试表达：** “我先证明失败发生在镜像版本边界，而不是看到 404 就改路由；源码、镜像和运行实例必须形成同一版本链。”
+
+## 11. WSL 结束会让无 Live Restore 的 Docker 一起退出
+
+- **问题：** Compose 服务健康后不久全部在同一秒退出，且退出码为 0。
+- **根因：** PostgreSQL 日志记录管理员快速关机；无持久 WSL 会话时实例结束，Docker daemon 随之停止，`Live Restore` 又为 false。
+- **修复：** 为本次验证启动隐藏、可追踪的临时 WSL 保活进程，保持 Linux 实例和 Docker daemon 存活；不写系统启动项，验证后清理。
+- **验证：** Windows 前台命令结束后 `/health/ready` 仍返回 database、checkpoint、mcp 全部 ready，浏览器随后完成审批、唯一工单和审计闭环。
+- **限制：** 临时保活只适合本地演示；长期开发应通过常驻终端、Docker Desktop/系统服务策略或明确的 WSL 生命周期管理解决。
+- **面试表达：** “四个服务同秒正常退出更像编排器或运行时生命周期问题，而不是四个应用同时崩溃；我用数据库 shutdown 日志确认了这一点。”
+
+## 12. 部署成功不等于部署了正确产物
+
+- **问题：** Netlify CLI 首次生产部署退出码为 0，但线上仍显示旧控制台，证据图 URL 也返回 HTML。
+- **根因：** 功能分支位于嵌套 Git worktree；Netlify 将 repository root 回退到主 checkout，使相对发布目录解析为主工作区的旧 `web/dist`。
+- **修复：** 先用 `netlify build --dry --debug` 证明目录解析链，再显式部署功能工作树内已经测试的 `web/dist`，没有为了部署问题修改业务代码。
+- **验证：** 比较本地与线上 JS/CSS 指纹；验证两张图片均为 `image/png`；验证 `/api/*` 仍是 HTML 静态回退；记录最终 deploy id 与日志 URL。
+- **限制：** 当前是人工 CLI 静态部署，不是 Git 自动部署；公开后端、身份和数据写入仍然关闭。
+- **面试表达：** “我没有把 CLI 的 success 当成上线证据，而是用资源指纹和 Content-Type 验证实际产物；最终定位为 worktree 基目录解析错误。”
 
 ## 相关证据
 
@@ -91,3 +118,4 @@
 - `docs/release-evidence/langgraph-restart-recovery.md`
 - `docs/release-evidence/inventory-replenishment-vertical-slice.md`
 - `docs/release-evidence/docker-linux-runtime.md`
+- `docs/release-evidence/public-portfolio-showcase.md`
