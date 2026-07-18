@@ -77,6 +77,20 @@ readiness 实际返回 `status=ready`，`database`、`checkpoint`、`mcp` 均为
 - 构建后的 SSR HTML 真实包含 `OperCerta`，且同一外链带有正确 URL、`target="_blank"` 与 `rel="noreferrer"`。
 - 作品集工作区此前已有大量用户未提交改动，`app/page.tsx` 也是整文件未提交重写。本轮没有暂存或提交该文件，避免吸收用户已有 hunk；作品集尚未生产部署。
 
+## 最终本地门禁
+
+2026-07-19 对当前功能工作树从头执行完整门禁，观察结果如下：
+
+- `uv run pytest -q`：`342 passed in 65.94s`。
+- `uv run ruff check .`：`All checks passed!`。
+- `uv run ruff format --check .`：105 个文件格式正确。
+- `uv run mypy`：50 个源文件无问题。
+- `uv run python scripts/verify_repository_safety.py`：通过。
+- `npm run test:run`：11 个测试文件、24 条测试通过。
+- `npm run build`：成功；JS/CSS 指纹仍与已部署 Netlify 产物一致。
+
+第一次完整执行在 342 条后端测试通过后被 Ruff `I001` 阻断；根据 `ruff check --diff` 只删除测试文件顶部多余空行，再从头重跑以上整条门禁。这里记录的是修复后当前工作树的结果，不复用修改前的部分通过结果。
+
 ## 边界
 
 公开页面展示的是本地合成数据流程证据，不是在线生产后端。页面不会连接 API、MCP、PostgreSQL 或 LangGraph，也不提供公开写入口。个人作品集入口已完成本地构建但尚未部署。生产 IAM/SSO、设备场景、真实模型评测、完整浏览器 E2E、公开 API 与原设计发布门禁仍未完成。

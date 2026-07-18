@@ -2,6 +2,7 @@
 
 ## 当前检查点
 
+- 2026-07-19 公开专题功能工作树最终本地门禁通过：后端 `342 passed in 65.94s`、Ruff clean、105 文件 format check、mypy 50 个源文件、仓库安全扫描、前端 11 文件/24 条测试和 Vite 构建均通过。首次门禁在后端通过后因测试文件多余空行触发 Ruff `I001`，最小修复后从头重跑整条门禁。下一步为功能分支 PR 与 main Compose smoke；原 release gate 仍为 `CLOSED`。
 - 2026-07-18 已将不连接后端的 OperCerta 静态专题生产部署到 <https://opercerta-kxh.netlify.app>。最终 deploy id `6a5ba2ebacf340a5a0649f91`；线上标题、JS/CSS 指纹、两张 PNG 证据图和 `/api/*` 静态回退均已核验。个人作品集已在本地加入该 URL 并通过 Vinext 构建/SSR HTML 验证，但因既有用户脏改动未暂存、未提交、未部署。该部署只展示合成数据证据，不改变生产 IAM、HTTPS 后端、自动部署、公开 API 等未完成边界，原 release gate 仍为 `CLOSED`。证据见 `docs/release-evidence/public-portfolio-showcase.md`。
 - 2026-07-18 已建立 Private `KXHXK/opercerta` 与分层 GitHub Actions。PR `#1` run `29642286517` 的四个快速 job 通过；main run `29642363033` 的五个 job 全部通过，远程日志记录后端 `339 passed`、前端 9 个测试文件/15 条测试，以及 Compose 业务 smoke、API/MCP 重启恢复和无条件清理。证据见 `docs/release-evidence/github-actions-ci.md`。Private 分支保护因当前账户能力返回 HTTP 403，未启用；必须继续执行人工 PR 全绿后合并规则。发布门禁仍为 `CLOSED`。
 - 2026-07-18 已完成可观测性与安全回归基础：FastAPI `0.139.2`、服务端 request_id、异常后上下文清理、安全 JSON 日志、应用级低基数 Prometheus 指标、SSE 实际回放计数和默认关闭的 `/metrics`。完整后端门禁为 `332 passed in 74.58s`，Ruff、100 文件 format check、mypy 50 个源文件通过；证据见 `docs/release-evidence/observability-security-regression.md`。发布门禁仍为 `CLOSED`。

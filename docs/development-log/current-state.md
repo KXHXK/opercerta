@@ -2,7 +2,7 @@
 
 ## 最新核验：公开静态项目专题已完成生产部署验证
 
-2026-07-18 已把 Vite 根路径调整为不依赖后端的静态项目专题，`/console` 保留真实本地演示；公开主机未配置 API 时只显示本地启动说明，不提供公网写入。专题已部署至 <https://opercerta-kxh.netlify.app>。当前前端新鲜门禁为 11 个测试文件、24 条测试通过且生产构建成功；Netlify 静态配置有 3 条契约测试。线上标题、JS/CSS 指纹、两张 PNG 证据图和 `/api/*` 静态回退均已验证。个人作品集已在本地加入该 URL 并通过 Vinext 构建/SSR HTML 验证，但因既有用户脏改动未暂存、未提交、未部署。原产品发布门禁仍为 `CLOSED`。
+2026-07-18 已把 Vite 根路径调整为不依赖后端的静态项目专题，`/console` 保留真实本地演示；公开主机未配置 API 时只显示本地启动说明，不提供公网写入。专题已部署至 <https://opercerta-kxh.netlify.app>。线上标题、JS/CSS 指纹、两张 PNG 证据图和 `/api/*` 静态回退均已验证。个人作品集已在本地加入该 URL 并通过 Vinext 构建/SSR HTML 验证，但因既有用户脏改动未暂存、未提交、未部署。2026-07-19 最终本地门禁为后端 342 条、Ruff、105 文件格式检查、mypy 50 个源文件、安全扫描、前端 11 文件/24 条测试及生产构建全部通过。原产品发布门禁仍为 `CLOSED`。
 
 ## 最新核验：Private GitHub Actions 分层 CI 已完成
 
@@ -20,7 +20,7 @@
 
 本地短时 JWT 与四角色 RBAC 已实施，审批主体只从 JWT `sub` 取得。库存补货固定合成契约评测当前有效版本为 `replenishment-v3`：真实 FastAPI、FastMCP、PostgreSQL 与恢复夹具运行 30 条，30 passed、0 failed。已新增 SSE 审计快照回放与 `Last-Event-ID` 续传；全量 pytest 为 325 passed。详见 `docs/release-evidence/demo-jwt-rbac.md`、`docs/release-evidence/replenishment-contract-evaluation.md` 和 `docs/release-evidence/sse-audit-replay.md`。
 
-最后核验：2026-07-18 Asia/Shanghai；发布门禁仍为 `CLOSED`。
+最后核验：2026-07-19 Asia/Shanghai；发布门禁仍为 `CLOSED`。
 
 ## 当前阶段
 

@@ -20,6 +20,8 @@
 
 新增开发日志：`docs/development-log/daily/2026-07-18.md`（前端 TDD、测试隔离诊断、依赖问题与真实验证结果）。
 
+新增开发日志：`docs/development-log/daily/2026-07-19.md`（公开专题最终本地门禁、Ruff `I001` 根因与完整重跑证据）。
+
 新增已实施规格：`docs/superpowers/specs/2026-07-17-demo-jwt-rbac-design.md`（本地演示 JWT、RBAC 与审批身份边界；本地验证已完成）。
 
 新增已执行计划：`docs/superpowers/plans/2026-07-17-demo-jwt-rbac.md`（本地 JWT/RBAC 的四项 TDD 实施任务）。
