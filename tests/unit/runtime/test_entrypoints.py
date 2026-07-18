@@ -5,20 +5,32 @@ from pydantic import SecretStr
 from opercerta.runtime import api, bootstrap, mcp
 
 
-def test_api_main_binds_all_container_interfaces(monkeypatch) -> None:
-    calls: list[tuple[object, str, int]] = []
+def test_api_main_configures_logging_and_binds_all_container_interfaces(
+    monkeypatch,
+) -> None:
+    events: list[tuple[object, ...]] = []
     application = object()
     monkeypatch.setenv("PORT", "9010")
     monkeypatch.setattr(api, "create_production_app", lambda: application)
     monkeypatch.setattr(
+        api,
+        "configure_json_logging",
+        lambda service: events.append(("logging", service)),
+    )
+    monkeypatch.setattr(
         api.uvicorn,
         "run",
-        lambda app, host, port: calls.append((app, host, port)),
+        lambda app, host, port, log_config: events.append(
+            ("uvicorn", app, host, port, log_config)
+        ),
     )
 
     api.main()
 
-    assert calls == [(application, "0.0.0.0", 9010)]
+    assert events == [
+        ("logging", "opercerta-api"),
+        ("uvicorn", application, "0.0.0.0", 9010, None),
+    ]
 
 
 def test_mcp_main_binds_all_container_interfaces(monkeypatch) -> None:
