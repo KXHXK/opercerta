@@ -16,6 +16,11 @@ h1 { font-size: clamp(1.5rem, 3vw, 2.4rem); margin: 0; }
 .console-grid { display: grid; gap: 1rem; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 2rem; }
 .panel { background: #172033; border: 1px solid #2d3a52; border-radius: 1rem; min-height: 18rem; padding: 1.25rem; }
 .boundary { color: #a9b7c8; font-size: .9rem; margin-top: 1.25rem; }
+.audit-timeline { display: grid; gap: 1rem; list-style: none; margin: 1.25rem 0 0; padding: 0; }
+.audit-timeline__entry { align-items: start; display: grid; gap: .75rem; grid-template-columns: .75rem 1fr; }
+.audit-timeline__marker { background: #79d9cf; border: 3px solid #233149; border-radius: 50%; box-shadow: 0 0 0 1px #79d9cf; height: .75rem; margin-top: .2rem; width: .75rem; }
+.audit-timeline__sequence { color: #a9b7c8; display: block; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85rem; margin-top: .2rem; }
+.timeline-empty { color: #a9b7c8; margin-top: 1.25rem; }
 
 @media (max-width: 900px) {
   .console-shell { padding: 1rem; }
