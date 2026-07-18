@@ -1,0 +1,24 @@
+:root {
+  color: #e7eef5;
+  background: #111827;
+  font-family: Inter, "Microsoft YaHei", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; }
+button, input, select { font: inherit; }
+
+.console-shell { margin: 0 auto; max-width: 1440px; padding: 2rem; }
+.console-header { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
+.eyebrow { color: #79d9cf; font-size: .8rem; letter-spacing: .08em; margin: 0 0 .5rem; text-transform: uppercase; }
+h1 { font-size: clamp(1.5rem, 3vw, 2.4rem); margin: 0; }
+.gate { border: 1px solid #8b5e34; border-radius: 999px; color: #ffcb85; margin: 0; padding: .4rem .75rem; }
+.console-grid { display: grid; gap: 1rem; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 2rem; }
+.panel { background: #172033; border: 1px solid #2d3a52; border-radius: 1rem; min-height: 18rem; padding: 1.25rem; }
+.boundary { color: #a9b7c8; font-size: .9rem; margin-top: 1.25rem; }
+
+@media (max-width: 900px) {
+  .console-shell { padding: 1rem; }
+  .console-header { flex-direction: column; }
+  .console-grid { grid-template-columns: 1fr; }
+}
