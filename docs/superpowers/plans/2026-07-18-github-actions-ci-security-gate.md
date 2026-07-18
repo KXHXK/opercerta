@@ -926,7 +926,7 @@ git status --short
 
 Expected: diff check exits 0; only the planned documentation files are modified.
 
-- [ ] **Step 5: 提交证据并推送受保护 main**
+- [x] **Step 5: 提交证据并推送受保护 main**
 
 Because Task 5 may now protect `main`, create a documentation branch if direct push is rejected:
 

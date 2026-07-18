@@ -24,6 +24,7 @@
 - 远程日志实际结果：仓库安全扫描通过；Ruff 通过；104 个文件格式正确；mypy 检查 50 个源文件无问题；后端 `339 passed in 29.46s`；前端 9 个测试文件、15 条测试通过；`npm ci` 审计为 0 个漏洞；Vite 生产构建用时 205ms。
 - `compose-smoke` 远程步骤依次成功：构建并启动服务、执行库存补货 smoke、重启 API/MCP、执行恢复健康验证、无条件删除服务、网络和 PostgreSQL volume。失败诊断步骤因 run 成功而按设计跳过。
 - setup-uv 在并发 job 保存相同 cache 时产生一次非致命 reservation annotation；job 和整个 run 的结论仍为 `success`，未通过 `continue-on-error` 放宽门禁。
+- 证据 PR `#2` 合并后，commit `4b392ed4eeb6998d4f2bd666880453c3bd4a275b` 的 main run `29642949588` 再次验证五个 job 全部 `success`，其中 `compose-smoke` 完成业务 smoke、API/MCP 重启、恢复验证和清理。
 
 ## 供应链与凭据边界
 
