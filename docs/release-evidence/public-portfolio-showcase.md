@@ -91,6 +91,17 @@ readiness 实际返回 `status=ready`，`database`、`checkpoint`、`mcp` 均为
 
 第一次完整执行在 342 条后端测试通过后被 Ruff `I001` 阻断；根据 `ruff check --diff` 只删除测试文件顶部多余空行，再从头重跑以上整条门禁。这里记录的是修复后当前工作树的结果，不复用修改前的部分通过结果。
 
+## GitHub PR 与 main 远程门禁
+
+- 功能分支 head：`811885e67a7ad0a6f53be6723deaea8e0dae50ec`。
+- [PR #4](https://github.com/KXHXK/opercerta/pull/4) 已合并；PR run [29652818349](https://github.com/KXHXK/opercerta/actions/runs/29652818349) 结论为 `success`。
+- PR run 的 `repository-safety`、`python-quality`、`backend-tests`、`frontend` 四个快速 job 全部成功；`compose-smoke` 按 workflow 条件跳过。
+- 合并提交：`0f262e0d08044ceb6e6408443af90f21a8a4344b`。
+- main push run [29652991288](https://github.com/KXHXK/opercerta/actions/runs/29652991288) 结论为 `success`；五个 job 全部成功。
+- main 的 `compose-smoke` job [88102487952](https://github.com/KXHXK/opercerta/actions/runs/29652991288/job/88102487952) 成功，证明当前合并提交通过 workflow 中已有的 Compose 业务 smoke、API/MCP 重启恢复与无条件清理步骤。
+
+以上远程状态通过 GitHub API 读取实际 PR、run 和 check-run 结果，不是根据本地结果推断。个人作品集仍未生产部署；演示视频录制仍是用户后续动作，当前没有文件或证据声称已经录制。
+
 ## 边界
 
-公开页面展示的是本地合成数据流程证据，不是在线生产后端。页面不会连接 API、MCP、PostgreSQL 或 LangGraph，也不提供公开写入口。个人作品集入口已完成本地构建但尚未部署。生产 IAM/SSO、设备场景、真实模型评测、完整浏览器 E2E、公开 API 与原设计发布门禁仍未完成。
+公开页面展示的是本地合成数据流程证据，不是在线生产后端。页面不会连接 API、MCP、PostgreSQL 或 LangGraph，也不提供公开写入口。个人作品集入口已完成本地构建但尚未部署。生产 IAM/SSO、设备场景、真实模型评测、完整浏览器 E2E、公开 API 与原设计发布门禁仍未完成；因此 `OperCerta production release gate: CLOSED`。

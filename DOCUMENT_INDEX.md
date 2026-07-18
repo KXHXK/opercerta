@@ -6,7 +6,7 @@
 
 新增验证证据：`docs/release-evidence/github-actions-ci.md`（Private remote、PR/main 真实 Actions、339 条后端回归、前端门禁、Compose 重启恢复和分支保护 HTTP 403 能力限制；发布门禁仍关闭）。
 
-新增验证证据：`docs/release-evidence/public-portfolio-showcase.md`（本地合成库存审批、唯一工单、审计序列 1–10、静态专题截图及 Netlify 生产 URL/资源指纹；原发布门禁仍关闭）。
+新增验证证据：`docs/release-evidence/public-portfolio-showcase.md`（本地合成库存审批、唯一工单、审计序列 1–10、静态专题、Netlify 生产 URL/资源指纹，以及 PR/main 远程门禁；原发布门禁仍关闭）。
 
 新增公开展示设计与计划：`docs/superpowers/specs/2026-07-18-public-portfolio-showcase-design.md`、`docs/superpowers/plans/2026-07-18-public-portfolio-showcase.md`；面试流程见 `docs/demo-script.md`。静态专题已部署至 <https://opercerta-kxh.netlify.app>，原发布门禁仍关闭。
 
