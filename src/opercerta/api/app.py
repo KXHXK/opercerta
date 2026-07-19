@@ -50,6 +50,7 @@ from opercerta.api.models import (
 )
 from opercerta.application.approval_expiry import ApprovalExpiryService
 from opercerta.application.operation_runner import OperationRunner
+from opercerta.application.scenario_registry import build_default_scenario_registry
 from opercerta.domain.approvals import BoundApprovalCommand
 from opercerta.domain.contracts import (
     ActionType,
@@ -67,17 +68,17 @@ from opercerta.domain.model_gateway import MockModelGateway
 from opercerta.infrastructure.checkpoints import open_checkpointer
 from opercerta.infrastructure.db.approval_repository import ApprovalRepository
 from opercerta.infrastructure.db.evidence_repository import EvidenceRepository
+from opercerta.infrastructure.db.operation_repository import OperationRepository
 from opercerta.infrastructure.db.replenishment_operation_repository import (
     OperationDetail,
-    ReplenishmentOperationRepository,
 )
 from opercerta.infrastructure.mcp_gateway import McpToolGateway
 from opercerta.observability.context import new_request_id, request_context
 from opercerta.observability.logging import log_event
 from opercerta.observability.metrics import ApiMetrics
-from opercerta.workflow.replenishment_graph import build_replenishment_graph
-from opercerta.workflow.replenishment_recovery import (
-    ReplenishmentRecoveryCoordinator,
+from opercerta.workflow.controlled_action_graph import build_controlled_action_graph
+from opercerta.workflow.controlled_action_recovery import (
+    ControlledActionRecoveryCoordinator,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -90,7 +91,7 @@ class ApiRequestValidationFailed(ValueError):
 @dataclass(frozen=True, slots=True)
 class AppRuntime:
     runner: OperationRunner
-    operations: ReplenishmentOperationRepository
+    operations: OperationRepository
     authenticator: JwtAuthenticator | None = None
     readiness: ReadinessProbe = field(default_factory=UnavailableReadinessProbe)
 
@@ -270,8 +271,9 @@ async def _open_production_runtime(
             pool_pre_ping=True,
         )
         async with open_checkpointer(settings.database_url) as saver:
-            operations = ReplenishmentOperationRepository(engine)
-            graph = build_replenishment_graph(
+            operations = OperationRepository(engine)
+            registry = build_default_scenario_registry()
+            graph = build_controlled_action_graph(
                 saver,
                 operations,
                 EvidenceRepository(engine),
@@ -281,9 +283,10 @@ async def _open_production_runtime(
                 ),
                 MockModelGateway(),
                 clock,
+                registry,
                 approval_ttl_seconds=int(settings.approval_ttl_seconds),
             )
-            recovery = ReplenishmentRecoveryCoordinator(graph, operations)
+            recovery = ControlledActionRecoveryCoordinator(graph, operations)
             runner = OperationRunner(
                 graph,
                 ApprovalRepository(engine),
@@ -291,6 +294,7 @@ async def _open_production_runtime(
                 recovery,
                 ApprovalExpiryService(operations, clock),
                 clock,
+                registry,
             )
             yield AppRuntime(
                 runner=runner,
