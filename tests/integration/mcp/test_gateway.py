@@ -9,6 +9,7 @@ import pytest
 from mcp.types import CallToolResult, TextContent
 
 from opercerta.domain.errors import (
+    EquipmentNotFound,
     EvidenceUnavailable,
     InvalidInventoryEvidence,
     InventoryNotFound,
@@ -156,6 +157,37 @@ async def test_real_gateway_reads_inventory_and_policy(
     assert inventory.sku == policy.sku == "SKU-LOW-001"
     assert inventory.on_hand_quantity == 20
     assert policy.rule_version == "replenishment-v1"
+
+
+@pytest.mark.asyncio
+async def test_real_gateway_reads_equipment_and_maintenance_policy(
+    mcp_server: McpServerHarness,
+) -> None:
+    gateway = McpToolGateway(mcp_server.url, timeout_seconds=2)
+
+    equipment = await gateway.get_equipment("EQ-PUMP-001")
+    policy = await gateway.get_maintenance_policy("EQ-PUMP-001")
+
+    assert equipment.equipment_id == policy.equipment_id == "EQ-PUMP-001"
+    assert equipment.severity == "critical"
+    assert policy.rule_version == "maintenance-v1"
+
+
+@pytest.mark.asyncio
+async def test_missing_equipment_is_not_retried() -> None:
+    factory = SequenceSessionFactory(
+        [tool_result(error_text="Error executing tool equipment.get_status: equipment_not_found")]
+    )
+    gateway = McpToolGateway(
+        "http://127.0.0.1:1/mcp",
+        timeout_seconds=0.1,
+        max_attempts=2,
+        session_factory=factory,
+    )
+
+    with pytest.raises(EquipmentNotFound, match="equipment_not_found"):
+        await gateway.get_equipment("EQ-UNKNOWN-001")
+    assert factory.attempts == 1
 
 
 @pytest.mark.asyncio

@@ -12,17 +12,26 @@ from sqlalchemy.engine import RowMapping
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
 from opercerta.domain.approvals import ApprovalDecision
-from opercerta.domain.contracts import OperationRequest
+from opercerta.domain.contracts import ObjectType, OperationRequest
 from opercerta.domain.errors import (
     InvalidOperationSnapshot,
     OperationNotFound,
     OperationTransitionConflict,
     RecoveryStateConflict,
 )
+from opercerta.domain.maintenance import (
+    MaintenanceAssessment,
+    MaintenanceEvidenceBundle,
+    MaintenancePlan,
+    RepairWorkOrderPayload,
+    build_maintenance_approval_binding,
+)
 from opercerta.domain.operation_state import OperationSnapshot
 from opercerta.domain.recovery import TERMINAL_STATUSES, OperationStatus
 from opercerta.domain.replenishment import (
-    ApprovalBinding,
+    ApprovalBinding as ReplenishmentApprovalBinding,
+)
+from opercerta.domain.replenishment import (
     EvidenceBundle,
     OperationError,
     OperationResult,
@@ -30,6 +39,7 @@ from opercerta.domain.replenishment import (
     ReplenishmentPlan,
     build_approval_binding,
 )
+from opercerta.domain.scenarios import ApprovalBinding
 from opercerta.domain.work_orders import WorkOrderRecord, canonical_payload_json
 from opercerta.infrastructure.db.evidence_repository import (
     EvidenceRecord,
@@ -85,12 +95,20 @@ class OperationDetail:
     audit_events: tuple[AuditEventView, ...]
 
     @property
-    def assessment(self) -> ReplenishmentAssessment | None:
+    def assessment(self) -> ReplenishmentAssessment | MaintenanceAssessment | None:
         value = self.snapshot.risk.get("assessment")
         if value is None:
             return None
         try:
-            return ReplenishmentAssessment.model_validate(value)
+            try:
+                object_type = self._object_type()
+            except RecoveryStateConflict:
+                object_type = ObjectType.INVENTORY
+            if object_type is ObjectType.INVENTORY:
+                return ReplenishmentAssessment.model_validate(value)
+            if object_type is ObjectType.EQUIPMENT:
+                return MaintenanceAssessment.model_validate(value)
+            raise ValueError("unsupported assessment object type")
         except ValidationError:
             raise RecoveryStateConflict(
                 self.operation_id,
@@ -98,11 +116,19 @@ class OperationDetail:
             ) from None
 
     @property
-    def plan(self) -> ReplenishmentPlan | None:
+    def plan(self) -> ReplenishmentPlan | MaintenancePlan | None:
         if not self.snapshot.plan:
             return None
         try:
-            return ReplenishmentPlan.model_validate(self.snapshot.plan)
+            try:
+                object_type = self._object_type()
+            except RecoveryStateConflict:
+                object_type = ObjectType.INVENTORY
+            if object_type is ObjectType.INVENTORY:
+                return ReplenishmentPlan.model_validate(self.snapshot.plan)
+            if object_type is ObjectType.EQUIPMENT:
+                return MaintenancePlan.model_validate(self.snapshot.plan)
+            raise ValueError("unsupported plan object type")
         except ValidationError:
             raise RecoveryStateConflict(
                 self.operation_id,
@@ -121,6 +147,18 @@ class OperationDetail:
                 self.operation_id,
                 "invalid_snapshot_approval_binding",
             ) from None
+
+    def _object_type(self) -> ObjectType:
+        try:
+            request = OperationRequest.model_validate(self.snapshot.request)
+        except ValidationError:
+            raise RecoveryStateConflict(
+                self.operation_id,
+                "invalid_snapshot_request",
+            ) from None
+        if request.object_type is None:
+            raise RecoveryStateConflict(self.operation_id, "snapshot_object_type_missing")
+        return request.object_type
 
     @property
     def last_audit_sequence(self) -> int:
@@ -196,7 +234,7 @@ class ReplenishmentOperationRepository:
     async def record_evidence(
         self,
         operation_id: UUID,
-        bundle: EvidenceBundle,
+        bundle: EvidenceBundle | MaintenanceEvidenceBundle,
     ) -> None:
         bundle_payload = cast(dict[str, JsonValue], bundle.model_dump(mode="json"))
 
@@ -224,8 +262,8 @@ class ReplenishmentOperationRepository:
     async def record_validated_plan(
         self,
         operation_id: UUID,
-        assessment: ReplenishmentAssessment,
-        plan: ReplenishmentPlan | None,
+        assessment: ReplenishmentAssessment | MaintenanceAssessment,
+        plan: ReplenishmentPlan | MaintenancePlan | None,
     ) -> None:
         self._require_plan_matches_assessment(assessment, plan)
         assessment_payload = cast(
@@ -235,15 +273,7 @@ class ReplenishmentOperationRepository:
         plan_payload = (
             cast(dict[str, JsonValue], plan.model_dump(mode="json")) if plan is not None else {}
         )
-        work_order_payload: dict[str, JsonValue] = (
-            {
-                "sku": plan.sku,
-                "quantity": plan.recommended_quantity,
-                "approved_plan_hash": plan.plan_hash,
-            }
-            if plan is not None
-            else {}
-        )
+        work_order_payload = self._work_order_payload(plan)
         await self._transition(
             operation_id,
             allowed=frozenset({OperationStatus.PLANNING}),
@@ -274,14 +304,15 @@ class ReplenishmentOperationRepository:
     async def mark_awaiting_approval(
         self,
         operation_id: UUID,
-        binding: ApprovalBinding,
+        binding: ApprovalBinding | ReplenishmentApprovalBinding,
         approval_expires_at: datetime,
     ) -> None:
         self._require_timezone(approval_expires_at)
-        binding_payload = cast(dict[str, JsonValue], binding.model_dump(mode="json"))
+        scenario_binding = ApprovalBinding.model_validate(binding)
+        binding_payload = cast(dict[str, JsonValue], scenario_binding.model_dump(mode="json"))
 
         def bind(snapshot: OperationSnapshot) -> OperationSnapshot:
-            self._require_binding_matches_snapshot(snapshot, binding)
+            self._require_binding_matches_snapshot(snapshot, scenario_binding)
             return self._replace_risk_value(
                 snapshot,
                 "approval_binding",
@@ -387,8 +418,16 @@ class ReplenishmentOperationRepository:
         operation_id: UUID,
         result: OperationResult,
     ) -> None:
-        if result.outcome != "replenishment_not_required" or result.work_order_id is not None:
-            raise ValueError("non-replenishment result must not reference a work order")
+        if (
+            result.outcome
+            not in {
+                "replenishment_not_required",
+                "maintenance_not_required",
+                "task_recovery_not_required",
+            }
+            or result.work_order_id is not None
+        ):
+            raise ValueError("non-action result must not reference a work order")
         result_payload = cast(dict[str, JsonValue], result.model_dump(mode="json"))
         await self._transition(
             operation_id,
@@ -729,9 +768,25 @@ class ReplenishmentOperationRepository:
 
     def _require_plan_matches_assessment(
         self,
-        assessment: ReplenishmentAssessment,
-        plan: ReplenishmentPlan | None,
+        assessment: ReplenishmentAssessment | MaintenanceAssessment,
+        plan: ReplenishmentPlan | MaintenancePlan | None,
     ) -> None:
+        if isinstance(assessment, MaintenanceAssessment):
+            if not assessment.maintenance_required:
+                if plan is not None:
+                    raise ValueError("non-maintenance assessment must not have a plan")
+                return
+            if (
+                not isinstance(plan, MaintenancePlan)
+                or plan.equipment_id != assessment.equipment_id
+                or plan.alert_code != assessment.alert_code
+                or plan.priority != assessment.priority
+                or plan.decision_facts_hash != assessment.decision_facts_hash
+            ):
+                raise ValueError("maintenance plan does not match assessment")
+            return
+        if isinstance(plan, MaintenancePlan):
+            raise ValueError("maintenance plan cannot satisfy replenishment assessment")
         if not assessment.replenishment_required:
             if plan is not None or assessment.recommended_quantity is not None:
                 raise ValueError("non-replenishment assessment must not have a plan")
@@ -753,10 +808,46 @@ class ReplenishmentOperationRepository:
         evidence_payload = snapshot.risk.get("evidence")
         if evidence_payload is None or not snapshot.plan:
             raise ValueError("approval binding requires evidence and plan")
-        evidence_bundle = EvidenceBundle.model_validate(evidence_payload)
-        plan = ReplenishmentPlan.model_validate(snapshot.plan)
-        if build_approval_binding(evidence_bundle, plan) != binding:
+        request = OperationRequest.model_validate(snapshot.request)
+        if request.object_type is ObjectType.INVENTORY:
+            evidence_bundle = EvidenceBundle.model_validate(evidence_payload)
+            inventory_plan = ReplenishmentPlan.model_validate(snapshot.plan)
+            expected = ApprovalBinding.model_validate(
+                build_approval_binding(evidence_bundle, inventory_plan)
+            )
+        elif request.object_type is ObjectType.EQUIPMENT:
+            maintenance_bundle = MaintenanceEvidenceBundle.model_validate(evidence_payload)
+            maintenance_plan = MaintenancePlan.model_validate(snapshot.plan)
+            expected = build_maintenance_approval_binding(
+                maintenance_bundle,
+                maintenance_plan,
+            )
+        else:
+            raise ValueError("unsupported approval binding object type")
+        if expected != binding:
             raise ValueError("approval binding does not match snapshot")
+
+    def _work_order_payload(
+        self,
+        plan: ReplenishmentPlan | MaintenancePlan | None,
+    ) -> dict[str, JsonValue]:
+        if plan is None:
+            return {}
+        if isinstance(plan, ReplenishmentPlan):
+            return {
+                "sku": plan.sku,
+                "quantity": plan.recommended_quantity,
+                "approved_plan_hash": plan.plan_hash,
+            }
+        return cast(
+            dict[str, JsonValue],
+            RepairWorkOrderPayload(
+                equipment_id=plan.equipment_id,
+                alert_code=plan.alert_code,
+                priority=plan.priority,
+                approved_plan_hash=plan.plan_hash,
+            ).model_dump(mode="json"),
+        )
 
     def _snapshot(self, operation_id: UUID, value: object) -> OperationSnapshot:
         try:
@@ -890,34 +981,44 @@ class ReplenishmentOperationRepository:
     ) -> ApprovalRowView | None:
         if row is None:
             return None
-        binding_names = (
-            "inventory_evidence_id",
-            "policy_evidence_id",
-            "rule_version",
-            "decision_facts_hash",
-            "plan_hash",
-            "recommended_quantity",
-        )
-        binding_values = {name: row[name] for name in binding_names}
-        populated = [value is not None for value in binding_values.values()]
         binding: ApprovalBinding | None
-        if not any(populated):
-            binding = None
-        elif not all(populated):
-            raise RecoveryStateConflict(operation_id, "partial_approval_binding")
-        else:
+        binding_payload = row["binding_payload"]
+        if binding_payload is not None:
             try:
-                binding = ApprovalBinding.model_validate(binding_values)
+                binding = ApprovalBinding.model_validate(binding_payload)
             except ValidationError:
                 raise RecoveryStateConflict(
                     operation_id,
                     "invalid_approval_binding",
                 ) from None
-            if snapshot_binding is None or binding != snapshot_binding:
-                raise RecoveryStateConflict(
-                    operation_id,
-                    "approval_binding_mismatch",
-                )
+        else:
+            binding_names = (
+                "inventory_evidence_id",
+                "policy_evidence_id",
+                "rule_version",
+                "decision_facts_hash",
+                "plan_hash",
+                "recommended_quantity",
+            )
+            binding_values = {name: row[name] for name in binding_names}
+            populated = [value is not None for value in binding_values.values()]
+            if not any(populated):
+                binding = None
+            elif not all(populated):
+                raise RecoveryStateConflict(operation_id, "partial_approval_binding")
+            else:
+                try:
+                    binding = ApprovalBinding.model_validate(binding_values)
+                except ValidationError:
+                    raise RecoveryStateConflict(
+                        operation_id,
+                        "invalid_approval_binding",
+                    ) from None
+        if binding is not None and (snapshot_binding is None or binding != snapshot_binding):
+            raise RecoveryStateConflict(
+                operation_id,
+                "approval_binding_mismatch",
+            )
         try:
             decision = ApprovalDecision(str(row["decision"]))
         except ValueError:

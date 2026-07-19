@@ -26,6 +26,12 @@ class ReplenishmentScenario:
     object_type: ObjectType = ObjectType.INVENTORY
 
 
+@dataclass(frozen=True, slots=True)
+class MaintenanceScenario:
+    kind: ScenarioKind = ScenarioKind.EQUIPMENT
+    object_type: ObjectType = ObjectType.EQUIPMENT
+
+
 class ScenarioRegistry:
     def __init__(self, scenarios: tuple[ControlledActionScenario, ...]) -> None:
         self._scenarios = {
@@ -42,5 +48,8 @@ class ScenarioRegistry:
 
 
 def build_default_scenario_registry() -> ScenarioRegistry:
-    scenarios: tuple[ControlledActionScenario, ...] = (ReplenishmentScenario(),)
+    scenarios: tuple[ControlledActionScenario, ...] = (
+        ReplenishmentScenario(),
+        MaintenanceScenario(),
+    )
     return ScenarioRegistry(scenarios)

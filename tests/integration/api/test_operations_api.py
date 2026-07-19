@@ -24,6 +24,7 @@ from opercerta.api.app import (
 from opercerta.api.auth import DemoAccount, JwtAuthenticator, JwtSettings
 from opercerta.application.approval_expiry import ApprovalExpiryService
 from opercerta.application.operation_runner import OperationRunner
+from opercerta.application.scenario_registry import build_default_scenario_registry
 from opercerta.domain.contracts import (
     ActionType,
     ObjectType,
@@ -33,14 +34,12 @@ from opercerta.domain.model_gateway import MockModelGateway
 from opercerta.infrastructure.checkpoints import open_checkpointer
 from opercerta.infrastructure.db.approval_repository import ApprovalRepository
 from opercerta.infrastructure.db.evidence_repository import EvidenceRepository
-from opercerta.infrastructure.db.replenishment_operation_repository import (
-    ReplenishmentOperationRepository,
-)
+from opercerta.infrastructure.db.operation_repository import OperationRepository
 from opercerta.infrastructure.db.schema import operations
 from opercerta.infrastructure.mcp_gateway import McpToolGateway
-from opercerta.workflow.replenishment_graph import build_replenishment_graph
-from opercerta.workflow.replenishment_recovery import (
-    ReplenishmentRecoveryCoordinator,
+from opercerta.workflow.controlled_action_graph import build_controlled_action_graph
+from opercerta.workflow.controlled_action_recovery import (
+    ControlledActionRecoveryCoordinator,
 )
 from tests.integration.mcp.conftest import McpServerHarness
 from tests.integration.mcp.conftest import (
@@ -55,7 +54,7 @@ NOW = datetime(2026, 7, 16, 8, 0, tzinfo=UTC)
 @dataclass(slots=True)
 class ApiHarness:
     client: AsyncClient
-    operations: ReplenishmentOperationRepository
+    operations: OperationRepository
     mcp_server: McpServerHarness
     authenticator: JwtAuthenticator
     runner: OperationRunner
@@ -76,6 +75,25 @@ class ApiHarness:
                 "requested_action": "create_work_order",
                 "object_type": "inventory",
                 "object_id": sku,
+            },
+        )
+        body = cast(dict[str, object], response.json())
+        if response.status_code == 202:
+            self.operation_ids.append(UUID(str(body["operation_id"])))
+        body["_status_code"] = response.status_code
+        return body
+
+    async def create_equipment_operation(
+        self, equipment_id: str = "EQ-PUMP-001"
+    ) -> dict[str, object]:
+        response = await self.client.post(
+            "/api/v1/operations",
+            headers=self.headers(DemoAccount.OPERATOR),
+            json={
+                "message": f"为 {equipment_id} 创建维修工单",
+                "requested_action": "create_work_order",
+                "object_type": "equipment",
+                "object_id": equipment_id,
             },
         )
         body = cast(dict[str, object], response.json())
@@ -107,12 +125,7 @@ def approval_payload(
     return {
         "decision": decision,
         "reason": f"{decision} after reviewing API evidence",
-        "expected_inventory_evidence_id": binding["inventory_evidence_id"],
-        "expected_policy_evidence_id": binding["policy_evidence_id"],
-        "expected_rule_version": binding["rule_version"],
-        "expected_decision_facts_hash": binding["decision_facts_hash"],
-        "expected_plan_hash": binding["plan_hash"],
-        "expected_recommended_quantity": binding["recommended_quantity"],
+        "expected_binding": binding,
     }
 
 
@@ -126,7 +139,7 @@ async def open_api_harness(
     runner_clock: Callable[[], datetime] = lambda: NOW,
     approval_ttl_seconds: int = 300,
 ) -> AsyncIterator[ApiHarness]:
-    operations_repository = ReplenishmentOperationRepository(engine)
+    operations_repository = OperationRepository(engine)
     authenticator = JwtAuthenticator(
         JwtSettings(
             signing_key=SecretStr("integration-test-jwt-signing-key"),
@@ -137,22 +150,25 @@ async def open_api_harness(
         )
     )
     async with open_checkpointer(checkpoint_database_url) as saver:
-        graph = build_replenishment_graph(
+        registry = build_default_scenario_registry()
+        graph = build_controlled_action_graph(
             saver,
             operations_repository,
             EvidenceRepository(engine),
             McpToolGateway(mcp_server.url, timeout_seconds=2),
             MockModelGateway(),
             graph_clock,
+            registry,
             approval_ttl_seconds=approval_ttl_seconds,
         )
         runner = OperationRunner(
             graph,
             ApprovalRepository(engine),
             operations_repository,
-            ReplenishmentRecoveryCoordinator(graph, operations_repository),
+            ControlledActionRecoveryCoordinator(graph, operations_repository),
             ApprovalExpiryService(operations_repository, runner_clock),
             runner_clock,
+            registry,
         )
         app = create_app(
             AppRuntime(
@@ -213,11 +229,48 @@ async def test_create_and_query_low_inventory_operation(
         assert response.status_code == 200
         detail = response.json()
         assert detail["assessment"]["recommended_quantity"] == 18
-        assert detail["approval_binding"]["recommended_quantity"] == 18
+        assert detail["approval_binding"]["parameters"]["recommended_quantity"] == 18
         assert detail["approval"] is None
         assert detail["work_order"] is None
         assert detail["last_audit_sequence"] > 0
         assert len(detail["evidence"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_create_approve_and_query_equipment_repair_operation(
+    engine: AsyncEngine,
+    checkpoint_database_url: SecretStr,
+    mcp_server: McpServerHarness,
+) -> None:
+    async with open_api_harness(
+        engine,
+        checkpoint_database_url,
+        mcp_server,
+    ) as harness:
+        accepted = await harness.create_equipment_operation()
+        assert accepted.pop("_status_code") == 202
+        assert accepted["status"] == "awaiting_approval"
+        operation_id = UUID(str(accepted["operation_id"]))
+
+        before = await harness.client.get(f"/api/v1/operations/{operation_id}")
+        assert before.status_code == 200
+        detail = before.json()
+        assert detail["assessment"]["priority"] == "urgent"
+        assert detail["approval_binding"]["scenario"] == "equipment"
+
+        approved = await harness.client.post(
+            f"/api/v1/operations/{operation_id}/approval",
+            headers=harness.headers(DemoAccount.APPROVER),
+            json=approval_payload(detail, "approved"),
+        )
+        assert approved.status_code == 202
+        assert approved.json()["status"] == "completed"
+
+        after = await harness.client.get(f"/api/v1/operations/{operation_id}")
+        assert after.status_code == 200
+        completed = after.json()
+        assert completed["work_order"]["payload"]["kind"] == "repair"
+        assert completed["work_order"]["payload"]["equipment_id"] == "EQ-PUMP-001"
         openapi = (await harness.client.get("/openapi.json")).json()
         accepted_schema = openapi["components"]["schemas"]["OperationAccepted"]
         assert accepted_schema["properties"]["created_at"]["format"] == "date-time"
@@ -464,7 +517,7 @@ async def test_validation_missing_and_stale_binding_use_safe_error_envelopes(
         operation_id = UUID(str(accepted["operation_id"]))
         detail = (await harness.client.get(f"/api/v1/operations/{operation_id}")).json()
         stale = approval_payload(detail, "approved")
-        stale["expected_plan_hash"] = "0" * 64
+        cast(dict[str, object], stale["expected_binding"])["plan_hash"] = "0" * 64
         mismatch = await harness.client.post(
             f"/api/v1/operations/{operation_id}/approval",
             headers=harness.headers(DemoAccount.APPROVER),
@@ -527,7 +580,7 @@ async def test_unexpected_dependency_error_returns_fixed_503_without_details(
 ) -> None:
     runtime = AppRuntime(
         runner=cast(OperationRunner, UnavailableRunner()),
-        operations=ReplenishmentOperationRepository(engine),
+        operations=OperationRepository(engine),
     )
     app = create_app(runtime)
     transport = ASGITransport(app=app, raise_app_exceptions=False)
@@ -561,7 +614,7 @@ async def test_production_lifespan_loads_environment_and_recovers_once(
     mcp_server: McpServerHarness,
     monkeypatch: MonkeyPatch,
 ) -> None:
-    operations_repository = ReplenishmentOperationRepository(engine)
+    operations_repository = OperationRepository(engine)
     operation_id = await operations_repository.create(
         OperationRequest(
             message="启动时恢复低库存补货操作",

@@ -11,7 +11,8 @@ from sqlalchemy.engine import RowMapping
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
 from opercerta.domain.errors import EvidenceConflict, OperationNotFound
-from opercerta.domain.replenishment import EvidenceBundle
+from opercerta.domain.maintenance import EquipmentEvidence, MaintenanceEvidenceBundle
+from opercerta.domain.replenishment import EvidenceBundle, InventoryEvidence
 from opercerta.domain.work_orders import canonical_payload_json
 from opercerta.infrastructure.db.schema import evidence, operations
 
@@ -43,14 +44,14 @@ class EvidenceRepository:
     async def save_bundle(
         self,
         operation_id: UUID,
-        bundle: EvidenceBundle,
+        bundle: EvidenceBundle | MaintenanceEvidenceBundle,
     ) -> tuple[EvidenceRecord, EvidenceRecord]:
         return await self._save(operation_id, bundle)
 
     async def save_refresh(
         self,
         operation_id: UUID,
-        bundle: EvidenceBundle,
+        bundle: EvidenceBundle | MaintenanceEvidenceBundle,
     ) -> tuple[EvidenceRecord, EvidenceRecord]:
         return await self._save(operation_id, bundle)
 
@@ -80,7 +81,7 @@ class EvidenceRepository:
     async def _save(
         self,
         operation_id: UUID,
-        bundle: EvidenceBundle,
+        bundle: EvidenceBundle | MaintenanceEvidenceBundle,
     ) -> tuple[EvidenceRecord, EvidenceRecord]:
         async with self._engine.begin() as connection:
             await self._lock_operation(connection, operation_id)
@@ -90,9 +91,10 @@ class EvidenceRepository:
         self,
         connection: AsyncConnection,
         operation_id: UUID,
-        bundle: EvidenceBundle,
+        bundle: EvidenceBundle | MaintenanceEvidenceBundle,
     ) -> tuple[EvidenceRecord, EvidenceRecord]:
-        if bundle.inventory.evidence_id == bundle.policy.evidence_id:
+        subject = bundle.inventory if isinstance(bundle, EvidenceBundle) else bundle.equipment
+        if subject.evidence_id == bundle.policy.evidence_id:
             raise EvidenceConflict
         specifications = self._specifications(bundle)
         existing_rows = (
@@ -162,11 +164,23 @@ class EvidenceRepository:
         if found is None:
             raise OperationNotFound(operation_id)
 
-    def _specifications(self, bundle: EvidenceBundle) -> tuple[dict[str, object], ...]:
+    def _specifications(
+        self,
+        bundle: EvidenceBundle | MaintenanceEvidenceBundle,
+    ) -> tuple[dict[str, object], ...]:
         ttl = timedelta(seconds=bundle.policy.evidence_ttl_seconds)
-        inventory_content = cast(
+        subject: InventoryEvidence | EquipmentEvidence
+        if isinstance(bundle, EvidenceBundle):
+            subject = bundle.inventory
+            subject_type = "inventory"
+            source_tool = "inventory"
+        else:
+            subject = bundle.equipment
+            subject_type = "equipment"
+            source_tool = "equipment.get_status"
+        subject_content = cast(
             dict[str, JsonValue],
-            bundle.inventory.model_dump(mode="json"),
+            subject.model_dump(mode="json"),
         )
         policy_content = cast(
             dict[str, JsonValue],
@@ -174,14 +188,14 @@ class EvidenceRepository:
         )
         return (
             {
-                "evidence_id": bundle.inventory.evidence_id,
-                "evidence_type": "inventory",
-                "source_tool": "inventory",
-                "source_version": bundle.inventory.source_version,
-                "captured_at": bundle.inventory.captured_at,
-                "expires_at": bundle.inventory.captured_at + ttl,
-                "content": inventory_content,
-                "content_hash": hash_json(inventory_content),
+                "evidence_id": subject.evidence_id,
+                "evidence_type": subject_type,
+                "source_tool": source_tool,
+                "source_version": subject.source_version,
+                "captured_at": subject.captured_at,
+                "expires_at": subject.captured_at + ttl,
+                "content": subject_content,
+                "content_hash": hash_json(subject_content),
             },
             {
                 "evidence_id": bundle.policy.evidence_id,

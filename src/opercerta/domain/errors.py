@@ -81,6 +81,13 @@ class InventoryNotFound(LookupError):
         super().__init__(self.code)
 
 
+class EquipmentNotFound(LookupError):
+    code = "equipment_not_found"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
 class EvidenceUnavailable(RuntimeError):
     code = "evidence_unavailable"
 
@@ -111,6 +118,20 @@ class InvalidInventoryEvidence(ValueError):
 
 class InvalidPolicyEvidence(ValueError):
     code = "invalid_policy_evidence"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class InvalidEquipmentEvidence(ValueError):
+    code = "invalid_equipment_evidence"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class InvalidMaintenancePolicyEvidence(ValueError):
+    code = "invalid_maintenance_policy_evidence"
 
     def __init__(self) -> None:
         super().__init__(self.code)

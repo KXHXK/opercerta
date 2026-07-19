@@ -30,13 +30,21 @@ def test_default_registry_dispatches_inventory_scenario() -> None:
     assert scenario.kind.value == "inventory"
 
 
-@pytest.mark.parametrize("object_type", [ObjectType.EQUIPMENT, ObjectType.TASK])
-def test_unimplemented_scenario_fails_closed(object_type: ObjectType) -> None:
+def test_default_registry_dispatches_equipment_scenario() -> None:
+    module = registry_module()
+    registry = module.build_default_scenario_registry()
+
+    scenario = registry.get(request(ObjectType.EQUIPMENT))
+
+    assert scenario.kind.value == "equipment"
+
+
+def test_unimplemented_task_scenario_fails_closed() -> None:
     module = registry_module()
     registry = module.build_default_scenario_registry()
 
     with pytest.raises(module.UnsupportedScenario, match="unsupported_scenario"):
-        registry.get(request(object_type))
+        registry.get(request(ObjectType.TASK))
 
 
 def test_incomplete_request_fails_closed() -> None:

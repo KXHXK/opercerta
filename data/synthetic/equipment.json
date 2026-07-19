@@ -1,0 +1,9 @@
+{
+  "source_version": "equipment-seed-v1",
+  "items": [
+    {"equipment_id": "EQ-PUMP-001", "state": "offline", "alert_code": "MOTOR_OVERHEAT", "severity": "critical", "last_heartbeat": "2026-07-16T07:59:00Z"},
+    {"equipment_id": "EQ-FAN-001", "state": "healthy", "alert_code": null, "severity": "none", "last_heartbeat": "2026-07-16T08:00:00Z"},
+    {"equipment_id": "EQ-STALE-001", "state": "healthy", "alert_code": null, "severity": "none", "last_heartbeat": "2026-07-16T07:54:59Z"},
+    {"equipment_id": "EQ-MUTABLE-001", "state": "degraded", "alert_code": "VIBRATION_HIGH", "severity": "warning", "last_heartbeat": "2026-07-16T07:59:30Z"}
+  ]
+}

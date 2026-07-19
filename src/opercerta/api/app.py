@@ -545,7 +545,7 @@ def _build_app(
         del actor
         if (
             operation_request.requested_action is not ActionType.CREATE_WORK_ORDER
-            or operation_request.object_type is not ObjectType.INVENTORY
+            or operation_request.object_type not in {ObjectType.INVENTORY, ObjectType.EQUIPMENT}
             or operation_request.object_id is None
         ):
             raise ApiRequestValidationFailed

@@ -40,6 +40,8 @@ def create_mcp_runtime_app(settings: McpSettings | None = None) -> FastAPI:
         SyntheticCatalog.load(
             ROOT / "data" / "synthetic" / "inventory.json",
             ROOT / "data" / "synthetic" / "replenishment_policies.json",
+            equipment_path=ROOT / "data" / "synthetic" / "equipment.json",
+            maintenance_policy_path=ROOT / "data" / "synthetic" / "maintenance_policies.json",
         ),
         engine,
         clock=lambda: datetime.now(UTC),

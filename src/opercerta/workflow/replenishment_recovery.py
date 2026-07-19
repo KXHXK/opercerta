@@ -20,6 +20,7 @@ from opercerta.domain.recovery import (
 from opercerta.domain.replenishment import (
     ApprovalBinding,
     EvidenceBundle,
+    ReplenishmentPlan,
     build_approval_binding,
 )
 from opercerta.infrastructure.db.replenishment_operation_repository import (
@@ -153,6 +154,11 @@ class ReplenishmentRecoveryCoordinator:
             and detail.status is OperationStatus.VALIDATING
             and detail.plan is not None
         ):
+            if not isinstance(detail.plan, ReplenishmentPlan):
+                raise RecoveryStateConflict(
+                    detail.operation_id,
+                    "non_replenishment_plan_in_replenishment_recovery",
+                )
             bundle = EvidenceBundle.model_validate(risk.get("evidence"))
             binding_value = build_approval_binding(
                 bundle,

@@ -13,7 +13,7 @@ from opercerta.api.auth import DemoAccount, JwtAuthenticator
 from opercerta.application.operation_runner import OperationRunner
 from opercerta.domain.approvals import ApprovalDecision, BoundApprovalCommand
 from opercerta.domain.errors import ApprovalExpired, UnknownTool
-from opercerta.domain.replenishment import ApprovalBinding
+from opercerta.domain.scenarios import ApprovalBinding, ReplenishmentParameters
 from opercerta.evaluation.contracts import EvalCase
 from opercerta.evaluation.runner import CaseExecution
 from opercerta.infrastructure.db.approval_repository import ApprovalRepository
@@ -232,15 +232,17 @@ class ApiCaseExecutor:
         if binding is None:
             raise ValueError("approval_binding_is_missing")
         value = cast(Mapping[str, object], binding.model_dump(mode="json"))
+        if not isinstance(binding.parameters, ReplenishmentParameters):
+            raise ValueError("evaluation inventory binding is required")
         return {
             "decision": decision,
             "reason": f"evaluation {decision}",
-            "expected_inventory_evidence_id": value["inventory_evidence_id"],
+            "expected_inventory_evidence_id": value["subject_evidence_id"],
             "expected_policy_evidence_id": value["policy_evidence_id"],
             "expected_rule_version": value["rule_version"],
             "expected_decision_facts_hash": value["decision_facts_hash"],
             "expected_plan_hash": value["plan_hash"],
-            "expected_recommended_quantity": value["recommended_quantity"],
+            "expected_recommended_quantity": binding.parameters.recommended_quantity,
         }
 
     @staticmethod

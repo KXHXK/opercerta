@@ -11,12 +11,18 @@ from opercerta.domain.approvals import (
     ApprovalRecord,
     BoundApprovalCommand,
 )
+from opercerta.domain.contracts import ObjectType, OperationRequest
 from opercerta.domain.errors import (
     ApprovalAlreadyDecided,
     ApprovalExpired,
     ApprovalSnapshotMismatch,
     OperationNotFound,
     RecoveryStateConflict,
+)
+from opercerta.domain.maintenance import (
+    MaintenanceEvidenceBundle,
+    MaintenancePlan,
+    build_maintenance_approval_binding,
 )
 from opercerta.domain.operation_state import OperationSnapshot
 from opercerta.domain.replenishment import (
@@ -237,12 +243,27 @@ class ApprovalRepository:
         try:
             snapshot = OperationSnapshot.model_validate(snapshot_value)
             stored_binding = ApprovalBinding.model_validate(snapshot.risk.get("approval_binding"))
-            bundle = EvidenceBundle.model_validate(snapshot.risk.get("evidence"))
-            plan = ReplenishmentPlan.model_validate(snapshot.plan)
+            request = OperationRequest.model_validate(snapshot.request)
+            if request.object_type is ObjectType.INVENTORY:
+                bundle = EvidenceBundle.model_validate(snapshot.risk.get("evidence"))
+                plan = ReplenishmentPlan.model_validate(snapshot.plan)
+                derived_binding = ApprovalBinding.model_validate(
+                    build_approval_binding(bundle, plan)
+                )
+            elif request.object_type is ObjectType.EQUIPMENT:
+                maintenance_bundle = MaintenanceEvidenceBundle.model_validate(
+                    snapshot.risk.get("evidence")
+                )
+                maintenance_plan = MaintenancePlan.model_validate(snapshot.plan)
+                derived_binding = build_maintenance_approval_binding(
+                    maintenance_bundle,
+                    maintenance_plan,
+                )
+            else:
+                raise ApprovalSnapshotMismatch
         except ValidationError:
             raise ApprovalSnapshotMismatch from None
 
-        derived_binding = ApprovalBinding.model_validate(build_approval_binding(bundle, plan))
         if stored_binding != derived_binding:
             raise ApprovalSnapshotMismatch
         return stored_binding

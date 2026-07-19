@@ -12,9 +12,12 @@ from mcp.types import CallToolResult, TextContent
 from pydantic import ValidationError
 
 from opercerta.domain.errors import (
+    EquipmentNotFound,
     EvidenceUnavailable,
     IdempotencyConflict,
+    InvalidEquipmentEvidence,
     InvalidInventoryEvidence,
+    InvalidMaintenancePolicyEvidence,
     InvalidPolicyEvidence,
     InventoryNotFound,
     OperationNotFound,
@@ -23,6 +26,7 @@ from opercerta.domain.errors import (
     WorkOrderStorageFailed,
     WriteNotAuthorized,
 )
+from opercerta.domain.maintenance import EquipmentEvidence, MaintenancePolicyEvidence
 from opercerta.domain.replenishment import InventoryEvidence, PolicyEvidence
 from opercerta.domain.work_orders import (
     WorkOrderCommand,
@@ -33,6 +37,7 @@ from opercerta.domain.work_orders import (
 
 ALLOWED_TOOLS = frozenset(
     {
+        "equipment.get_status",
         "inventory.get_snapshot",
         "policy.list_constraints",
         "work_order.create",
@@ -116,23 +121,65 @@ class McpToolGateway:
         except ValidationError:
             raise InvalidPolicyEvidence from None
 
+    async def get_equipment(self, equipment_id: str) -> EquipmentEvidence:
+        arguments: dict[str, object] = {"equipment_id": equipment_id}
+        result = await self.call_raw("equipment.get_status", arguments)
+        self._raise_tool_error("equipment.get_status", arguments, result)
+        try:
+            return EquipmentEvidence.model_validate(result.structuredContent)
+        except ValidationError:
+            raise InvalidEquipmentEvidence from None
+
+    async def get_maintenance_policy(
+        self,
+        equipment_id: str,
+    ) -> MaintenancePolicyEvidence:
+        arguments: dict[str, object] = {
+            "action": "repair_equipment",
+            "equipment_id": equipment_id,
+        }
+        result = await self.call_raw("policy.list_constraints", arguments)
+        self._raise_tool_error("policy.list_constraints", arguments, result)
+        try:
+            return MaintenancePolicyEvidence.model_validate(result.structuredContent)
+        except ValidationError:
+            raise InvalidMaintenancePolicyEvidence from None
+
     async def create_work_order(
         self,
         command: WorkOrderCommand,
         *,
         plan_hash: str,
     ) -> WorkOrderWriteResult:
-        sku = command.payload.get("sku")
-        quantity = command.payload.get("quantity")
-        if not isinstance(sku, str) or type(quantity) is not int:
-            raise WorkOrderStorageFailed
-        arguments: dict[str, object] = {
-            "operation_id": command.operation_id,
-            "sku": sku,
-            "quantity": quantity,
-            "idempotency_key": derive_idempotency_key(command.operation_id),
-            "approved_plan_hash": plan_hash,
-        }
+        kind = command.payload.get("kind")
+        arguments: dict[str, object]
+        if kind == "repair":
+            equipment_id = command.payload.get("equipment_id")
+            alert_code = command.payload.get("alert_code")
+            priority = command.payload.get("priority")
+            if not all(isinstance(value, str) for value in (equipment_id, alert_code, priority)):
+                raise WorkOrderStorageFailed
+            arguments = {
+                "operation_id": command.operation_id,
+                "kind": "repair",
+                "equipment_id": equipment_id,
+                "alert_code": alert_code,
+                "priority": priority,
+                "idempotency_key": derive_idempotency_key(command.operation_id),
+                "approved_plan_hash": plan_hash,
+            }
+        else:
+            sku = command.payload.get("sku")
+            quantity = command.payload.get("quantity")
+            if not isinstance(sku, str) or type(quantity) is not int:
+                raise WorkOrderStorageFailed
+            arguments = {
+                "operation_id": command.operation_id,
+                "sku": sku,
+                "quantity": quantity,
+                "idempotency_key": derive_idempotency_key(command.operation_id),
+                "approved_plan_hash": plan_hash,
+            }
         result = await self.call_raw("work_order.create", arguments)
         self._raise_tool_error("work_order.create", arguments, result)
         try:
@@ -186,12 +233,18 @@ class McpToolGateway:
         code = self._stable_error_code(name, result)
         if code == InventoryNotFound.code:
             raise InventoryNotFound
+        if code == EquipmentNotFound.code:
+            raise EquipmentNotFound
         if code == EvidenceUnavailable.code:
             raise EvidenceUnavailable
         if code == InvalidInventoryEvidence.code:
             raise InvalidInventoryEvidence
         if code == InvalidPolicyEvidence.code:
             raise InvalidPolicyEvidence
+        if code == InvalidEquipmentEvidence.code:
+            raise InvalidEquipmentEvidence
+        if code == InvalidMaintenancePolicyEvidence.code:
+            raise InvalidMaintenancePolicyEvidence
         if code == WorkOrderNotFound.code:
             raise WorkOrderNotFound
         if code == WorkOrderStorageFailed.code:

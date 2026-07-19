@@ -11,6 +11,7 @@ from mcp.types import CallToolResult
 from sqlalchemy import delete, insert
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from opercerta.domain.maintenance import EquipmentEvidence, MaintenancePolicyEvidence
 from opercerta.domain.replenishment import InventoryEvidence, PolicyEvidence
 from opercerta.domain.work_orders import (
     WorkOrderRecord,
@@ -89,6 +90,7 @@ async def test_real_transport_lists_exact_tools_and_returns_inventory(
     async with open_mcp_session(mcp_server.url) as session:
         listed = await session.list_tools()
         assert {tool.name for tool in listed.tools} == {
+            "equipment.get_status",
             "inventory.get_snapshot",
             "policy.list_constraints",
             "work_order.create",
@@ -104,6 +106,34 @@ async def test_real_transport_lists_exact_tools_and_returns_inventory(
     parsed = InventoryEvidence.model_validate(result.structuredContent)
     assert parsed.on_hand_quantity == 20
     assert parsed.reserved_quantity == 8
+
+
+@pytest.mark.asyncio
+async def test_equipment_and_maintenance_policy_tools_return_stable_contracts(
+    mcp_server: McpServerHarness,
+) -> None:
+    async with open_mcp_session(mcp_server.url) as session:
+        equipment_result = await session.call_tool(
+            "equipment.get_status",
+            {"equipment_id": "EQ-PUMP-001"},
+        )
+        policy_result = await session.call_tool(
+            "policy.list_constraints",
+            {"action": "repair_equipment", "equipment_id": "EQ-PUMP-001"},
+        )
+        missing = await session.call_tool(
+            "equipment.get_status",
+            {"equipment_id": "EQ-UNKNOWN-001"},
+        )
+
+    equipment = EquipmentEvidence.model_validate(equipment_result.structuredContent)
+    policy = MaintenancePolicyEvidence.model_validate(policy_result.structuredContent)
+    assert equipment.alert_code == "MOTOR_OVERHEAT"
+    assert policy.rule_version == "maintenance-v1"
+    assert missing.isError is True
+    assert result_text(missing) == expected_tool_error(
+        "equipment.get_status", "equipment_not_found"
+    )
 
 
 @pytest.mark.asyncio
