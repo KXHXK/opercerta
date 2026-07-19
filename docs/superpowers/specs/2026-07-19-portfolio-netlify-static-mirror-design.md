@@ -49,7 +49,7 @@ OperCerta 静态专题 `https://opercerta-kxh.netlify.app` 已独立生产部署
 ### 3.1 源码边界
 
 - `D:\CODEX\resume\portfolio` 仍是作品集的唯一人工维护源码，并保留 `.openai/hosting.json` 与既有 Sites 部署。
-- 新镜像工作目录放在 `D:\CODEX\resume\portfolio-netlify`，不包含 `.openai/hosting.json`，只承担静态导出、验证与 Netlify 发布。
+- 新镜像工作目录放在 `D:\CODEX\agent-portfolio\portfolio-netlify`，不包含 `.openai/hosting.json`，只承担静态导出、验证与 Netlify 发布。原计划使用 `D:\CODEX\resume\portfolio-netlify`；实施时因受限权限环境无法稳定写入该目录，改为工作区内的独立仓库，源作品集仍保持在 `D:\CODEX\resume\portfolio`。
 - 镜像目录不复制或改写 OperCerta 后端、数据库、MCP、Docker Compose、凭据或旧公司材料。
 - 现有 `opercerta-kxh` Netlify 站点不得覆盖；作品集使用独立站点名称与独立部署记录。
 

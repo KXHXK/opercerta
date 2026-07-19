@@ -4,7 +4,7 @@
 
 **Goal:** Build and publish a fast, public Netlify static mirror of the existing portfolio that safely links to the verified OperCerta static showcase.
 
-**Architecture:** `D:\CODEX\resume\portfolio` remains the only hand-maintained Vinext/Sites source. A separate `D:\CODEX\resume\portfolio-netlify` Node project builds that source, renders its already-built worker entry for `/`, copies `dist/client` into its own `dist`, validates the generated HTML and assets, then deploys the resulting static directory to a new Netlify site. No Netlify Function, API, database, token, or OperCerta write endpoint is added.
+**Architecture:** `D:\CODEX\resume\portfolio` remains the only hand-maintained Vinext/Sites source. A separate `D:\CODEX\agent-portfolio\portfolio-netlify` Node project builds that source, renders its already-built worker entry for `/`, copies `dist/client` into its own `dist`, validates the generated HTML and assets, then deploys the resulting static directory to a new Netlify site. No Netlify Function, API, database, token, or OperCerta write endpoint is added. The mirror moved from the originally planned `D:\CODEX\resume\portfolio-netlify` path because the restricted execution environment could not write there reliably; this does not change the architecture or source of truth.
 
 **Tech Stack:** Node.js 22+, existing Vinext production build, Node built-in test runner, Netlify CLI, static HTML/CSS/JS.
 
@@ -23,12 +23,12 @@
 
 | Path | Responsibility |
 | --- | --- |
-| `D:\CODEX\resume\portfolio-netlify\package.json` | Declares Node version and `test`, `export`, `verify` commands for the independent mirror project. |
-| `D:\CODEX\resume\portfolio-netlify\.gitignore` | Excludes generated `dist`, Netlify local state and logs. |
-| `D:\CODEX\resume\portfolio-netlify\src\export-static.mjs` | Builds source, renders `/`, copies client assets, validates HTML, and writes the static output. |
-| `D:\CODEX\resume\portfolio-netlify\scripts\export-static.mjs` | Thin CLI that resolves paths and calls the export library. |
-| `D:\CODEX\resume\portfolio-netlify\tests\export-static.test.mjs` | Node tests for HTML contract, local-asset verification, failure behavior, and output safety. |
-| `D:\CODEX\resume\portfolio-netlify\netlify.toml` | Declares `dist` as the publish directory; intentionally has no cloud build command. |
+| `D:\CODEX\agent-portfolio\portfolio-netlify\package.json` | Declares Node version and `test`, `export`, `verify` commands for the independent mirror project. |
+| `D:\CODEX\agent-portfolio\portfolio-netlify\.gitignore` | Excludes generated `dist`, Netlify local state and logs. |
+| `D:\CODEX\agent-portfolio\portfolio-netlify\src\export-static.mjs` | Builds source, renders `/`, copies client assets, validates HTML, and writes the static output. |
+| `D:\CODEX\agent-portfolio\portfolio-netlify\scripts\export-static.mjs` | Thin CLI that resolves paths and calls the export library. |
+| `D:\CODEX\agent-portfolio\portfolio-netlify\tests\export-static.test.mjs` | Node tests for HTML contract, local-asset verification, failure behavior, and output safety. |
+| `D:\CODEX\agent-portfolio\portfolio-netlify\netlify.toml` | Declares `dist` as the publish directory; intentionally has no cloud build command. |
 | `docs/development-log/daily/2026-07-19.md` | Records the Sites 403 observation, Netlify fallback and factual deployment result. |
 | `docs/development-log/current-state.md` | Replaces the pending portfolio-entry status only after successful public verification. |
 | `docs/development-log/interview-casebook.md` | Adds the deployment-versus-accessibility troubleshooting case. |
@@ -40,10 +40,10 @@
 ### Task 1: Create the independent mirror project and RED contract tests
 
 **Files:**
-- Create: `D:\CODEX\resume\portfolio-netlify\package.json`
-- Create: `D:\CODEX\resume\portfolio-netlify\.gitignore`
-- Create: `D:\CODEX\resume\portfolio-netlify\tests\export-static.test.mjs`
-- Create: `D:\CODEX\resume\portfolio-netlify\netlify.toml`
+- Create: `D:\CODEX\agent-portfolio\portfolio-netlify\package.json`
+- Create: `D:\CODEX\agent-portfolio\portfolio-netlify\.gitignore`
+- Create: `D:\CODEX\agent-portfolio\portfolio-netlify\tests\export-static.test.mjs`
+- Create: `D:\CODEX\agent-portfolio\portfolio-netlify\netlify.toml`
 
 **Interfaces:**
 - Consumes: a generated source client directory and an SSR response supplied by a fake renderer.
@@ -127,7 +127,7 @@ test("writes HTML and verifies copied local assets", async () => {
 Run:
 
 ```powershell
-Set-Location D:\CODEX\resume\portfolio-netlify
+Set-Location D:\CODEX\agent-portfolio\portfolio-netlify
 npm test
 ```
 
@@ -144,8 +144,8 @@ git commit -m "test: define static mirror export contract"
 ### Task 2: Implement deterministic static export and GREEN tests
 
 **Files:**
-- Create: `D:\CODEX\resume\portfolio-netlify\src\export-static.mjs`
-- Modify: `D:\CODEX\resume\portfolio-netlify\tests\export-static.test.mjs`
+- Create: `D:\CODEX\agent-portfolio\portfolio-netlify\src\export-static.mjs`
+- Modify: `D:\CODEX\agent-portfolio\portfolio-netlify\tests\export-static.test.mjs`
 
 **Interfaces:**
 - Consumes: `clientDirectory: string`, `html: string`, `mirrorRoot: string`, `outputDirectory: string`.
@@ -253,13 +253,13 @@ git commit -m "feat: export validated portfolio static mirror"
 ### Task 3: Add the real Vinext build-and-render CLI, then verify the generated site
 
 **Files:**
-- Create: `D:\CODEX\resume\portfolio-netlify\scripts\export-static.mjs`
-- Modify: `D:\CODEX\resume\portfolio-netlify\src\export-static.mjs`
-- Modify: `D:\CODEX\resume\portfolio-netlify\tests\export-static.test.mjs`
+- Create: `D:\CODEX\agent-portfolio\portfolio-netlify\scripts\export-static.mjs`
+- Modify: `D:\CODEX\agent-portfolio\portfolio-netlify\src\export-static.mjs`
+- Modify: `D:\CODEX\agent-portfolio\portfolio-netlify\tests\export-static.test.mjs`
 
 **Interfaces:**
 - Consumes: `PORTFOLIO_SOURCE_DIR` optional environment override; default source is `D:\CODEX\resume\portfolio` on this Windows workstation.
-- Produces: `D:\CODEX\resume\portfolio-netlify\dist\index.html` and copied client files.
+- Produces: `D:\CODEX\agent-portfolio\portfolio-netlify\dist\index.html` and copied client files.
 - Failure contract: missing `package.json`, missing `dist/server/index.js`, non-200/non-HTML SSR response, or unavailable Git Bash each exits nonzero before Netlify deployment.
 
 - [ ] **Step 1: Extend the test import and add a failing renderer contract test**
@@ -345,7 +345,7 @@ console.log(`static mirror written to ${path.join(mirrorRoot, "dist")}`);
 Run:
 
 ```powershell
-Set-Location D:\CODEX\resume\portfolio-netlify
+Set-Location D:\CODEX\agent-portfolio\portfolio-netlify
 npm run verify
 Get-Content -Raw dist\index.html
 Get-ChildItem -Recurse -File dist\assets
@@ -363,8 +363,8 @@ git commit -m "feat: render portfolio for static deployment"
 ### Task 4: Create the independent Netlify site and verify preview then production
 
 **Files:**
-- Modify: `D:\CODEX\resume\portfolio-netlify\netlify.toml` only if the CLI reports a configuration error.
-- Create: `D:\CODEX\resume\portfolio-netlify\README.md`
+- Modify: `D:\CODEX\agent-portfolio\portfolio-netlify\netlify.toml` only if the CLI reports a configuration error.
+- Create: `D:\CODEX\agent-portfolio\portfolio-netlify\README.md`
 
 **Interfaces:**
 - Consumes: a validated local `dist` directory and authenticated Netlify CLI session.
@@ -390,8 +390,8 @@ Rollback: deploy the previous verified `dist` artifact to this portfolio site. D
 Run from the already-configured Ubuntu/WSL Netlify CLI environment:
 
 ```bash
-wsl -d Ubuntu -- bash -lc 'cd /mnt/d/CODEX/resume/portfolio-netlify && netlify status'
-wsl -d Ubuntu -- bash -lc 'cd /mnt/d/CODEX/resume/portfolio-netlify && netlify sites:create --name kxh-agent-portfolio'
+wsl -d Ubuntu -- bash -lc 'cd /mnt/d/CODEX/agent-portfolio/portfolio-netlify && netlify status'
+wsl -d Ubuntu -- bash -lc 'cd /mnt/d/CODEX/agent-portfolio/portfolio-netlify && netlify sites:create --name kxh-agent-portfolio'
 ```
 
 Expected: authenticated account information and a site ID/URL different from `opercerta-kxh`. If the requested name is unavailable, stop before creating any alternate site and report the CLI error for a deliberate name decision.
@@ -401,7 +401,7 @@ Expected: authenticated account information and a site ID/URL different from `op
 Run:
 
 ```bash
-wsl -d Ubuntu -- bash -lc 'cd /mnt/d/CODEX/resume/portfolio-netlify && netlify deploy --dir dist --message "portfolio static mirror preview"'
+wsl -d Ubuntu -- bash -lc 'cd /mnt/d/CODEX/agent-portfolio/portfolio-netlify && netlify deploy --dir dist --message "portfolio static mirror preview"'
 ```
 
 Then probe the exact preview URL printed by the CLI with `curl -fsSLI` and `curl -fsSL | grep -F "https://opercerta-kxh.netlify.app"` inside the same Ubuntu shell. Expected: HTTPS 200, HTML content type, portfolio title and exact OperCerta URL. Never invent or prefill a URL.
@@ -411,7 +411,7 @@ Then probe the exact preview URL printed by the CLI with `curl -fsSLI` and `curl
 Run:
 
 ```bash
-wsl -d Ubuntu -- bash -lc 'cd /mnt/d/CODEX/resume/portfolio-netlify && netlify deploy --dir dist --prod --message "portfolio static mirror production"'
+wsl -d Ubuntu -- bash -lc 'cd /mnt/d/CODEX/agent-portfolio/portfolio-netlify && netlify deploy --dir dist --prod --message "portfolio static mirror production"'
 ```
 
 Then probe the exact production URL printed by the CLI with `curl -fsSLI` and `curl -fsSL | grep -F "https://opercerta-kxh.netlify.app"` inside the same Ubuntu shell. Expected: production HTTPS 200. Use the browser once to confirm visual rendering and that the OperCerta card opens the separate static showcase in a new tab.
@@ -489,8 +489,8 @@ git commit -m "docs: record portfolio netlify mirror evidence"
 
 ## Final Verification Checklist
 
-- [ ] `D:\CODEX\resume\portfolio-netlify\npm test` passes.
-- [ ] `D:\CODEX\resume\portfolio-netlify\npm run export` succeeds from the same source used for the visual portfolio.
+- [ ] `D:\CODEX\agent-portfolio\portfolio-netlify\npm test` passes.
+- [ ] `D:\CODEX\agent-portfolio\portfolio-netlify\npm run export` succeeds from the same source used for the visual portfolio.
 - [ ] Generated `dist/index.html` contains the exact OperCerta URL and safe external-link attributes.
 - [ ] Every HTML-referenced local CSS/JS/image path exists under `dist`.
 - [ ] Preview and production deploy to a new Netlify site, not `opercerta-kxh`.
