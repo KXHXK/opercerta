@@ -2,13 +2,13 @@
 
 ## 最新核验：公开作品集 Netlify 静态镜像已完成生产部署验证
 
-2026-07-19 已将 `D:\CODEX\resume\portfolio` 的已构建 SSR 首页导出为独立静态镜像，并部署至 <https://kxh-agent-portfolio.netlify.app>。本地导出契约 6 条测试通过，真实导出生成 15 个文件，7 个本地资源引用无缺失；Netlify preview deploy `6a5c814643be8e4160b17def` 与 production deploy `6a5c8184ffb46a40d1b49b6d` 均成功。生产 URL 实测 `200 text/html; charset=UTF-8`，标题、OperCerta 精确外链和新窗口安全属性均通过，浏览器确认页面与第 04 张 OperCerta 卡片正常渲染。原 Sites URL 同轮仍为 HTTP 403，因此不作为简历入口。该镜像是纯静态作品集，不提供 OperCerta API 或写入能力；原产品发布门禁仍为 `CLOSED`。证据见 `docs/release-evidence/portfolio-netlify-static-mirror.md`。
+2026-07-19 已将 `D:\CODEX\resume\portfolio` 的 SSR 首页导出为独立静态镜像并部署至 <https://kxh-agent-portfolio.netlify.app>。单页刷新后无内部 hash 导航，四项目依次为 OperCerta、ForenTrail、SiteVerum、Federune；后三项诚实标记未启动。源作品集契约 3/3、镜像契约 8/8、真实构建与静态导出均通过。production deploy `6a5c986587eaef5b3156f49b` 实测 200，邮箱、电话和 public GitHub 均存在。该镜像不提供 OperCerta API 或写入能力；原产品发布门禁仍为 `CLOSED`。证据见 `docs/release-evidence/portfolio-netlify-static-mirror.md`。
 
 ## 最新核验：公开静态项目专题已完成生产部署验证
 
 2026-07-18 已把 Vite 根路径调整为不依赖后端的静态项目专题，`/console` 保留真实本地演示；公开主机未配置 API 时只显示本地启动说明，不提供公网写入。专题已部署至 <https://opercerta-kxh.netlify.app>。线上标题、JS/CSS 指纹、两张 PNG 证据图和 `/api/*` 静态回退均已验证。个人作品集入口当时只完成本地构建；2026-07-19 已通过上节所述的独立 Netlify 静态镜像完成公开部署。2026-07-19 最终本地门禁为后端 342 条、Ruff、105 文件格式检查、mypy 50 个源文件、安全扫描、前端 11 文件/24 条测试及生产构建全部通过。PR #4 run `29652818349` 四个快速 job 成功并合并为 `0f262e0`；main run `29652991288` 五个 job（含 Compose smoke 与 API/MCP 重启恢复）全部成功。原产品发布门禁仍为 `CLOSED`。
 
-## 最新核验：Private GitHub Actions 分层 CI 已完成
+## 最新核验：GitHub Actions 分层 CI 已完成
 
 2026-07-18 已建立 Private `KXHXK/opercerta` 和只读、固定 Action SHA 的分层 Actions。PR `#1` run `29642286517` 的四个快速 job 成功，`compose-smoke` 按设计跳过；main run `29642363033` 的五个 job 全部成功，远程实测后端 `339 passed in 29.46s`、前端 9 个测试文件/15 条测试、Ruff、104 文件格式检查、mypy 50 个源文件、Compose 业务 smoke、API/MCP 重启恢复与无条件清理。Private 分支保护 API 因当前账户能力返回 HTTP 403，未启用并采用人工 PR 全绿后合并规则。证据见 `docs/release-evidence/github-actions-ci.md`；发布门禁保持 `CLOSED`。
 
@@ -101,12 +101,12 @@
 - Docker/Linux 运行时已修订为 WSL2 → Ubuntu 26.04 LTS，不使用 Docker Desktop 或 Hyper-V VM。Ubuntu 官方仓库的 Docker `29.1.3`、Compose `2.40.3`、Buildx `0.30.1` 已安装；Docker Hub 直连超时后，经用户授权配置了三个可达的第三方 registry mirror。OperCerta Compose 已通过构建、健康、真实业务数据库断言与重启恢复；完整证据见 `docs/release-evidence/docker-linux-runtime.md`，供应链例外见 `docs/superpowers/specs/2026-07-17-wsl2-runtime-amendment-design.md`。
 - 一次预期失败的 Pytest/Psycopg traceback 曾展开旧的本地测试数据库连接密码；代码、Git 和文档未保存该值，fixture 已改为无密码 URL + 临时 `PGPASSWORD`，角色密码也已轮换和复验。
 - 2026-07-16 checkpointer 首次 GREEN 的 Psycopg 连接失败 traceback 再次展开当时的本地测试角色密码。新封装已改为无密码 DSN、临时 `PGPASSWORD` 和 `%20` query 编码，代码/Git/文档未保存该值；用户随后同步轮换 PostgreSQL 角色与 `.env.local`，focused checkpointer 回归新鲜 `4 passed`。
-- 当前 Git 已配置 Private `origin`，`main` 跟踪 `origin/main`。当前账户对 Private 仓库启用 branch protection 返回 HTTP 403，因此保护未启用；所有改动必须人工坚持 PR、四个快速 job 全绿后合并，并在合并后核验 `compose-smoke`。
+- 当前 GitHub 仓库 `KXHXK/opercerta` 已由用户改为 public，公共 API 已复验。`main` branch protection 端点当前返回 HTTP 404，说明保护规则尚未配置；在配置前仍人工坚持 PR、快速 job 全绿后合并，并在合并后核验 `compose-smoke`。
 
 ## 下一步
 
-继续只实施 OperCerta。静态专题、独立作品集入口与 Private GitHub Actions 已有真实远程证据；下一步回到生产 IAM/人工接管、Caddy/HTTPS 后端、自动部署和公开 API 的剩余门禁。公共 registry mirror 的风险与后续每个实际镜像 digest 仍须留证。
+继续只实施 OperCerta。静态专题、独立作品集入口、public GitHub 与 Actions 已有真实远程证据；下一步按求职演示最小发布口径补齐可重复演示、门禁说明与交接，再把生产 IAM、Caddy/HTTPS 后端、自动部署和公开 API 明确归入生产演进项。公共 registry mirror 的风险与后续每个实际镜像 digest 仍须留证。
 
 ## 发布门禁
 
-`OperCerta release gate: CLOSED`。当前证据证明库存补货纵向切片、WSL2 Compose、演示身份、固定评测、单页控制台、可观测性安全基础、Private GitHub Actions 分层 CI、只读静态专题与独立静态作品集入口通过；完整产品面、生产身份、HTTPS 后端、自动部署和公开 API 仍待完成。
+`OperCerta production release gate: CLOSED`。当前证据证明库存补货纵向切片、WSL2 Compose、演示身份、固定评测、单页控制台、可观测性安全基础、GitHub Actions 分层 CI、只读静态专题与独立静态作品集入口通过；完整产品面、生产身份、HTTPS 后端、自动部署和公开 API 仍待完成。求职演示发布门禁将在新的范围修订中单独定义，不能与生产门禁混用。

@@ -8,6 +8,8 @@
 
 **证据边界：** 只证明作品集静态镜像可公开访问并能跳转至 OperCerta 静态专题；不证明 OperCerta 公开后端、生产身份、公开写入或产品发布门禁通过。
 
+**当前生产 deploy：** `6a5c986587eaef5b3156f49b`
+
 ## 决策与隔离
 
 - `D:\CODEX\resume\portfolio` 继续作为唯一人工维护的 Vinext/Sites 源作品集。
@@ -75,7 +77,16 @@ WSL Ubuntu 中没有 `netlify` 命令。Windows 端 Netlify 会话已登录团�
 
 - 回滚目标是本作品集站点的上一份已验证 `dist` 或对应 deploy；禁止部署到 `opercerta-kxh`。
 - 当前为人工 CLI 发布，不是 Git 自动部署。
-- 联系邮箱仍是源作品集中的占位地址 `your-email@example.com`；本轮没有虚构真实联系方式，正式投递前必须由用户提供并替换。
+- 首次部署时联系邮箱仍是占位地址；2026-07-19 单页刷新已由用户明确提供并替换为公开邮箱和手机号，见下节追加证据。
 - OperCerta 公开 API、生产 IAM/SSO、设备场景、集中告警、后端 HTTPS 和自动部署仍未完成。
 
 `OperCerta production release gate: CLOSED`。
+
+## 2026-07-19 单页刷新
+
+- 删除内部 `href="#..."` 导航，生产 HTML 的 hash 链接数为 0；入口统一为 <https://kxh-agent-portfolio.netlify.app>。
+- 项目顺序固定为 OperCerta、ForenTrail、SiteVerum、Federune。后三项只标记“规划中 · 未启动”，不提供无效项目链接。
+- 公开联系信息更新为用户明确提供的邮箱和手机号；公开 GitHub 为 <https://github.com/KXHXK/opercerta>，GitHub API 确认仓库为 public。
+- 源作品集渲染契约 3/3 通过；镜像失败关闭契约 8/8 通过；真实构建与静态导出成功。
+- preview deploy：`6a5c92ca65ca5b75486b82d1`；production deploy：`6a5c986587eaef5b3156f49b`。
+- 生产 URL 返回 `200 text/html; charset=UTF-8`，标题为 `KXH — AI Agent 工程作品集`，四项目顺序和联系信息通过。
