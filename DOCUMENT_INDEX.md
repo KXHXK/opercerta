@@ -1,6 +1,7 @@
 # OperCerta 文档索引
 
-新增待书面复核规格：`docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md`（将 OperCerta 收口范围固定为库存补货、设备维修、作业异常恢复三个真实闭环；共享 LangGraph 可靠性内核，并把六个 MCP 工具、Redis、OpenTelemetry、真实模型代表性验证、交互部署和中文学习包纳入门禁）。
+新增已确认规格：`docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md`（将 OperCerta 收口范围固定为库存补货、设备维修、作业异常恢复三个真实闭环；共享 LangGraph 可靠性内核，并把六个 MCP 工具、Redis、OpenTelemetry、真实模型代表性验证、交互部署和中文学习包纳入门禁）。
+新增待执行计划：`docs/superpowers/plans/2026-07-20-opercerta-three-business-release.md`（八项连续 TDD 任务：通用契约、共享图、设备、作业、前端、Redis/Trace/Real model、跨业务评测/Compose、发布与学习交付；采用 Inline Execution）。
 
 新增已确认规格：`docs/superpowers/specs/2026-07-19-portfolio-netlify-static-mirror-design.md`（将既有 Vinext/Sites 作品集导出为独立 Netlify 静态镜像，解决当前 Sites 公网 403；只提供公开作品集入口与 OperCerta 静态专题跳转，不提供公开业务写入，原发布门禁保持关闭）。
 新增已执行计划：`docs/superpowers/plans/2026-07-19-portfolio-netlify-static-mirror.md`（独立静态导出器、HTML/资源失败闭环、Netlify preview/production 验证与事实日志；不改现有 Sites 源码或 OperCerta 产品发布边界）。
@@ -64,7 +65,8 @@
 | `docs/superpowers/specs/2026-07-18-observability-security-regression-design.md` | 请求关联、安全日志、低基数指标与安全回归设计 | 已实施并完成本地门禁 | `29b2c97` | 1 |
 | `docs/superpowers/specs/2026-07-18-github-actions-ci-security-gate-design.md` | Private GitHub Actions 分层 CI 安全门禁设计 | 已实施并完成远程门禁 | 本次提交 | 1 |
 | `docs/superpowers/specs/2026-07-19-portfolio-netlify-static-mirror-design.md` | 作品集 Netlify 独立静态镜像设计 | 已实施并完成公网验证 | 本次提交 | 1 |
-| `docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md` | 三业务闭环、技术栈补齐、求职发布与学习交付修订 | 待用户书面复核 | 本次提交 | 1 |
+| `docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md` | 三业务闭环、技术栈补齐、求职发布与学习交付修订 | 已确认；实施计划已创建 | `632f0a1` | 1 |
+| `docs/superpowers/plans/2026-07-20-opercerta-three-business-release.md` | 三业务求职发布八项 Inline TDD 主计划 | 待执行 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-14-opercerta-reliability-kernel.md` | 可靠性内核 TDD 总计划 | Task 1–6 已执行 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-16-langgraph-restart-recovery.md` | Task 5 四点重启恢复可执行 TDD 计划 | 已执行；证据已归档 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-16-work-order-idempotency.md` | Task 4 幂等工单可执行 TDD 计划 | 已执行；证据已归档 | 本次提交 | 1 |
