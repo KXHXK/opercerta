@@ -20,10 +20,13 @@ from opercerta.domain.errors import (
 )
 from opercerta.domain.operation_state import OperationSnapshot
 from opercerta.domain.replenishment import (
-    ApprovalBinding,
     EvidenceBundle,
     ReplenishmentPlan,
     build_approval_binding,
+)
+from opercerta.domain.scenarios import (
+    ApprovalBinding,
+    ReplenishmentParameters,
 )
 from opercerta.infrastructure.db.schema import approvals, audit_events, operations
 
@@ -184,7 +187,9 @@ class ApprovalRepository:
                         approver_id=command.approver_id,
                         decision=command.decision.value,
                         reason=command.reason,
-                        **current_binding.model_dump(mode="python"),
+                        subject_evidence_id=current_binding.subject_evidence_id,
+                        binding_payload=current_binding.model_dump(mode="json"),
+                        **self._legacy_inventory_values(current_binding),
                         created_at=now,
                     )
                 )
@@ -237,10 +242,26 @@ class ApprovalRepository:
         except ValidationError:
             raise ApprovalSnapshotMismatch from None
 
-        derived_binding = build_approval_binding(bundle, plan)
+        derived_binding = ApprovalBinding.model_validate(build_approval_binding(bundle, plan))
         if stored_binding != derived_binding:
             raise ApprovalSnapshotMismatch
         return stored_binding
+
+    def _legacy_inventory_values(
+        self,
+        binding: ApprovalBinding,
+    ) -> dict[str, object]:
+        parameters = binding.parameters
+        if not isinstance(parameters, ReplenishmentParameters):
+            return {}
+        return {
+            "inventory_evidence_id": binding.subject_evidence_id,
+            "policy_evidence_id": binding.policy_evidence_id,
+            "rule_version": binding.rule_version,
+            "decision_facts_hash": binding.decision_facts_hash,
+            "plan_hash": binding.plan_hash,
+            "recommended_quantity": parameters.recommended_quantity,
+        }
 
     def _require_timezone(self, value: datetime) -> None:
         if value.tzinfo is None or value.utcoffset() is None:

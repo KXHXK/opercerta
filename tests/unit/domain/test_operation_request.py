@@ -59,6 +59,22 @@ def test_complete_object_reference_is_accepted() -> None:
     assert request.object_id == "SKU-DEMO-001"
 
 
+def test_task_query_is_accepted() -> None:
+    operation_request = operation_request_type()
+
+    request = operation_request.model_validate(
+        {
+            "message": "查询阻塞作业",
+            "requested_action": "query",
+            "object_type": "task",
+            "object_id": "TASK-BLOCKED-001",
+        }
+    )
+
+    assert request.requested_action.value == "query"
+    assert request.object_type.value == "task"
+
+
 @pytest.mark.parametrize(
     "payload",
     [

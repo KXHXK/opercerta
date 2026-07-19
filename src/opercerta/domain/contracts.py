@@ -17,6 +17,7 @@ class ActionType(StrEnum):
 class ObjectType(StrEnum):
     INVENTORY = "inventory"
     EQUIPMENT = "equipment"
+    TASK = "task"
 
 
 class OperationRequest(BaseModel):

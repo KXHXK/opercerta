@@ -20,6 +20,7 @@ from opercerta.domain.replenishment import (
     ReplenishmentPlan,
     Version,
 )
+from opercerta.domain.scenarios import ApprovalBinding as ScenarioApprovalBinding
 from opercerta.domain.work_orders import WorkOrderRecord
 
 ErrorCode = Annotated[
@@ -48,14 +49,16 @@ class ApprovalRequest(BaseModel):
     expected_plan_hash: Digest
     expected_recommended_quantity: StrictInt
 
-    def approval_binding(self) -> ApprovalBinding:
-        return ApprovalBinding(
-            inventory_evidence_id=self.expected_inventory_evidence_id,
-            policy_evidence_id=self.expected_policy_evidence_id,
-            rule_version=self.expected_rule_version,
-            decision_facts_hash=self.expected_decision_facts_hash,
-            plan_hash=self.expected_plan_hash,
-            recommended_quantity=self.expected_recommended_quantity,
+    def approval_binding(self) -> ScenarioApprovalBinding:
+        return ScenarioApprovalBinding.model_validate(
+            ApprovalBinding(
+                inventory_evidence_id=self.expected_inventory_evidence_id,
+                policy_evidence_id=self.expected_policy_evidence_id,
+                rule_version=self.expected_rule_version,
+                decision_facts_hash=self.expected_decision_facts_hash,
+                plan_hash=self.expected_plan_hash,
+                recommended_quantity=self.expected_recommended_quantity,
+            )
         )
 
 

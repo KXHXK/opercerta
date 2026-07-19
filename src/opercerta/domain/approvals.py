@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, StringConstraints, field_validator
 
-from opercerta.domain.replenishment import ApprovalBinding
+from opercerta.domain.scenarios import ApprovalBinding
 
 ApproverId = Annotated[
     str,
