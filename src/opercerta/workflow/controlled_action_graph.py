@@ -23,11 +23,16 @@ from opercerta.workflow.replenishment_graph import (
     build_replenishment_graph,
     build_replenishment_initial_state,
 )
+from opercerta.workflow.task_recovery_graph import (
+    TaskGateway,
+    TaskRecoveryGraph,
+    build_task_recovery_graph,
+)
 
 ControlledActionState = ReplenishmentState
 
 
-class ControlledEvidenceGateway(EvidenceGateway, MaintenanceGateway, Protocol):
+class ControlledEvidenceGateway(EvidenceGateway, MaintenanceGateway, TaskGateway, Protocol):
     pass
 
 
@@ -36,10 +41,12 @@ class ControlledActionGraph:
         self,
         inventory: ReplenishmentGraph,
         equipment: EquipmentMaintenanceGraph,
+        task: TaskRecoveryGraph,
         operations: OperationRepository,
     ) -> None:
         self._inventory = inventory
         self._equipment = equipment
+        self._task = task
         self._operations = operations
 
     async def ainvoke(
@@ -68,7 +75,7 @@ class ControlledActionGraph:
         self,
         value: ControlledActionState | Command[Any] | None,
         config: RunnableConfig,
-    ) -> ReplenishmentGraph | EquipmentMaintenanceGraph:
+    ) -> ReplenishmentGraph | EquipmentMaintenanceGraph | TaskRecoveryGraph:
         if isinstance(value, dict) and "request" in value:
             request = OperationRequest.model_validate(value["request"])
         else:
@@ -81,6 +88,8 @@ class ControlledActionGraph:
             return self._inventory
         if request.object_type is ObjectType.EQUIPMENT:
             return self._equipment
+        if request.object_type is ObjectType.TASK:
+            return self._task
         raise ValueError("unsupported controlled action object type")
 
 
@@ -122,5 +131,14 @@ def build_controlled_action_graph(
         clock,
         approval_ttl_seconds=approval_ttl_seconds,
     )
+    task = build_task_recovery_graph(
+        checkpointer,  # type: ignore[arg-type]
+        operations,
+        evidence_repository,
+        gateway,
+        model_gateway,
+        clock,
+        approval_ttl_seconds=approval_ttl_seconds,
+    )
     del registry
-    return ControlledActionGraph(inventory, equipment, operations)
+    return ControlledActionGraph(inventory, equipment, task, operations)

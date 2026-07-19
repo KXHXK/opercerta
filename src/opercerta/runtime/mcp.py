@@ -42,6 +42,8 @@ def create_mcp_runtime_app(settings: McpSettings | None = None) -> FastAPI:
             ROOT / "data" / "synthetic" / "replenishment_policies.json",
             equipment_path=ROOT / "data" / "synthetic" / "equipment.json",
             maintenance_policy_path=ROOT / "data" / "synthetic" / "maintenance_policies.json",
+            task_path=ROOT / "data" / "synthetic" / "tasks.json",
+            task_recovery_policy_path=ROOT / "data" / "synthetic" / "task_recovery_policies.json",
         ),
         engine,
         clock=lambda: datetime.now(UTC),

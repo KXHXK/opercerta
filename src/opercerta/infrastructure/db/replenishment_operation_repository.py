@@ -40,6 +40,13 @@ from opercerta.domain.replenishment import (
     build_approval_binding,
 )
 from opercerta.domain.scenarios import ApprovalBinding
+from opercerta.domain.task_recovery import (
+    TaskRecoveryAssessment,
+    TaskRecoveryEvidenceBundle,
+    TaskRecoveryPlan,
+    TaskRecoveryWorkOrderPayload,
+    build_task_recovery_approval_binding,
+)
 from opercerta.domain.work_orders import WorkOrderRecord, canonical_payload_json
 from opercerta.infrastructure.db.evidence_repository import (
     EvidenceRecord,
@@ -95,7 +102,9 @@ class OperationDetail:
     audit_events: tuple[AuditEventView, ...]
 
     @property
-    def assessment(self) -> ReplenishmentAssessment | MaintenanceAssessment | None:
+    def assessment(
+        self,
+    ) -> ReplenishmentAssessment | MaintenanceAssessment | TaskRecoveryAssessment | None:
         value = self.snapshot.risk.get("assessment")
         if value is None:
             return None
@@ -108,6 +117,8 @@ class OperationDetail:
                 return ReplenishmentAssessment.model_validate(value)
             if object_type is ObjectType.EQUIPMENT:
                 return MaintenanceAssessment.model_validate(value)
+            if object_type is ObjectType.TASK:
+                return TaskRecoveryAssessment.model_validate(value)
             raise ValueError("unsupported assessment object type")
         except ValidationError:
             raise RecoveryStateConflict(
@@ -116,7 +127,7 @@ class OperationDetail:
             ) from None
 
     @property
-    def plan(self) -> ReplenishmentPlan | MaintenancePlan | None:
+    def plan(self) -> ReplenishmentPlan | MaintenancePlan | TaskRecoveryPlan | None:
         if not self.snapshot.plan:
             return None
         try:
@@ -128,6 +139,8 @@ class OperationDetail:
                 return ReplenishmentPlan.model_validate(self.snapshot.plan)
             if object_type is ObjectType.EQUIPMENT:
                 return MaintenancePlan.model_validate(self.snapshot.plan)
+            if object_type is ObjectType.TASK:
+                return TaskRecoveryPlan.model_validate(self.snapshot.plan)
             raise ValueError("unsupported plan object type")
         except ValidationError:
             raise RecoveryStateConflict(
@@ -234,7 +247,7 @@ class ReplenishmentOperationRepository:
     async def record_evidence(
         self,
         operation_id: UUID,
-        bundle: EvidenceBundle | MaintenanceEvidenceBundle,
+        bundle: EvidenceBundle | MaintenanceEvidenceBundle | TaskRecoveryEvidenceBundle,
     ) -> None:
         bundle_payload = cast(dict[str, JsonValue], bundle.model_dump(mode="json"))
 
@@ -262,8 +275,8 @@ class ReplenishmentOperationRepository:
     async def record_validated_plan(
         self,
         operation_id: UUID,
-        assessment: ReplenishmentAssessment | MaintenanceAssessment,
-        plan: ReplenishmentPlan | MaintenancePlan | None,
+        assessment: ReplenishmentAssessment | MaintenanceAssessment | TaskRecoveryAssessment,
+        plan: ReplenishmentPlan | MaintenancePlan | TaskRecoveryPlan | None,
     ) -> None:
         self._require_plan_matches_assessment(assessment, plan)
         assessment_payload = cast(
@@ -768,9 +781,24 @@ class ReplenishmentOperationRepository:
 
     def _require_plan_matches_assessment(
         self,
-        assessment: ReplenishmentAssessment | MaintenanceAssessment,
-        plan: ReplenishmentPlan | MaintenancePlan | None,
+        assessment: ReplenishmentAssessment | MaintenanceAssessment | TaskRecoveryAssessment,
+        plan: ReplenishmentPlan | MaintenancePlan | TaskRecoveryPlan | None,
     ) -> None:
+        if isinstance(assessment, TaskRecoveryAssessment):
+            if not assessment.recovery_required:
+                if plan is not None:
+                    raise ValueError("non-recovery assessment must not have a plan")
+                return
+            if (
+                not isinstance(plan, TaskRecoveryPlan)
+                or plan.task_id != assessment.task_id
+                or plan.blocker_code != assessment.blocker_code
+                or plan.retry_count != assessment.retry_count
+                or plan.recovery_action != assessment.recovery_action
+                or plan.decision_facts_hash != assessment.decision_facts_hash
+            ):
+                raise ValueError("task recovery plan does not match assessment")
+            return
         if isinstance(assessment, MaintenanceAssessment):
             if not assessment.maintenance_required:
                 if plan is not None:
@@ -785,8 +813,8 @@ class ReplenishmentOperationRepository:
             ):
                 raise ValueError("maintenance plan does not match assessment")
             return
-        if isinstance(plan, MaintenancePlan):
-            raise ValueError("maintenance plan cannot satisfy replenishment assessment")
+        if isinstance(plan, (MaintenancePlan, TaskRecoveryPlan)):
+            raise ValueError("non-replenishment plan cannot satisfy replenishment assessment")
         if not assessment.replenishment_required:
             if plan is not None or assessment.recommended_quantity is not None:
                 raise ValueError("non-replenishment assessment must not have a plan")
@@ -822,6 +850,10 @@ class ReplenishmentOperationRepository:
                 maintenance_bundle,
                 maintenance_plan,
             )
+        elif request.object_type is ObjectType.TASK:
+            task_bundle = TaskRecoveryEvidenceBundle.model_validate(evidence_payload)
+            task_plan = TaskRecoveryPlan.model_validate(snapshot.plan)
+            expected = build_task_recovery_approval_binding(task_bundle, task_plan)
         else:
             raise ValueError("unsupported approval binding object type")
         if expected != binding:
@@ -829,7 +861,7 @@ class ReplenishmentOperationRepository:
 
     def _work_order_payload(
         self,
-        plan: ReplenishmentPlan | MaintenancePlan | None,
+        plan: ReplenishmentPlan | MaintenancePlan | TaskRecoveryPlan | None,
     ) -> dict[str, JsonValue]:
         if plan is None:
             return {}
@@ -839,12 +871,23 @@ class ReplenishmentOperationRepository:
                 "quantity": plan.recommended_quantity,
                 "approved_plan_hash": plan.plan_hash,
             }
+        if isinstance(plan, MaintenancePlan):
+            return cast(
+                dict[str, JsonValue],
+                RepairWorkOrderPayload(
+                    equipment_id=plan.equipment_id,
+                    alert_code=plan.alert_code,
+                    priority=plan.priority,
+                    approved_plan_hash=plan.plan_hash,
+                ).model_dump(mode="json"),
+            )
         return cast(
             dict[str, JsonValue],
-            RepairWorkOrderPayload(
-                equipment_id=plan.equipment_id,
-                alert_code=plan.alert_code,
-                priority=plan.priority,
+            TaskRecoveryWorkOrderPayload(
+                task_id=plan.task_id,
+                blocker_code=plan.blocker_code,
+                retry_count=plan.retry_count,
+                recovery_action=plan.recovery_action,
                 approved_plan_hash=plan.plan_hash,
             ).model_dump(mode="json"),
         )

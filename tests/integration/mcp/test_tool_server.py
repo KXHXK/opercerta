@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from opercerta.domain.maintenance import EquipmentEvidence, MaintenancePolicyEvidence
 from opercerta.domain.replenishment import InventoryEvidence, PolicyEvidence
+from opercerta.domain.task_recovery import TaskEvidence, TaskRecoveryPolicyEvidence
 from opercerta.domain.work_orders import (
     WorkOrderRecord,
     WorkOrderWriteResult,
@@ -93,6 +94,7 @@ async def test_real_transport_lists_exact_tools_and_returns_inventory(
             "equipment.get_status",
             "inventory.get_snapshot",
             "policy.list_constraints",
+            "task.get_status",
             "work_order.create",
             "work_order.get",
         }
@@ -134,6 +136,23 @@ async def test_equipment_and_maintenance_policy_tools_return_stable_contracts(
     assert result_text(missing) == expected_tool_error(
         "equipment.get_status", "equipment_not_found"
     )
+
+
+@pytest.mark.asyncio
+async def test_task_and_recovery_policy_tools_return_stable_contracts(
+    mcp_server: McpServerHarness,
+) -> None:
+    async with open_mcp_session(mcp_server.url) as session:
+        task_result = await session.call_tool("task.get_status", {"task_id": "TASK-BLOCKED-001"})
+        policy_result = await session.call_tool(
+            "policy.list_constraints",
+            {"action": "recover_task", "task_id": "TASK-BLOCKED-001"},
+        )
+
+    task = TaskEvidence.model_validate(task_result.structuredContent)
+    policy = TaskRecoveryPolicyEvidence.model_validate(policy_result.structuredContent)
+    assert task.blocker_code == "UPSTREAM_TIMEOUT"
+    assert policy.recovery_action == "manual_requeue"
 
 
 @pytest.mark.asyncio

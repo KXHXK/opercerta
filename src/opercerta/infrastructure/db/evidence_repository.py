@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 from opercerta.domain.errors import EvidenceConflict, OperationNotFound
 from opercerta.domain.maintenance import EquipmentEvidence, MaintenanceEvidenceBundle
 from opercerta.domain.replenishment import EvidenceBundle, InventoryEvidence
+from opercerta.domain.task_recovery import TaskEvidence, TaskRecoveryEvidenceBundle
 from opercerta.domain.work_orders import canonical_payload_json
 from opercerta.infrastructure.db.schema import evidence, operations
 
@@ -44,14 +45,14 @@ class EvidenceRepository:
     async def save_bundle(
         self,
         operation_id: UUID,
-        bundle: EvidenceBundle | MaintenanceEvidenceBundle,
+        bundle: EvidenceBundle | MaintenanceEvidenceBundle | TaskRecoveryEvidenceBundle,
     ) -> tuple[EvidenceRecord, EvidenceRecord]:
         return await self._save(operation_id, bundle)
 
     async def save_refresh(
         self,
         operation_id: UUID,
-        bundle: EvidenceBundle | MaintenanceEvidenceBundle,
+        bundle: EvidenceBundle | MaintenanceEvidenceBundle | TaskRecoveryEvidenceBundle,
     ) -> tuple[EvidenceRecord, EvidenceRecord]:
         return await self._save(operation_id, bundle)
 
@@ -81,7 +82,7 @@ class EvidenceRepository:
     async def _save(
         self,
         operation_id: UUID,
-        bundle: EvidenceBundle | MaintenanceEvidenceBundle,
+        bundle: EvidenceBundle | MaintenanceEvidenceBundle | TaskRecoveryEvidenceBundle,
     ) -> tuple[EvidenceRecord, EvidenceRecord]:
         async with self._engine.begin() as connection:
             await self._lock_operation(connection, operation_id)
@@ -91,9 +92,15 @@ class EvidenceRepository:
         self,
         connection: AsyncConnection,
         operation_id: UUID,
-        bundle: EvidenceBundle | MaintenanceEvidenceBundle,
+        bundle: EvidenceBundle | MaintenanceEvidenceBundle | TaskRecoveryEvidenceBundle,
     ) -> tuple[EvidenceRecord, EvidenceRecord]:
-        subject = bundle.inventory if isinstance(bundle, EvidenceBundle) else bundle.equipment
+        subject: InventoryEvidence | EquipmentEvidence | TaskEvidence
+        if isinstance(bundle, EvidenceBundle):
+            subject = bundle.inventory
+        elif isinstance(bundle, MaintenanceEvidenceBundle):
+            subject = bundle.equipment
+        else:
+            subject = bundle.task
         if subject.evidence_id == bundle.policy.evidence_id:
             raise EvidenceConflict
         specifications = self._specifications(bundle)
@@ -166,18 +173,22 @@ class EvidenceRepository:
 
     def _specifications(
         self,
-        bundle: EvidenceBundle | MaintenanceEvidenceBundle,
+        bundle: EvidenceBundle | MaintenanceEvidenceBundle | TaskRecoveryEvidenceBundle,
     ) -> tuple[dict[str, object], ...]:
         ttl = timedelta(seconds=bundle.policy.evidence_ttl_seconds)
-        subject: InventoryEvidence | EquipmentEvidence
+        subject: InventoryEvidence | EquipmentEvidence | TaskEvidence
         if isinstance(bundle, EvidenceBundle):
             subject = bundle.inventory
             subject_type = "inventory"
             source_tool = "inventory"
-        else:
+        elif isinstance(bundle, MaintenanceEvidenceBundle):
             subject = bundle.equipment
             subject_type = "equipment"
             source_tool = "equipment.get_status"
+        else:
+            subject = bundle.task
+            subject_type = "task"
+            source_tool = "task.get_status"
         subject_content = cast(
             dict[str, JsonValue],
             subject.model_dump(mode="json"),

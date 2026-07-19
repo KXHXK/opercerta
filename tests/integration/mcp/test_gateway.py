@@ -174,6 +174,20 @@ async def test_real_gateway_reads_equipment_and_maintenance_policy(
 
 
 @pytest.mark.asyncio
+async def test_real_gateway_reads_task_and_recovery_policy(
+    mcp_server: McpServerHarness,
+) -> None:
+    gateway = McpToolGateway(mcp_server.url, timeout_seconds=2)
+
+    task = await gateway.get_task("TASK-BLOCKED-001")
+    policy = await gateway.get_task_recovery_policy("TASK-BLOCKED-001")
+
+    assert task.task_id == policy.task_id == "TASK-BLOCKED-001"
+    assert task.state == "blocked"
+    assert policy.rule_version == "task-recovery-v1"
+
+
+@pytest.mark.asyncio
 async def test_missing_equipment_is_not_retried() -> None:
     factory = SequenceSessionFactory(
         [tool_result(error_text="Error executing tool equipment.get_status: equipment_not_found")]

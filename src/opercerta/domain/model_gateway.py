@@ -5,6 +5,7 @@ from opercerta.domain.replenishment import (
     ModelPlanExplanation,
     ReplenishmentAssessment,
 )
+from opercerta.domain.task_recovery import TaskRecoveryAssessment
 
 
 class ModelGateway(Protocol):
@@ -17,6 +18,12 @@ class ModelGateway(Protocol):
     async def explain_maintenance(
         self,
         assessment: MaintenanceAssessment,
+    ) -> ModelPlanExplanation:
+        raise NotImplementedError
+
+    async def explain_task_recovery(
+        self,
+        assessment: TaskRecoveryAssessment,
     ) -> ModelPlanExplanation:
         raise NotImplementedError
 
@@ -38,4 +45,13 @@ class MockModelGateway:
         return ModelPlanExplanation(
             summary=f"建议为设备 {assessment.equipment_id} 创建维修工单。",
             rationale="维修优先级由已验证设备证据和版本化规则确定。",
+        )
+
+    async def explain_task_recovery(
+        self,
+        assessment: TaskRecoveryAssessment,
+    ) -> ModelPlanExplanation:
+        return ModelPlanExplanation(
+            summary=f"建议为任务 {assessment.task_id} 创建人工恢复工单。",
+            rationale="恢复动作由已验证阻塞或逾期事实和版本化规则确定。",
         )

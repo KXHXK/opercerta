@@ -34,6 +34,11 @@ from opercerta.domain.scenarios import (
     ApprovalBinding,
     ReplenishmentParameters,
 )
+from opercerta.domain.task_recovery import (
+    TaskRecoveryEvidenceBundle,
+    TaskRecoveryPlan,
+    build_task_recovery_approval_binding,
+)
 from opercerta.infrastructure.db.schema import approvals, audit_events, operations
 
 
@@ -258,6 +263,15 @@ class ApprovalRepository:
                 derived_binding = build_maintenance_approval_binding(
                     maintenance_bundle,
                     maintenance_plan,
+                )
+            elif request.object_type is ObjectType.TASK:
+                task_bundle = TaskRecoveryEvidenceBundle.model_validate(
+                    snapshot.risk.get("evidence")
+                )
+                task_plan = TaskRecoveryPlan.model_validate(snapshot.plan)
+                derived_binding = build_task_recovery_approval_binding(
+                    task_bundle,
+                    task_plan,
                 )
             else:
                 raise ApprovalSnapshotMismatch

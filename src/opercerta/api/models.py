@@ -22,6 +22,7 @@ from opercerta.domain.replenishment import (
     Version,
 )
 from opercerta.domain.scenarios import ApprovalBinding as ScenarioApprovalBinding
+from opercerta.domain.task_recovery import TaskRecoveryAssessment, TaskRecoveryPlan
 from opercerta.domain.work_orders import WorkOrderRecord
 
 ErrorCode = Annotated[
@@ -114,8 +115,8 @@ class OperationDetailResponse(BaseModel):
     status: OperationStatus
     request: OperationRequest
     evidence: tuple[dict[str, JsonValue], ...]
-    assessment: ReplenishmentAssessment | MaintenanceAssessment | None
-    plan: ReplenishmentPlan | MaintenancePlan | None
+    assessment: ReplenishmentAssessment | MaintenanceAssessment | TaskRecoveryAssessment | None
+    plan: ReplenishmentPlan | MaintenancePlan | TaskRecoveryPlan | None
     approval_binding: ScenarioApprovalBinding | None
     approval: ApprovalResponse | None
     work_order: WorkOrderRecord | None

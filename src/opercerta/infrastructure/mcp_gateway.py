@@ -19,8 +19,11 @@ from opercerta.domain.errors import (
     InvalidInventoryEvidence,
     InvalidMaintenancePolicyEvidence,
     InvalidPolicyEvidence,
+    InvalidTaskEvidence,
+    InvalidTaskRecoveryPolicyEvidence,
     InventoryNotFound,
     OperationNotFound,
+    TaskNotFound,
     UnknownTool,
     WorkOrderNotFound,
     WorkOrderStorageFailed,
@@ -28,6 +31,7 @@ from opercerta.domain.errors import (
 )
 from opercerta.domain.maintenance import EquipmentEvidence, MaintenancePolicyEvidence
 from opercerta.domain.replenishment import InventoryEvidence, PolicyEvidence
+from opercerta.domain.task_recovery import TaskEvidence, TaskRecoveryPolicyEvidence
 from opercerta.domain.work_orders import (
     WorkOrderCommand,
     WorkOrderRecord,
@@ -40,6 +44,7 @@ ALLOWED_TOOLS = frozenset(
         "equipment.get_status",
         "inventory.get_snapshot",
         "policy.list_constraints",
+        "task.get_status",
         "work_order.create",
         "work_order.get",
     }
@@ -145,6 +150,27 @@ class McpToolGateway:
         except ValidationError:
             raise InvalidMaintenancePolicyEvidence from None
 
+    async def get_task(self, task_id: str) -> TaskEvidence:
+        arguments: dict[str, object] = {"task_id": task_id}
+        result = await self.call_raw("task.get_status", arguments)
+        self._raise_tool_error("task.get_status", arguments, result)
+        try:
+            return TaskEvidence.model_validate(result.structuredContent)
+        except ValidationError:
+            raise InvalidTaskEvidence from None
+
+    async def get_task_recovery_policy(self, task_id: str) -> TaskRecoveryPolicyEvidence:
+        arguments: dict[str, object] = {
+            "action": "recover_task",
+            "task_id": task_id,
+        }
+        result = await self.call_raw("policy.list_constraints", arguments)
+        self._raise_tool_error("policy.list_constraints", arguments, result)
+        try:
+            return TaskRecoveryPolicyEvidence.model_validate(result.structuredContent)
+        except ValidationError:
+            raise InvalidTaskRecoveryPolicyEvidence from None
+
     async def create_work_order(
         self,
         command: WorkOrderCommand,
@@ -165,6 +191,28 @@ class McpToolGateway:
                 "equipment_id": equipment_id,
                 "alert_code": alert_code,
                 "priority": priority,
+                "idempotency_key": derive_idempotency_key(command.operation_id),
+                "approved_plan_hash": plan_hash,
+            }
+        elif kind == "task_recovery":
+            task_id = command.payload.get("task_id")
+            blocker_code = command.payload.get("blocker_code")
+            retry_count = command.payload.get("retry_count")
+            recovery_action = command.payload.get("recovery_action")
+            if (
+                not isinstance(task_id, str)
+                or (blocker_code is not None and not isinstance(blocker_code, str))
+                or type(retry_count) is not int
+                or recovery_action != "manual_requeue"
+            ):
+                raise WorkOrderStorageFailed
+            arguments = {
+                "operation_id": command.operation_id,
+                "kind": "task_recovery",
+                "task_id": task_id,
+                "blocker_code": blocker_code,
+                "retry_count": retry_count,
+                "recovery_action": recovery_action,
                 "idempotency_key": derive_idempotency_key(command.operation_id),
                 "approved_plan_hash": plan_hash,
             }
@@ -235,6 +283,8 @@ class McpToolGateway:
             raise InventoryNotFound
         if code == EquipmentNotFound.code:
             raise EquipmentNotFound
+        if code == TaskNotFound.code:
+            raise TaskNotFound
         if code == EvidenceUnavailable.code:
             raise EvidenceUnavailable
         if code == InvalidInventoryEvidence.code:
@@ -245,6 +295,10 @@ class McpToolGateway:
             raise InvalidEquipmentEvidence
         if code == InvalidMaintenancePolicyEvidence.code:
             raise InvalidMaintenancePolicyEvidence
+        if code == InvalidTaskEvidence.code:
+            raise InvalidTaskEvidence
+        if code == InvalidTaskRecoveryPolicyEvidence.code:
+            raise InvalidTaskRecoveryPolicyEvidence
         if code == WorkOrderNotFound.code:
             raise WorkOrderNotFound
         if code == WorkOrderStorageFailed.code:

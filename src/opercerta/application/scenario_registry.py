@@ -32,6 +32,12 @@ class MaintenanceScenario:
     object_type: ObjectType = ObjectType.EQUIPMENT
 
 
+@dataclass(frozen=True, slots=True)
+class TaskRecoveryScenario:
+    kind: ScenarioKind = ScenarioKind.TASK
+    object_type: ObjectType = ObjectType.TASK
+
+
 class ScenarioRegistry:
     def __init__(self, scenarios: tuple[ControlledActionScenario, ...]) -> None:
         self._scenarios = {
@@ -51,5 +57,6 @@ def build_default_scenario_registry() -> ScenarioRegistry:
     scenarios: tuple[ControlledActionScenario, ...] = (
         ReplenishmentScenario(),
         MaintenanceScenario(),
+        TaskRecoveryScenario(),
     )
     return ScenarioRegistry(scenarios)

@@ -102,6 +102,23 @@ class ApiHarness:
         body["_status_code"] = response.status_code
         return body
 
+    async def create_task_operation(self, task_id: str = "TASK-BLOCKED-001") -> dict[str, object]:
+        response = await self.client.post(
+            "/api/v1/operations",
+            headers=self.headers(DemoAccount.OPERATOR),
+            json={
+                "message": f"recover blocked task {task_id}",
+                "requested_action": "create_work_order",
+                "object_type": "task",
+                "object_id": task_id,
+            },
+        )
+        body = cast(dict[str, object], response.json())
+        if response.status_code == 202:
+            self.operation_ids.append(UUID(str(body["operation_id"])))
+        body["_status_code"] = response.status_code
+        return body
+
 
 class UnavailableRunner:
     async def start(self, request: object) -> UUID:
@@ -271,6 +288,37 @@ async def test_create_approve_and_query_equipment_repair_operation(
         completed = after.json()
         assert completed["work_order"]["payload"]["kind"] == "repair"
         assert completed["work_order"]["payload"]["equipment_id"] == "EQ-PUMP-001"
+
+
+@pytest.mark.asyncio
+async def test_create_approve_and_query_task_recovery_operation(
+    engine: AsyncEngine,
+    checkpoint_database_url: SecretStr,
+    mcp_server: McpServerHarness,
+) -> None:
+    async with open_api_harness(engine, checkpoint_database_url, mcp_server) as harness:
+        accepted = await harness.create_task_operation()
+        assert accepted.pop("_status_code") == 202
+        assert accepted["status"] == "awaiting_approval"
+        operation_id = UUID(str(accepted["operation_id"]))
+
+        before = await harness.client.get(f"/api/v1/operations/{operation_id}")
+        assert before.status_code == 200
+        detail = before.json()
+        assert detail["assessment"]["reason"] == "blocked"
+        assert detail["approval_binding"]["scenario"] == "task"
+
+        approved = await harness.client.post(
+            f"/api/v1/operations/{operation_id}/approval",
+            headers=harness.headers(DemoAccount.APPROVER),
+            json=approval_payload(detail, "approved"),
+        )
+        assert approved.status_code == 202
+        assert approved.json()["status"] == "completed"
+
+        completed = (await harness.client.get(f"/api/v1/operations/{operation_id}")).json()
+        assert completed["work_order"]["payload"]["kind"] == "task_recovery"
+        assert completed["work_order"]["payload"]["task_id"] == "TASK-BLOCKED-001"
         openapi = (await harness.client.get("/openapi.json")).json()
         accepted_schema = openapi["components"]["schemas"]["OperationAccepted"]
         assert accepted_schema["properties"]["created_at"]["format"] == "date-time"

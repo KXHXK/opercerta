@@ -88,6 +88,13 @@ class EquipmentNotFound(LookupError):
         super().__init__(self.code)
 
 
+class TaskNotFound(LookupError):
+    code = "task_not_found"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
 class EvidenceUnavailable(RuntimeError):
     code = "evidence_unavailable"
 
@@ -139,6 +146,27 @@ class InvalidMaintenancePolicyEvidence(ValueError):
 
 class ReplenishmentQuantityOutOfPolicy(ValueError):
     code = "replenishment_quantity_out_of_policy"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class TaskRecoveryOutOfPolicy(ValueError):
+    code = "task_recovery_out_of_policy"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class InvalidTaskEvidence(ValueError):
+    code = "invalid_task_evidence"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class InvalidTaskRecoveryPolicyEvidence(ValueError):
+    code = "invalid_task_recovery_policy_evidence"
 
     def __init__(self) -> None:
         super().__init__(self.code)
