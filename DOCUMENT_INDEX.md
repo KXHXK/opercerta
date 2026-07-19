@@ -1,6 +1,7 @@
 # OperCerta 文档索引
 
 新增已确认规格：`docs/superpowers/specs/2026-07-19-portfolio-netlify-static-mirror-design.md`（将既有 Vinext/Sites 作品集导出为独立 Netlify 静态镜像，解决当前 Sites 公网 403；只提供公开作品集入口与 OperCerta 静态专题跳转，不提供公开业务写入，原发布门禁保持关闭）。
+新增待执行计划：`docs/superpowers/plans/2026-07-19-portfolio-netlify-static-mirror.md`（独立静态导出器、HTML/资源失败闭环、Netlify preview/production 验证与事实日志；不改现有 Sites 源码或 OperCerta 产品发布边界）。
 
 新增已确认规格：`docs/superpowers/specs/2026-07-18-github-actions-ci-security-gate-design.md`（Private GitHub 仓库、分层 Actions、PostgreSQL 18、前后端门禁、Compose smoke、供应链固定与主分支保护；实施计划已创建）。
 
