@@ -1,7 +1,9 @@
 # OperCerta 文档索引
 
 新增已确认规格：`docs/superpowers/specs/2026-07-19-portfolio-netlify-static-mirror-design.md`（将既有 Vinext/Sites 作品集导出为独立 Netlify 静态镜像，解决当前 Sites 公网 403；只提供公开作品集入口与 OperCerta 静态专题跳转，不提供公开业务写入，原发布门禁保持关闭）。
-新增待执行计划：`docs/superpowers/plans/2026-07-19-portfolio-netlify-static-mirror.md`（独立静态导出器、HTML/资源失败闭环、Netlify preview/production 验证与事实日志；不改现有 Sites 源码或 OperCerta 产品发布边界）。
+新增已执行计划：`docs/superpowers/plans/2026-07-19-portfolio-netlify-static-mirror.md`（独立静态导出器、HTML/资源失败闭环、Netlify preview/production 验证与事实日志；不改现有 Sites 源码或 OperCerta 产品发布边界）。
+
+新增验证证据：`docs/release-evidence/portfolio-netlify-static-mirror.md`（Sites 公网 403 对照、静态导出测试、Netlify preview/production deploy id、HTTPS 与浏览器核验；原发布门禁仍关闭）。
 
 新增已确认规格：`docs/superpowers/specs/2026-07-18-github-actions-ci-security-gate-design.md`（Private GitHub 仓库、分层 Actions、PostgreSQL 18、前后端门禁、Compose smoke、供应链固定与主分支保护；实施计划已创建）。
 
@@ -59,6 +61,7 @@
 | `docs/superpowers/specs/2026-07-17-wsl2-runtime-amendment-design.md` | WSL2 Ubuntu 26.04 环境修订、Docker 包来源与 registry mirror 例外 | 已确认；基础拉取已验证 | 本次提交 | 1 |
 | `docs/superpowers/specs/2026-07-18-observability-security-regression-design.md` | 请求关联、安全日志、低基数指标与安全回归设计 | 已实施并完成本地门禁 | `29b2c97` | 1 |
 | `docs/superpowers/specs/2026-07-18-github-actions-ci-security-gate-design.md` | Private GitHub Actions 分层 CI 安全门禁设计 | 已实施并完成远程门禁 | 本次提交 | 1 |
+| `docs/superpowers/specs/2026-07-19-portfolio-netlify-static-mirror-design.md` | 作品集 Netlify 独立静态镜像设计 | 已实施并完成公网验证 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-14-opercerta-reliability-kernel.md` | 可靠性内核 TDD 总计划 | Task 1–6 已执行 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-16-langgraph-restart-recovery.md` | Task 5 四点重启恢复可执行 TDD 计划 | 已执行；证据已归档 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-16-work-order-idempotency.md` | Task 4 幂等工单可执行 TDD 计划 | 已执行；证据已归档 | 本次提交 | 1 |
@@ -68,6 +71,7 @@
 | `docs/superpowers/plans/2026-07-15-development-log-bootstrap.md` | 日志初始化计划 | 执行记录见开发日志 | `6c97d5d` | 1 |
 | `docs/superpowers/plans/2026-07-18-observability-security-regression.md` | 可观测性与安全回归七项原子 TDD 计划 | 已执行；证据已归档 | `db69f71` | 1 |
 | `docs/superpowers/plans/2026-07-18-github-actions-ci-security-gate.md` | Private GitHub Actions CI 安全门禁实施计划 | 已执行；远程证据已归档 | 本次提交 | 1 |
+| `docs/superpowers/plans/2026-07-19-portfolio-netlify-static-mirror.md` | 作品集静态导出与 Netlify 两阶段发布计划 | 已执行；公网证据已归档 | 本次提交 | 1 |
 | `docs/development-log/README.md` | 日志机制说明 | 已初始化 | `f70411f` | 1 |
 | `docs/development-log/current-state.md` | 当前已验证状态 | 已同步 Private remote、真实 Actions 与剩余发布边界 | 本次提交 | 1 |
 | `docs/development-log/interview-casebook.md` | 实施问题、诊断、修复与面试复盘案例 | 已初始化；只记录真实证据和限制 | 本次提交 | 1 |
@@ -75,6 +79,7 @@
 | `docs/development-log/daily/2026-07-15.md` | 当日过程记录 | 已初始化 | `f70411f` | 2 |
 | `docs/development-log/daily/2026-07-16.md` | 当日过程记录 | 已记录库存补货 Task 1–9 实施、调试与验证 | 本次提交 | 2 |
 | `docs/development-log/daily/2026-07-18.md` | 当日过程记录 | 已记录前端、可观测性与 GitHub Actions 实施证据 | 本次提交 | 2 |
+| `docs/development-log/daily/2026-07-19.md` | 当日过程记录 | 已记录公开专题门禁与作品集静态镜像发布 | 本次提交 | 2 |
 | `docs/development-log/decisions/2026-07-15-windows-native-postgres.md` | 环境架构决策 | 已初始化 | `f70411f` | 2 |
 | `docs/development-log/decisions/2026-07-16-risk-based-review-and-progress-control.md` | 风险分级复核、进度口径与纵向闭环保护 | 已采用 | 本次提交 | 1 |
 | `docs/release-evidence/native-postgres-environment.md` | 本机数据库环境核验证据 | 已记录；不代表发布通过 | `fc974f5` | 2 |
@@ -89,6 +94,7 @@
 | `docs/release-evidence/observability-security-regression.md` | request_id、安全日志、低基数指标与安全回归证据 | 本地门禁通过；发布门禁仍关闭 | 本次提交 | 1 |
 | `docs/release-evidence/github-actions-ci.md` | Private remote、PR/main 分层 CI、Compose 重启恢复与保护能力证据 | 远程门禁通过；分支保护受账户能力限制；发布门禁仍关闭 | 本次提交 | 1 |
 | `docs/release-evidence/public-portfolio-showcase.md` | 公开专题的本地审批、工单、审计、截图与线上部署证据 | 静态 URL 已验证；原发布门禁仍关闭 | 本次提交 | 1 |
+| `docs/release-evidence/portfolio-netlify-static-mirror.md` | Sites 403 对照、作品集静态导出与 Netlify 发布证据 | 公开作品集 URL 已验证；原发布门禁仍关闭 | 本次提交 | 1 |
 
 ## 计划创建
 

@@ -1,8 +1,12 @@
 # OperCerta 当前状态
 
+## 最新核验：公开作品集 Netlify 静态镜像已完成生产部署验证
+
+2026-07-19 已将 `D:\CODEX\resume\portfolio` 的已构建 SSR 首页导出为独立静态镜像，并部署至 <https://kxh-agent-portfolio.netlify.app>。本地导出契约 6 条测试通过，真实导出生成 15 个文件，7 个本地资源引用无缺失；Netlify preview deploy `6a5c814643be8e4160b17def` 与 production deploy `6a5c8184ffb46a40d1b49b6d` 均成功。生产 URL 实测 `200 text/html; charset=UTF-8`，标题、OperCerta 精确外链和新窗口安全属性均通过，浏览器确认页面与第 04 张 OperCerta 卡片正常渲染。原 Sites URL 同轮仍为 HTTP 403，因此不作为简历入口。该镜像是纯静态作品集，不提供 OperCerta API 或写入能力；原产品发布门禁仍为 `CLOSED`。证据见 `docs/release-evidence/portfolio-netlify-static-mirror.md`。
+
 ## 最新核验：公开静态项目专题已完成生产部署验证
 
-2026-07-18 已把 Vite 根路径调整为不依赖后端的静态项目专题，`/console` 保留真实本地演示；公开主机未配置 API 时只显示本地启动说明，不提供公网写入。专题已部署至 <https://opercerta-kxh.netlify.app>。线上标题、JS/CSS 指纹、两张 PNG 证据图和 `/api/*` 静态回退均已验证。个人作品集已在本地加入该 URL 并通过 Vinext 构建/SSR HTML 验证，但因既有用户脏改动未暂存、未提交、未部署。2026-07-19 最终本地门禁为后端 342 条、Ruff、105 文件格式检查、mypy 50 个源文件、安全扫描、前端 11 文件/24 条测试及生产构建全部通过。PR #4 run `29652818349` 四个快速 job 成功并合并为 `0f262e0`；main run `29652991288` 五个 job（含 Compose smoke 与 API/MCP 重启恢复）全部成功。原产品发布门禁仍为 `CLOSED`。
+2026-07-18 已把 Vite 根路径调整为不依赖后端的静态项目专题，`/console` 保留真实本地演示；公开主机未配置 API 时只显示本地启动说明，不提供公网写入。专题已部署至 <https://opercerta-kxh.netlify.app>。线上标题、JS/CSS 指纹、两张 PNG 证据图和 `/api/*` 静态回退均已验证。个人作品集入口当时只完成本地构建；2026-07-19 已通过上节所述的独立 Netlify 静态镜像完成公开部署。2026-07-19 最终本地门禁为后端 342 条、Ruff、105 文件格式检查、mypy 50 个源文件、安全扫描、前端 11 文件/24 条测试及生产构建全部通过。PR #4 run `29652818349` 四个快速 job 成功并合并为 `0f262e0`；main run `29652991288` 五个 job（含 Compose smoke 与 API/MCP 重启恢复）全部成功。原产品发布门禁仍为 `CLOSED`。
 
 ## 最新核验：Private GitHub Actions 分层 CI 已完成
 
@@ -92,7 +96,7 @@
 
 ## 当前阻塞与风险
 
-- 设备场景、生产 IAM/SSO、人工接管、Git 自动部署、Caddy/HTTPS 后端、集中指标采集/告警和公开 API 尚未完成；只有只读静态专题完成部署，发布门禁保持关闭。
+- 设备场景、生产 IAM/SSO、人工接管、Git 自动部署、Caddy/HTTPS 后端、集中指标采集/告警和公开 API 尚未完成；只读静态专题和独立静态作品集镜像已完成部署，发布门禁保持关闭。
 - Windows 原生真实服务需要显式 Selector loop；WSL2 Ubuntu Compose 已验证默认 Linux 容器进程、健康检查、MCP 服务名访问、独立 PostgreSQL volume 和 API/MCP 重启，但这不代表高可用或生产承诺。
 - Docker/Linux 运行时已修订为 WSL2 → Ubuntu 26.04 LTS，不使用 Docker Desktop 或 Hyper-V VM。Ubuntu 官方仓库的 Docker `29.1.3`、Compose `2.40.3`、Buildx `0.30.1` 已安装；Docker Hub 直连超时后，经用户授权配置了三个可达的第三方 registry mirror。OperCerta Compose 已通过构建、健康、真实业务数据库断言与重启恢复；完整证据见 `docs/release-evidence/docker-linux-runtime.md`，供应链例外见 `docs/superpowers/specs/2026-07-17-wsl2-runtime-amendment-design.md`。
 - 一次预期失败的 Pytest/Psycopg traceback 曾展开旧的本地测试数据库连接密码；代码、Git 和文档未保存该值，fixture 已改为无密码 URL + 临时 `PGPASSWORD`，角色密码也已轮换和复验。
@@ -101,8 +105,8 @@
 
 ## 下一步
 
-继续只实施 OperCerta。静态专题与 Private GitHub Actions 已有真实远程证据；下一步把已验证 URL 接入作品集，然后回到生产 IAM/人工接管、Caddy/HTTPS 后端、自动部署和公开 API 的剩余门禁。公共 registry mirror 的风险与后续每个实际镜像 digest 仍须留证。
+继续只实施 OperCerta。静态专题、独立作品集入口与 Private GitHub Actions 已有真实远程证据；下一步回到生产 IAM/人工接管、Caddy/HTTPS 后端、自动部署和公开 API 的剩余门禁。公共 registry mirror 的风险与后续每个实际镜像 digest 仍须留证。
 
 ## 发布门禁
 
-`OperCerta release gate: CLOSED`。当前证据证明库存补货纵向切片、WSL2 Compose、演示身份、固定评测、单页控制台、可观测性安全基础、Private GitHub Actions 分层 CI 与只读静态专题通过；完整产品面、生产身份、HTTPS 后端、自动部署和公开 API 仍待完成。
+`OperCerta release gate: CLOSED`。当前证据证明库存补货纵向切片、WSL2 Compose、演示身份、固定评测、单页控制台、可观测性安全基础、Private GitHub Actions 分层 CI、只读静态专题与独立静态作品集入口通过；完整产品面、生产身份、HTTPS 后端、自动部署和公开 API 仍待完成。

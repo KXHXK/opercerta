@@ -111,6 +111,15 @@
 - **限制：** 当前是人工 CLI 静态部署，不是 Git 自动部署；公开后端、身份和数据写入仍然关闭。
 - **面试表达：** “我没有把 CLI 的 success 当成上线证据，而是用资源指纹和 Content-Type 验证实际产物；最终定位为 worktree 基目录解析错误。”
 
+## 13. 平台显示已部署不等于公网可访问
+
+- **问题：** 作品集在 Sites 平台已有部署地址，但外部访问持续返回 Cloudflare HTTP 403，无法作为简历入口。
+- **根因：** 已观察到的事实只能证明平台生成过部署，不能证明当前公网边缘链路允许匿名访问；在没有平台侧可操作证据前，不猜测更具体的账户或策略根因。
+- **修复：** 保留原 Sites 源作品集作为唯一人工维护源，新增独立、纯静态的 Netlify 导出镜像；先用失败闭环验证 HTML、资源、输出目录和 SSR 响应，再执行 preview → production 两阶段发布。
+- **验证：** 原 Sites URL 同轮仍返回 403；新 Netlify URL 返回 `200 text/html; charset=UTF-8`，标题、7 个本地资源、OperCerta 精确 URL 和外链安全属性均通过，浏览器确认第 04 张 OperCerta 卡片正常渲染。
+- **限制：** 镜像目前采用人工 CLI 发布，不是 Git 自动部署；它只解决作品集公开访问，不开放 OperCerta 后端、身份或写入。
+- **面试表达：** “我把部署状态、公开可达性和内容正确性拆成三个门禁。平台部署成功但公网 403 时，我没有伪造上线结论，而是建立可测试的静态导出链路，用 preview、production、HTTP 与浏览器证据逐层验证。”
+
 ## 相关证据
 
 - `docs/release-evidence/approval-atomicity.md`
@@ -119,3 +128,4 @@
 - `docs/release-evidence/inventory-replenishment-vertical-slice.md`
 - `docs/release-evidence/docker-linux-runtime.md`
 - `docs/release-evidence/public-portfolio-showcase.md`
+- `docs/release-evidence/portfolio-netlify-static-mirror.md`
