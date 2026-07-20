@@ -102,6 +102,21 @@ def test_optional_production_services_fail_closed_without_configuration(
         ProductionSettings.model_validate(values)
 
 
+def test_mock_model_treats_empty_optional_model_settings_as_unset() -> None:
+    settings = ProductionSettings.model_validate(
+        production_values()
+        | {
+            "OPERCERTA_MODEL_BASE_URL": "",
+            "OPERCERTA_MODEL_NAME": "",
+            "OPERCERTA_MODEL_API_KEY": "",
+        }
+    )
+
+    assert settings.model_base_url is None
+    assert settings.model_name is None
+    assert settings.model_api_key is None
+
+
 def test_production_secrets_are_redacted_from_representation() -> None:
     settings = ProductionSettings.model_validate(
         production_values()

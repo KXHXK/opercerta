@@ -28,7 +28,8 @@ def client_returning(content: dict[str, object]) -> httpx.AsyncClient:
     async def handler(request: httpx.Request) -> httpx.Response:
         assert request.headers["authorization"] == "Bearer model-secret"
         payload = json.loads(request.content)
-        assert payload["temperature"] == 0
+        assert "temperature" not in payload
+        assert "thinking" not in payload
         assert payload["max_tokens"] == 256
         assert payload["response_format"] == {"type": "json_object"}
         return httpx.Response(
@@ -37,6 +38,39 @@ def client_returning(content: dict[str, object]) -> httpx.AsyncClient:
         )
 
     return httpx.AsyncClient(transport=httpx.MockTransport(handler))
+
+
+@pytest.mark.asyncio
+async def test_real_model_can_explicitly_disable_provider_thinking_mode() -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        payload = json.loads(request.content)
+        assert payload["thinking"] == {"type": "disabled"}
+        return httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(
+                                {"summary": "建议维修", "rationale": "告警已核验"}
+                            )
+                        }
+                    }
+                ]
+            },
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        gateway = OpenAICompatibleModelGateway(
+            client=client,
+            base_url="https://model.example/v1",
+            model="provider-thinking-model",
+            api_key=SecretStr("model-secret"),
+            disable_thinking=True,
+        )
+        explanation = await gateway.explain_plan(maintenance_assessment())
+
+    assert explanation.rationale == "告警已核验"
 
 
 def client_returning_sequence(

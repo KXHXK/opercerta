@@ -21,6 +21,14 @@ def decode_response_body(body: bytes) -> Any | None:
         return None
 
 
+def api_request_timeout_seconds() -> float:
+    try:
+        configured = float(os.environ.get("OPERCERTA_API_REQUEST_TIMEOUT_SECONDS", "10"))
+    except ValueError:
+        configured = 10.0
+    return max(1.0, min(configured, 120.0))
+
+
 def request(
     method: str,
     path: str,
@@ -35,7 +43,7 @@ def request(
     for name, value in (headers or {}).items():
         http_request.add_header(name, value)
     try:
-        with urlopen(http_request, timeout=10) as response:
+        with urlopen(http_request, timeout=api_request_timeout_seconds()) as response:
             return response.status, decode_response_body(response.read())
     except HTTPError as error:
         return error.code, decode_response_body(error.read())

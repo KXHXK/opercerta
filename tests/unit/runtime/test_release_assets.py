@@ -15,6 +15,20 @@ def test_release_compose_exposes_only_caddy_and_keeps_internal_services_private(
     assert services["api"]["environment"]["OPERCERTA_METRICS_ENABLED"] == "false"
 
 
+def test_release_compose_accepts_only_explicit_real_model_environment_passthrough() -> None:
+    compose = yaml.safe_load((ROOT / "compose.release.yaml").read_text(encoding="utf-8"))
+    environment = compose["services"]["api"]["environment"]
+
+    assert environment["OPERCERTA_MODEL_MODE"] == "${OPERCERTA_MODEL_MODE:-mock}"
+    assert environment["OPERCERTA_MODEL_BASE_URL"] == "${OPERCERTA_MODEL_BASE_URL:-}"
+    assert environment["OPERCERTA_MODEL_NAME"] == "${OPERCERTA_MODEL_NAME:-}"
+    assert environment["OPERCERTA_MODEL_API_KEY"] == "${OPERCERTA_MODEL_API_KEY:-}"
+    assert environment["OPERCERTA_MODEL_THINKING_MODE"] == (
+        "${OPERCERTA_MODEL_THINKING_MODE:-default}"
+    )
+    assert environment["OPERCERTA_MCP_TIMEOUT_SECONDS"] == ("${OPERCERTA_MCP_TIMEOUT_SECONDS:-2}")
+
+
 def test_caddy_routes_web_and_api_without_exposing_internal_administration() -> None:
     caddyfile = (ROOT / "deploy" / "Caddyfile").read_text(encoding="utf-8")
 
@@ -42,6 +56,23 @@ def test_release_smoke_runs_only_through_caddy_and_always_cleans_up() -> None:
     assert "scripts/verify_compose.py" in script
     assert "docker compose restart api mcp" in script
     assert "docker compose down -v --remove-orphans" in script
+
+
+def test_real_model_smoke_loads_ignored_config_and_limits_the_representative_set() -> None:
+    shell = (ROOT / "scripts" / "run_real_model_validation.sh").read_text(encoding="utf-8")
+    verifier = (ROOT / "scripts" / "verify_real_model.py").read_text(encoding="utf-8")
+
+    assert ".env.local" in shell
+    assert "set -x" not in shell
+    assert "OPERCERTA_MODEL_API_KEY" in shell
+    assert "python3 -m scripts.verify_real_model" in shell
+    assert "docker compose down -v --remove-orphans" in shell
+    for object_type in ("inventory", "equipment", "task"):
+        assert object_type in verifier
+    assert '"query"' in verifier
+    assert '"create_work_order"' in verifier
+    assert "raw_model_output" not in verifier
+    assert "token_usage_available" in verifier
 
 
 def test_learning_pack_covers_three_business_manual_failure_and_interview_explanation() -> None:

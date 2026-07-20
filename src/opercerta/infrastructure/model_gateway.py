@@ -25,6 +25,7 @@ class OpenAICompatibleModelGateway:
         api_key: SecretStr,
         timeout_seconds: float = 10.0,
         max_attempts: int = 2,
+        disable_thinking: bool = False,
     ) -> None:
         self._client = client
         self._url = f"{base_url.rstrip('/')}/chat/completions"
@@ -32,36 +33,39 @@ class OpenAICompatibleModelGateway:
         self._api_key = api_key
         self._timeout = timeout_seconds
         self._max_attempts = max(1, min(max_attempts, 2))
+        self._disable_thinking = disable_thinking
 
     async def explain_plan(self, assessment: ScenarioAssessment) -> ModelPlanExplanation:
         for attempt in range(self._max_attempts):
             try:
+                request_payload: dict[str, object] = {
+                    "model": self._model,
+                    "max_tokens": 256,
+                    "response_format": {"type": "json_object"},
+                    "messages": [
+                        {
+                            "role": "system",
+                            "content": (
+                                "Return JSON with exactly summary and rationale. "
+                                "Do not decide actions, quantities, priority or permissions."
+                            ),
+                        },
+                        {
+                            "role": "user",
+                            "content": json.dumps(
+                                assessment.model_dump(mode="json"),
+                                ensure_ascii=False,
+                                separators=(",", ":"),
+                            ),
+                        },
+                    ],
+                }
+                if self._disable_thinking:
+                    request_payload["thinking"] = {"type": "disabled"}
                 response = await self._client.post(
                     self._url,
                     headers={"Authorization": f"Bearer {self._api_key.get_secret_value()}"},
-                    json={
-                        "model": self._model,
-                        "temperature": 0,
-                        "max_tokens": 256,
-                        "response_format": {"type": "json_object"},
-                        "messages": [
-                            {
-                                "role": "system",
-                                "content": (
-                                    "Return JSON with exactly summary and rationale. "
-                                    "Do not decide actions, quantities, priority or permissions."
-                                ),
-                            },
-                            {
-                                "role": "user",
-                                "content": json.dumps(
-                                    assessment.model_dump(mode="json"),
-                                    ensure_ascii=False,
-                                    separators=(",", ":"),
-                                ),
-                            },
-                        ],
-                    },
+                    json=request_payload,
                     timeout=self._timeout,
                 )
                 response.raise_for_status()

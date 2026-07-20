@@ -22,6 +22,7 @@ from pydantic import (
     PositiveInt,
     RedisDsn,
     SecretStr,
+    field_validator,
     model_validator,
 )
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -246,6 +247,9 @@ class ProductionSettings(BaseSettings):
     model_api_key: SecretStr | None = Field(
         default=None, validation_alias="OPERCERTA_MODEL_API_KEY"
     )
+    model_thinking_mode: Literal["default", "disabled"] = Field(
+        default="default", validation_alias="OPERCERTA_MODEL_THINKING_MODE"
+    )
     otlp_enabled: bool = Field(default=False, validation_alias="OPERCERTA_OTLP_ENABLED")
     otlp_endpoint: AnyHttpUrl | None = Field(
         default=None, validation_alias="OPERCERTA_OTLP_ENDPOINT"
@@ -259,6 +263,11 @@ class ProductionSettings(BaseSettings):
         default=False,
         validation_alias="OPERCERTA_METRICS_ENABLED",
     )
+
+    @field_validator("model_base_url", "model_name", "model_api_key", mode="before")
+    @classmethod
+    def empty_optional_model_setting_is_unset(cls, value: object) -> object:
+        return None if value == "" else value
 
     @model_validator(mode="after")
     def validate_optional_services(self) -> "ProductionSettings":
@@ -381,6 +390,7 @@ async def _open_production_runtime(
                     model=settings.model_name,
                     api_key=settings.model_api_key,
                     timeout_seconds=float(settings.mcp_timeout_seconds),
+                    disable_thinking=settings.model_thinking_mode == "disabled",
                 )
             else:
                 model_gateway = MockModelGateway()
