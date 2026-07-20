@@ -1,8 +1,8 @@
 # OperCerta 当前状态
 
-## 最新核验：零成本公开专题与本地工程详解已完成本机门禁
+## 最新核验：零成本公开专题、主线门禁与作品集同步已完成
 
-2026-07-20 功能分支 `feat/zero-cost-showcase-walkthrough` 已完成公开根路径、本地 `/engineering` 与本地 `/console` 三种页面职责：公开专题零 API、零写入、只陈述三业务和已验证证据；工程详解仅在开发模式的 localhost/127.0.0.1 渲染，包含 10 步请求链路、三业务差异、10 项技术职责、10 个真实事故复盘和 4 项 localStorage 掌握检查；控制台保持真实本地交互。完整前端为 16 个测试文件/40 条测试，后端为 `430 passed in 106.25s`；Ruff 通过、138 文件格式一致、mypy 检查 62 个源码文件无问题，仓库安全扫描通过。Mock release Compose 使用全新卷启动 PostgreSQL/Redis/MCP/API/Caddy，并在 API/MCP 重启后再次通过恢复验证。浏览器在 1440、768、390 三档检查三个页面，无项目固定/粘性模块、横向溢出、坏图或 console warning/error；学习勾选刷新持久化后已重置。Draft PR #6 的 run `29738331269` 已通过四个快速门禁，compose-smoke 按设计在 PR 事件跳过。PR 合并、`main` smoke、Netlify 生产替换和作品集同步尚未执行，生产门禁仍为 `CLOSED`。证据见 `docs/release-evidence/zero-cost-showcase-engineering-walkthrough.md`。
+2026-07-20 功能分支 `feat/zero-cost-showcase-walkthrough` 已完成公开根路径、本地 `/engineering` 与本地 `/console` 三种页面职责：公开专题零 API、零写入、只陈述三业务和已验证证据；工程详解仅在开发模式的 localhost/127.0.0.1 渲染，包含 10 步请求链路、三业务差异、10 项技术职责、10 个真实事故复盘和 4 项 localStorage 掌握检查；控制台保持真实本地交互。完整前端为 16 个测试文件/40 条测试，后端为 `430 passed in 106.25s`；Ruff、138 文件格式、mypy 62 个源码文件和仓库安全扫描通过。PR #6 已以 `e483665` 合并，`main` run `29738863357` 五个 job 全绿，包含 Compose 三业务和 API/MCP 重启恢复。OperCerta production deploy `6a5e0bb5563acf4706a09c0d` 与作品集 production deploy `6a5e1b8824ba2290cf63c897` 已通过 HTTP/浏览器核验；作品集移动端无横向溢出、坏图或 fixed/sticky 元素。公开页面仍不连接可写后端，生产门禁继续为 `CLOSED`。证据见 `docs/release-evidence/zero-cost-showcase-engineering-walkthrough.md`。
 
 ## 最新核验：Task 8 真实模型代表性验证已完成
 
@@ -48,7 +48,7 @@
 
 本地短时 JWT 与四角色 RBAC 已实施，审批主体只从 JWT `sub` 取得。库存补货固定合成契约评测当前有效版本为 `replenishment-v3`：真实 FastAPI、FastMCP、PostgreSQL 与恢复夹具运行 30 条，30 passed、0 failed。已新增 SSE 审计快照回放与 `Last-Event-ID` 续传；全量 pytest 为 325 passed。详见 `docs/release-evidence/demo-jwt-rbac.md`、`docs/release-evidence/replenishment-contract-evaluation.md` 和 `docs/release-evidence/sse-audit-replay.md`。
 
-最后核验：2026-07-20 Asia/Shanghai；真实模型本地代表性验证已完成，发布门禁仍为 `CLOSED`。
+最后核验：2026-07-20 Asia/Shanghai；真实模型本地代表性验证、主线 CI/Compose、静态专题和作品集生产同步已完成，产品发布门禁仍为 `CLOSED`。
 
 ## 当前阶段
 
@@ -129,7 +129,7 @@
 
 ## 下一步
 
-继续只实施 OperCerta。Draft PR #6 首轮快速门禁已通过；下一步由用户批准是否合并。合并后核验 `main` 的 compose-smoke，再生产替换 Netlify 静态专题并同步作品集入口。公网可写 HTTPS 后端、生产 IAM/限流/备份不属于当前零成本静态方案，仍需独立成本与安全审批；用户手动掌握、Release Tag 也尚未完成。
+继续只实施 OperCerta。零成本展示 PR、`main` compose-smoke、Netlify 专题和作品集同步均已完成；下一步执行用户手动演示/口述掌握检查，再决定公网可写 HTTPS 后端的成本与安全范围。生产 IAM/限流/备份、自动部署和 Release Tag 尚未完成。
 
 ## 发布门禁
 

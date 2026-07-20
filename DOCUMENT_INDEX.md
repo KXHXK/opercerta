@@ -1,6 +1,6 @@
 # OperCerta 文档索引
 
-新增零成本求职展示证据：`docs/release-evidence/zero-cost-showcase-engineering-walkthrough.md`（公开静态专题、本地 `/engineering` 工程详解和 `/console` 控制台的本机门禁；前端 40 条、后端 430 条、Mock Compose 重启恢复与三档浏览器复核均通过；Draft PR #6 首轮四个快速门禁通过，合并和 Netlify 生产替换仍待人工批准）。对应规格和计划为 `docs/superpowers/specs/2026-07-20-opercerta-zero-cost-showcase-engineering-walkthrough-design.md`、`docs/superpowers/plans/2026-07-20-opercerta-zero-cost-showcase-engineering-walkthrough.md`。
+新增零成本求职展示证据：`docs/release-evidence/zero-cost-showcase-engineering-walkthrough.md`（公开静态专题、本地 `/engineering` 工程详解和 `/console` 控制台；前端 40 条、后端 430 条、Mock Compose 重启恢复与三档浏览器复核通过；PR #6 已合并，`main` 五个门禁及两个 Netlify 生产站已验证）。对应规格和计划为 `docs/superpowers/specs/2026-07-20-opercerta-zero-cost-showcase-engineering-walkthrough-design.md`、`docs/superpowers/plans/2026-07-20-opercerta-zero-cost-showcase-engineering-walkthrough.md`。
 
 新增真实模型证据：`docs/release-evidence/real-model-representative-validation.md`（Moonshot AI `kimi-k2.6` 三业务 6 次代表操作/3 条真实模型路径；记录端到端耗时、无原文/密钥/token/成本虚构，并保留模型兼容、分层超时和凭据轮换复盘）。
 
@@ -65,8 +65,8 @@
 | `README.md` | 项目概览与使用边界 | 已同步三业务、本地发布候选、学习入口与剩余门禁 | `a3994ef` | 2 |
 | `IMPLEMENTATION_HANDOFF.md` | 会话交接与下一动作 | 已同步真实模型验证与公网发布下一边界 | 本次提交 | 3 |
 | `docs/superpowers/specs/2026-07-20-opercerta-zero-cost-showcase-engineering-walkthrough-design.md` | 零成本公开专题、本地工程详解与发布边界 | 已确认并完成本机实施门禁 | 本次提交 | 1 |
-| `docs/superpowers/plans/2026-07-20-opercerta-zero-cost-showcase-engineering-walkthrough.md` | 零成本展示与工程详解八项 TDD 计划 | Task 1--7 已执行；合并与 Netlify 同步待审批 | 本次提交 | 1 |
-| `docs/release-evidence/zero-cost-showcase-engineering-walkthrough.md` | 新版展示、工程详解、Mock Compose、响应式和远程 CI 证据 | Draft PR #6 快速门禁通过；尚未声明生产替换 | 本次提交 | 1 |
+| `docs/superpowers/plans/2026-07-20-opercerta-zero-cost-showcase-engineering-walkthrough.md` | 零成本展示与工程详解八项 TDD 计划 | Task 1--8 已执行；主线与 Netlify 同步完成 | 本次提交 | 1 |
+| `docs/release-evidence/zero-cost-showcase-engineering-walkthrough.md` | 新版展示、工程详解、Mock Compose、响应式和远程/生产证据 | PR #6、main Compose 与两个 Netlify 生产站已验证 | 本次提交 | 1 |
 | `docs/specs/2026-07-14-agent-project-naming-design.md` | 命名设计 | 已冻结基线 | `c7fa618` | 4 |
 | `docs/specs/AI_Agent四项目总体设计规格.md` | 总体设计 | 已冻结基线 | `48d299c` | 5 |
 | `docs/specs/2026-07-14-agent-portfolio-design.md` | 组合设计 | 已冻结基线 | `48d299c` | 5 |
