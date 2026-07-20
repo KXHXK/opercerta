@@ -272,6 +272,7 @@ def build_controlled_action_graph(
     cache: EvidenceCache | None = None,
     cache_ttl_seconds: int = 60,
     tracing: Tracing = NOOP_TRACING,
+    parallel_evidence_reads: bool = True,
     approval_ttl_seconds: int = 300,
 ) -> ControlledActionGraph:
     traced_gateway = TracedControlledEvidenceGateway(gateway, tracing)
@@ -290,6 +291,7 @@ def build_controlled_action_graph(
         clock,
         initial_gateway=initial_gateway,
         tracing=tracing,
+        parallel_evidence_reads=parallel_evidence_reads,
         approval_ttl_seconds=approval_ttl_seconds,
     )
     equipment = build_equipment_maintenance_graph(
@@ -301,6 +303,7 @@ def build_controlled_action_graph(
         clock,
         initial_gateway=initial_gateway,
         tracing=tracing,
+        parallel_evidence_reads=parallel_evidence_reads,
         approval_ttl_seconds=approval_ttl_seconds,
     )
     task = build_task_recovery_graph(
@@ -312,6 +315,7 @@ def build_controlled_action_graph(
         clock,
         initial_gateway=initial_gateway,
         tracing=tracing,
+        parallel_evidence_reads=parallel_evidence_reads,
         approval_ttl_seconds=approval_ttl_seconds,
     )
     del registry

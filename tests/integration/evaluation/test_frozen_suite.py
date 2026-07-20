@@ -36,6 +36,7 @@ async def test_frozen_replenishment_suite_runs_at_real_boundaries(
             runner=harness.runner,
             catalog=harness.mcp_server.catalog,
             gateway=harness.gateway,
+            tool_calls=harness.tool_calls,
             clock=lambda: NOW,
         )
         report = await run_suite(
@@ -46,9 +47,9 @@ async def test_frozen_replenishment_suite_runs_at_real_boundaries(
         )
         harness.operation_ids.extend(executor.operation_ids)
 
-    assert report.total == 30
+    assert report.total == len(suite.cases)
     assert report.failed == 0, [
         (case.id, case.failure_summary) for case in report.cases if case.status == "failed"
     ]
-    assert report.passed == 30
+    assert report.passed == len(suite.cases)
     assert (output_dir / f"{suite.suite_version}-report.json").is_file()

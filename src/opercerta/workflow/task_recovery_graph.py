@@ -74,6 +74,7 @@ def build_task_recovery_graph(
     *,
     initial_gateway: TaskGateway | None = None,
     tracing: Tracing = NOOP_TRACING,
+    parallel_evidence_reads: bool = True,
     approval_ttl_seconds: int = 300,
 ) -> TaskRecoveryGraph:
     if approval_ttl_seconds < 1:
@@ -165,10 +166,14 @@ def build_task_recovery_graph(
         if task_id is None:
             return error_update(DependencyUnavailable.code)
         try:
-            raw_task, raw_policy = await asyncio.gather(
-                evidence_gateway.get_task(task_id),
-                evidence_gateway.get_task_recovery_policy(task_id),
-            )
+            if parallel_evidence_reads:
+                raw_task, raw_policy = await asyncio.gather(
+                    evidence_gateway.get_task(task_id),
+                    evidence_gateway.get_task_recovery_policy(task_id),
+                )
+            else:
+                raw_task = await evidence_gateway.get_task(task_id)
+                raw_policy = await evidence_gateway.get_task_recovery_policy(task_id)
             try:
                 task = TaskEvidence.model_validate(raw_task)
             except ValidationError:

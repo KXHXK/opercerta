@@ -546,6 +546,8 @@ git commit -m "feat: add cache tracing and real model adapter"
 
 ## Task 7: 跨业务固定评测、性能矩阵和三业务 Compose smoke
 
+**执行状态：** 2026-07-20 已完成本地实现与证据；Task 8 待执行。
+
 **Files:**
 - Create: `data/evals/opercerta-three-business-v1.json`
 - Create: `scripts/run_opercerta_evaluation.py`

@@ -52,6 +52,7 @@ def test_ci_fast_jobs_use_frozen_python_postgres_and_frontend_gates() -> None:
     ) in text
     assert "PGPASSWORD: opercerta_ci_only" in text
     assert "uv run pytest -q" in text
+    assert "python scripts/run_opercerta_evaluation.py" in text
     assert 'node-version: "24"' in text
     assert "npm ci" in text
     assert "npm run test:run" in text

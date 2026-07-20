@@ -231,6 +231,9 @@ class ProductionSettings(BaseSettings):
     model_mode: Literal["mock", "real"] = Field(
         validation_alias="OPERCERTA_MODEL_MODE",
     )
+    tool_mode: Literal["parallel", "sequential"] = Field(
+        default="parallel", validation_alias="OPERCERTA_TOOL_MODE"
+    )
     redis_url: RedisDsn | None = Field(default=None, validation_alias="OPERCERTA_REDIS_URL")
     cache_enabled: bool = Field(default=False, validation_alias="OPERCERTA_CACHE_ENABLED")
     cache_ttl_seconds: PositiveInt = Field(
@@ -388,6 +391,7 @@ async def _open_production_runtime(
                 McpToolGateway(
                     str(settings.mcp_url),
                     timeout_seconds=float(settings.mcp_timeout_seconds),
+                    on_tool_call=(metrics or ApiMetrics.create()).count_mcp_tool_call,
                 ),
                 model_gateway,
                 clock,
@@ -395,6 +399,7 @@ async def _open_production_runtime(
                 cache=active_cache,
                 cache_ttl_seconds=int(settings.cache_ttl_seconds),
                 tracing=tracing,
+                parallel_evidence_reads=settings.tool_mode == "parallel",
                 approval_ttl_seconds=int(settings.approval_ttl_seconds),
             )
             recovery = ControlledActionRecoveryCoordinator(graph, operations)

@@ -13,7 +13,7 @@ from opercerta.api.auth import DemoAccount, JwtAuthenticator
 from opercerta.application.operation_runner import OperationRunner
 from opercerta.domain.approvals import ApprovalDecision, BoundApprovalCommand
 from opercerta.domain.errors import ApprovalExpired, UnknownTool
-from opercerta.domain.scenarios import ApprovalBinding, ReplenishmentParameters
+from opercerta.domain.scenarios import ApprovalBinding
 from opercerta.evaluation.contracts import EvalCase
 from opercerta.evaluation.runner import CaseExecution
 from opercerta.infrastructure.db.approval_repository import ApprovalRepository
@@ -37,6 +37,7 @@ class ApiCaseExecutor:
         runner: OperationRunner | None = None,
         catalog: SyntheticCatalog | None = None,
         gateway: McpToolGateway | None = None,
+        tool_calls: list[str] | None = None,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         self._client = client
@@ -46,10 +47,12 @@ class ApiCaseExecutor:
         self._runner = runner
         self._catalog = catalog
         self._gateway = gateway
+        self._tool_calls = tool_calls if tool_calls is not None else []
         self._clock = clock
         self.operation_ids: list[UUID] = []
 
     async def execute(self, case: EvalCase) -> CaseExecution:
+        tool_call_start = len(self._tool_calls)
         operation_id: UUID | None = None
         response: httpx.Response | None = None
         status_override: int | None = None
@@ -62,7 +65,7 @@ class ApiCaseExecutor:
                 response = await self._client.post(
                     "/api/v1/operations",
                     headers=self._headers(actor, step),
-                    json=self._operation_body(str(step.get("sku", "SKU-LOW-001"))),
+                    json=self._operation_body(step),
                 )
                 operation_id = self._operation_id_from(response)
                 if operation_id is not None:
@@ -97,7 +100,8 @@ class ApiCaseExecutor:
                     decision=str(step.get("decision", "approved")),
                 )
                 if step.get("binding") == "mismatched":
-                    payload["expected_plan_hash"] = "0" * 64
+                    expected_binding = cast(dict[str, object], payload["expected_binding"])
+                    expected_binding["plan_hash"] = "0" * 64
                 if step.get("inject_approver_id") is not None:
                     payload["approver_id"] = step["inject_approver_id"]
                 if force_expired_approval:
@@ -131,7 +135,7 @@ class ApiCaseExecutor:
                 response = await self._client.post(
                     "/api/v1/operations",
                     headers=self._headers(DemoAccount.OPERATOR, step),
-                    json=self._operation_body(str(step.get("sku", "SKU-LOW-001"))),
+                    json=self._operation_body(step),
                 )
                 operation_id = self._operation_id_from(response)
                 if operation_id is None:
@@ -167,9 +171,10 @@ class ApiCaseExecutor:
                 return CaseExecution(
                     status_code=status_override,
                     error_code=error_override,
+                    tool_names=tuple(self._tool_calls[tool_call_start:]),
                 )
             raise ValueError("case_has_no_response_producing_step")
-        execution = await self._execution_from(response, operation_id)
+        execution = await self._execution_from(response, operation_id, tool_call_start)
         if status_override is not None:
             return execution.model_copy(
                 update={"status_code": status_override, "error_code": error_override}
@@ -209,12 +214,20 @@ class ApiCaseExecutor:
         return {"Authorization": f"Bearer {token}"}
 
     @staticmethod
-    def _operation_body(sku: str) -> dict[str, str]:
+    def _operation_body(step: Mapping[str, object]) -> dict[str, str]:
+        object_type = str(step.get("object_type", "inventory"))
+        default_object_id = {
+            "inventory": "SKU-LOW-001",
+            "equipment": "EQ-PUMP-001",
+            "task": "TASK-BLOCKED-001",
+        }.get(object_type, "UNKNOWN-001")
+        object_id = str(step.get("object_id", step.get("sku", default_object_id)))
+        requested_action = str(step.get("requested_action", "create_work_order"))
         return {
-            "message": f"为 {sku} 创建补货工单",
-            "requested_action": "create_work_order",
-            "object_type": "inventory",
-            "object_id": sku,
+            "message": f"evaluation {requested_action} for {object_type} {object_id}",
+            "requested_action": requested_action,
+            "object_type": object_type,
+            "object_id": object_id,
         }
 
     @staticmethod
@@ -232,17 +245,10 @@ class ApiCaseExecutor:
         if binding is None:
             raise ValueError("approval_binding_is_missing")
         value = cast(Mapping[str, object], binding.model_dump(mode="json"))
-        if not isinstance(binding.parameters, ReplenishmentParameters):
-            raise ValueError("evaluation inventory binding is required")
         return {
             "decision": decision,
             "reason": f"evaluation {decision}",
-            "expected_inventory_evidence_id": value["subject_evidence_id"],
-            "expected_policy_evidence_id": value["policy_evidence_id"],
-            "expected_rule_version": value["rule_version"],
-            "expected_decision_facts_hash": value["decision_facts_hash"],
-            "expected_plan_hash": value["plan_hash"],
-            "expected_recommended_quantity": binding.parameters.recommended_quantity,
+            "expected_binding": value,
         }
 
     @staticmethod
@@ -285,12 +291,14 @@ class ApiCaseExecutor:
         self,
         response: httpx.Response,
         operation_id: UUID | None,
+        tool_call_start: int,
     ) -> CaseExecution:
         body = cast(dict[str, object], response.json())
         if operation_id is None:
             return CaseExecution(
                 status_code=response.status_code,
                 error_code=cast(str | None, body.get("code")),
+                tool_names=tuple(self._tool_calls[tool_call_start:]),
             )
         detail = await self._operations.load_detail(operation_id)
         return CaseExecution(
@@ -302,4 +310,5 @@ class ApiCaseExecutor:
             approval_count=1 if detail.approval is not None else 0,
             work_order_count=1 if detail.work_order is not None else 0,
             audit_event_names=detail.event_types,
+            tool_names=tuple(self._tool_calls[tool_call_start:]),
         )

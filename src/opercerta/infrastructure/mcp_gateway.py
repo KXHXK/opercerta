@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from datetime import timedelta
 from typing import Any, Protocol, cast
@@ -93,6 +93,7 @@ class McpToolGateway:
         timeout_seconds: float,
         max_attempts: int = 2,
         session_factory: McpSessionFactory = default_session_factory,
+        on_tool_call: Callable[[str], None] = lambda name: None,
     ) -> None:
         if timeout_seconds <= 0:
             raise ValueError("timeout_seconds must be positive")
@@ -102,6 +103,7 @@ class McpToolGateway:
         self._timeout_seconds = timeout_seconds
         self._max_attempts = max_attempts
         self._session_factory = session_factory
+        self._on_tool_call = on_tool_call
 
     async def get_inventory(self, sku: str) -> InventoryEvidence:
         result = await self.call_raw(
@@ -262,6 +264,10 @@ class McpToolGateway:
                     self._url,
                     self._timeout_seconds,
                 ) as session:
+                    try:
+                        self._on_tool_call(name)
+                    except Exception:
+                        pass
                     return await session.call_tool(
                         name,
                         cast(dict[str, Any], arguments),

@@ -87,6 +87,7 @@ def build_equipment_maintenance_graph(
     *,
     initial_gateway: MaintenanceGateway | None = None,
     tracing: Tracing = NOOP_TRACING,
+    parallel_evidence_reads: bool = True,
     approval_ttl_seconds: int = 300,
 ) -> EquipmentMaintenanceGraph:
     if approval_ttl_seconds < 1:
@@ -183,10 +184,14 @@ def build_equipment_maintenance_graph(
         if equipment_id is None:
             return error_update(DependencyUnavailable.code)
         try:
-            raw_equipment, raw_policy = await asyncio.gather(
-                evidence_gateway.get_equipment(equipment_id),
-                evidence_gateway.get_maintenance_policy(equipment_id),
-            )
+            if parallel_evidence_reads:
+                raw_equipment, raw_policy = await asyncio.gather(
+                    evidence_gateway.get_equipment(equipment_id),
+                    evidence_gateway.get_maintenance_policy(equipment_id),
+                )
+            else:
+                raw_equipment = await evidence_gateway.get_equipment(equipment_id)
+                raw_policy = await evidence_gateway.get_maintenance_policy(equipment_id)
             try:
                 equipment = EquipmentEvidence.model_validate(raw_equipment)
             except ValidationError:

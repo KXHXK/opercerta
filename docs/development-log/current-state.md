@@ -1,8 +1,12 @@
 # OperCerta 当前状态
 
+## 最新核验：三业务固定评测、Compose 与缓存矩阵已通过
+
+2026-07-20 Task 7 已完成：版本化套件在 FastAPI + FastMCP + PostgreSQL 边界运行 42 条（库存 30、设备 6、作业 6），42 passed、0 failed；Compose 三业务与 API/MCP 重启恢复通过。2×2 本机矩阵 60/60 个 query completed、零错误，缓存关闭为每场景 10 次 MCP/0 hit，开启为 2 次 MCP/8 hit。最终总门禁 414 passed in 103.80s，锁文件、Ruff、134 文件格式、mypy 62 个源文件和安全扫描通过。每格仅 5 次，延迟不作为生产指标。证据见 `docs/release-evidence/three-business-evaluation-compose.md`。Task 8 发布、真实模型代表性验证和中文学习交付尚未完成，发布门禁保持 `CLOSED`。
+
 ## 最新核验：Redis、OpenTelemetry 与 Real model adapter 已完成代码门禁
 
-2026-07-20 已实现只读证据 Redis 缓存、批准后缓存绕过、低基数缓存指标、API/LangGraph/MCP/Redis/PostgreSQL OpenTelemetry span、API→MCP trace context 传播，以及严格解释型 OpenAI-compatible adapter。Compose 默认仍使用 Mock，OTLP 默认关闭；真实模型代表性运行、Redis 镜像拉取和三业务 Compose smoke 尚未执行。提交前安全审查修复了自动异常正文/堆栈进入 span 与指标故障破坏缓存旁路两项问题；最终完整测试 `409 passed in 101.15s`，锁文件、Ruff、131 文件格式和 mypy 62 个源文件通过。发布门禁保持 `CLOSED`。
+2026-07-20 已实现只读证据 Redis 缓存、批准后缓存绕过、低基数缓存指标、API/LangGraph/MCP/Redis/PostgreSQL OpenTelemetry span、API→MCP trace context 传播，以及严格解释型 OpenAI-compatible adapter。Task 7 已完成 Redis 镜像、缓存矩阵与三业务 Compose smoke；Compose 默认仍使用 Mock，OTLP 默认关闭，真实模型代表性运行尚未执行。提交前安全审查修复了自动异常正文/堆栈进入 span 与指标故障破坏缓存旁路两项问题；Task 6 完整测试 `409 passed in 101.15s`。发布门禁保持 `CLOSED`。
 
 ## 最新核验：三业务后端与单页控制台已完成本地门禁
 

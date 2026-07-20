@@ -32,6 +32,16 @@ KNOWN_AUDIT_EVENTS = frozenset(
         "operation_failed",
     }
 )
+KNOWN_MCP_TOOLS = frozenset(
+    {
+        "inventory.get_snapshot",
+        "equipment.get_status",
+        "task.get_status",
+        "policy.list_constraints",
+        "work_order.create",
+        "work_order.get",
+    }
+)
 
 
 def normalize_route(route: str | None) -> str:
@@ -58,6 +68,7 @@ class ApiMetrics:
     http_duration: Histogram
     audit_events: Counter
     cache_events: Counter
+    mcp_tool_calls: Counter
 
     @classmethod
     def create(cls) -> "ApiMetrics":
@@ -89,6 +100,12 @@ class ApiMetrics:
                 ("outcome",),
                 registry=registry,
             ),
+            mcp_tool_calls=Counter(
+                "opercerta_mcp_tool_calls_total",
+                "MCP tool call attempts.",
+                ("tool_name",),
+                registry=registry,
+            ),
         )
 
     def observe_http(
@@ -115,6 +132,10 @@ class ApiMetrics:
     def count_cache_event(self, outcome: str) -> None:
         safe_outcome = outcome if outcome in {"hit", "miss", "write", "error"} else "error"
         self.cache_events.labels(outcome=safe_outcome).inc()
+
+    def count_mcp_tool_call(self, tool_name: str) -> None:
+        safe_name = tool_name if tool_name in KNOWN_MCP_TOOLS else "other"
+        self.mcp_tool_calls.labels(tool_name=safe_name).inc()
 
     def render(self) -> bytes:
         return generate_latest(self.registry)

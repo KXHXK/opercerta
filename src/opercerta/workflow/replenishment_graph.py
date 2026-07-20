@@ -123,6 +123,7 @@ def build_replenishment_graph(
     *,
     initial_gateway: EvidenceGateway | None = None,
     tracing: Tracing = NOOP_TRACING,
+    parallel_evidence_reads: bool = True,
     approval_ttl_seconds: int = 300,
 ) -> ReplenishmentGraph:
     if approval_ttl_seconds < 1:
@@ -225,10 +226,14 @@ def build_replenishment_graph(
         if sku is None:
             return error_update(DependencyUnavailable.code)
         try:
-            raw_inventory, raw_policy = await asyncio.gather(
-                evidence_gateway.get_inventory(sku),
-                evidence_gateway.get_policy(sku),
-            )
+            if parallel_evidence_reads:
+                raw_inventory, raw_policy = await asyncio.gather(
+                    evidence_gateway.get_inventory(sku),
+                    evidence_gateway.get_policy(sku),
+                )
+            else:
+                raw_inventory = await evidence_gateway.get_inventory(sku)
+                raw_policy = await evidence_gateway.get_policy(sku)
             try:
                 inventory = InventoryEvidence.model_validate(raw_inventory)
             except ValidationError:

@@ -60,6 +60,7 @@ class ApiHarness:
     runner: OperationRunner
     approvals: ApprovalRepository
     gateway: McpToolGateway
+    tool_calls: list[str] = field(default_factory=list)
     operation_ids: list[UUID] = field(default_factory=list)
 
     def headers(self, account: DemoAccount) -> dict[str, str]:
@@ -78,8 +79,6 @@ class ApiHarness:
             },
         )
         body = cast(dict[str, object], response.json())
-        if response.status_code == 202:
-            self.operation_ids.append(UUID(str(body["operation_id"])))
         body["_status_code"] = response.status_code
         return body
 
@@ -97,8 +96,6 @@ class ApiHarness:
             },
         )
         body = cast(dict[str, object], response.json())
-        if response.status_code == 202:
-            self.operation_ids.append(UUID(str(body["operation_id"])))
         body["_status_code"] = response.status_code
         return body
 
@@ -114,10 +111,19 @@ class ApiHarness:
             },
         )
         body = cast(dict[str, object], response.json())
-        if response.status_code == 202:
-            self.operation_ids.append(UUID(str(body["operation_id"])))
         body["_status_code"] = response.status_code
         return body
+
+
+class TrackingOperationRepository(OperationRepository):
+    def __init__(self, engine: AsyncEngine, operation_ids: list[UUID]) -> None:
+        super().__init__(engine)
+        self._operation_ids = operation_ids
+
+    async def create(self, request: OperationRequest) -> UUID:
+        operation_id = await super().create(request)
+        self._operation_ids.append(operation_id)
+        return operation_id
 
 
 class UnavailableRunner:
@@ -156,7 +162,9 @@ async def open_api_harness(
     runner_clock: Callable[[], datetime] = lambda: NOW,
     approval_ttl_seconds: int = 300,
 ) -> AsyncIterator[ApiHarness]:
-    operations_repository = OperationRepository(engine)
+    operation_ids: list[UUID] = []
+    operations_repository = TrackingOperationRepository(engine, operation_ids)
+    tool_calls: list[str] = []
     authenticator = JwtAuthenticator(
         JwtSettings(
             signing_key=SecretStr("integration-test-jwt-signing-key"),
@@ -172,7 +180,11 @@ async def open_api_harness(
             saver,
             operations_repository,
             EvidenceRepository(engine),
-            McpToolGateway(mcp_server.url, timeout_seconds=2),
+            McpToolGateway(
+                mcp_server.url,
+                timeout_seconds=2,
+                on_tool_call=tool_calls.append,
+            ),
             MockModelGateway(),
             graph_clock,
             registry,
@@ -212,6 +224,8 @@ async def open_api_harness(
                 runner=runner,
                 approvals=ApprovalRepository(engine),
                 gateway=McpToolGateway(mcp_server.url, timeout_seconds=2),
+                tool_calls=tool_calls,
+                operation_ids=operation_ids,
             )
             try:
                 yield harness
@@ -356,7 +370,6 @@ async def test_query_returns_evidence_without_approval_or_work_order(
         assert response.status_code == 202
         accepted = response.json()
         operation_id = UUID(accepted["operation_id"])
-        harness.operation_ids.append(operation_id)
         detail = (await harness.client.get(f"/api/v1/operations/{operation_id}")).json()
         assert detail["status"] == "completed"
         assert detail["result"]["outcome"] == "query_completed"
