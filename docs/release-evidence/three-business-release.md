@@ -4,7 +4,7 @@
 
 2026-07-20 在提交 `a3994ef` 上完成本地单节点发布候选验证。库存补货、设备维修、作业异常恢复通过同一个 Caddy 入口访问 React 与 FastAPI；PostgreSQL、Redis、MCP、API 和 metrics 管理面均未直接映射宿主机端口。验证对象使用合成数据、演示 JWT 和 Mock 模型。
 
-这份证据只证明“可重复构建并在本机 WSL2/Docker Compose 跑通”，不证明真实模型、生产 IAM/SSO、公网 HTTPS、限流/防滥用、高可用、备份恢复、自动部署或 Release Tag 已完成。生产发布门禁保持 `CLOSED`。
+这份证据只证明“可重复构建并在本机 WSL2/Docker Compose 跑通”。真实模型随后已在独立证据中完成代表性验证；本文仍不证明生产 IAM/SSO、公网 HTTPS、限流/防滥用、高可用、备份恢复、自动部署或 Release Tag 已完成。生产发布门禁保持 `CLOSED`。
 
 ## 发布资产
 
@@ -85,7 +85,7 @@ wsl.exe -d Ubuntu -- bash -lc \
 
 ## 仍未完成的门禁
 
-- 使用用户授权密钥执行三业务真实模型代表性验证并生成独立证据。
+- 三业务真实模型代表性验证已完成，见 `docs/release-evidence/real-model-representative-validation.md`；它不是公网或生产运行证明。
 - 选择公网后端资源，配置真实域名、HTTPS、生产密钥、限流、防滥用、备份/恢复和回滚演练。
 - 将固定提交推送远程并等待当前五个 GitHub Actions job 全绿，再决定 pre-release 或 Release Tag。
 - 用户亲手完成一个业务闭环、一次规则修改和一次 MCP 故障实验；完成前不声称个人熟练掌握。

@@ -90,6 +90,8 @@ LangGraph checkpoint 回答“图执行到哪个节点、恢复时带什么状�
 
 ## 9. 当前诚实边界
 
-三业务、固定评测、WSL2 Compose、React 控制台、Redis、OpenTelemetry 适配器和 CI 已有本地证据。真实模型代表性运行、公开交互 HTTPS 后端、生产 IAM/SSO、限流/防滥用、高可用和 Release Tag 尚未完成。静态 Netlify 页面不是公开业务后端。
+三业务、固定评测、WSL2 Compose、React 控制台、Redis、OpenTelemetry 适配器、CI 和 Moonshot AI `kimi-k2.6` 三业务代表性运行已有本地证据。模型只生成严格解释字段，动作、参数、审批和写入仍由确定性代码与数据库控制。公开交互 HTTPS 后端、生产 IAM/SSO、限流/防滥用、高可用和 Release Tag 尚未完成。静态 Netlify 页面不是公开业务后端。
+
+真实模型兼容要逐层验证：OpenAI-compatible 不保证 temperature、thinking 扩展和响应字段完全相同。本项目不强制 temperature；代表性 K2.6 验证显式关闭 thinking 以取得严格 JSON content。验证只记录安全元数据和端到端耗时，不保存原始输出；当前 adapter 不暴露 usage，所以不能声称 token 或费用数字。
 
 建议按“读代码入口 → 预测测试 → 手动运行 → 制造单变量故障 → 用自己的话讲解”的顺序掌握，而不是只复制命令。

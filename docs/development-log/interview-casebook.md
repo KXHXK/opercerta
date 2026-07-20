@@ -196,6 +196,31 @@
 - **限制：** 这不是吞掉业务错误；达到 deadline 或业务断言不符仍失败，并输出 Caddy/API 诊断。
 - **面试表达：** “健康轮询面对的是代理和应用两个协议边界。我只放宽启动窗口的解析，不放宽业务完成条件，让诊断工具在故障时继续提供证据。”
 
+## 23. OpenAI-compatible 不等于所有参数完全兼容
+
+- **问题：** `/models`、认证和模型名均有效，但首条 Kimi K2.6 chat 请求仍返回 HTTP 400。
+- **根因：** adapter 强制发送 `temperature=0`，而该模型只接受自己的固定温度语义；随后不传温度虽返回 200，默认 thinking 模式又只产生 reasoning，严格 JSON content 为空。
+- **修复：** adapter 不再强制 temperature；新增默认关闭影响的 thinking 配置，真实代表性验证显式发送 `thinking={"type":"disabled"}`，仍只接受 `summary`/`rationale` 两字段 JSON。
+- **验证：** 库存、设备、作业各一条真实模型写路径通过，三种唯一工单落库；Mock 默认路径重新执行 release Compose 通过。
+- **限制：** 这证明与当前供应商/模型的代表性兼容，不代表所有 OpenAI-compatible 服务都支持同一扩展字段；供应商适配仍需契约测试。
+- **面试表达：** “OpenAI-compatible 主要复用 endpoint 和消息形状，不代表采样参数、thinking 扩展和返回位置完全一致。我用最小安全探针逐层确认网络、认证、参数和响应形状，再把差异变成显式配置。”
+
+## 24. 分层超时必须从外向内递增
+
+- **问题：** 模型服务端允许等待 30 秒，但验证客户端 10 秒先断开，表现为外层超时而不是可解释的模型结果。
+- **根因：** 只调整了 adapter timeout，没有检查浏览器/验证器、反向代理和服务端的完整 deadline 链。
+- **修复：** 把验证客户端 timeout 做成 1–120 秒有界配置，本次使用 75 秒包住模型 30 秒预算；重试仍最多两次，避免无界等待。
+- **验证：** 三业务 6 个代表 operation 在 83.1 秒总运行内完成；单条写请求端到端约 3.7–5.9 秒。
+- **限制：** 单样本端到端数字不等于供应商纯模型延迟，也不是生产 SLA。
+- **面试表达：** “外层 deadline 必须覆盖内层最坏预算，否则内层的错误处理永远没有机会返回。我同时限制上下界，避免配置错误把验证变成无限等待。”
+
+## 25. 配置误回显后的正确动作是轮换，不是删除日志
+
+- **问题：** 一次本地检查命令误回显 `.env.compose` 的一次性数据库连接行。
+- **处置：** 立即把该凭据视为已暴露，同步轮换 PostgreSQL 密码和匹配 URL；只用布尔一致性结果复验。Moonshot API key 未回显，代码、Git 和证据文档均不保存任何旧值或新值。
+- **改进：** 配置诊断只输出 `SET/UNSET`、长度或白名单安全字段；不打印“脱敏后的整行”，因为脱敏规则自身也可能失效。
+- **面试表达：** “秘密一旦进入可持久化输出，就不能靠撤回或删除证明安全。我的动作是缩小影响面、立即轮换、验证一致性，再把诊断方式改成只输出状态。”
+
 ## 相关证据
 
 - `docs/release-evidence/approval-atomicity.md`
@@ -208,3 +233,4 @@
 - `docs/release-evidence/three-business-evaluation-compose.md`
 - `docs/release-evidence/three-business-release.md`
 - `docs/release-evidence/performance-cache-matrix.md`
+- `docs/release-evidence/real-model-representative-validation.md`

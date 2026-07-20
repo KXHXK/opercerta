@@ -616,7 +616,7 @@ git commit -m "test: verify three-business release contracts"
 
 ## Task 8: 求职发布证据、交互部署与中文学习包
 
-**执行状态（2026-07-20）：** 发布资产契约、本地完整门禁、Caddy/release Compose、一键三业务与重启 smoke、中文学习包和本地证据已完成，代码提交为 `a3994ef`。真实模型代表性验证、公网交互 HTTPS、用户掌握检查、当前远程 CI 与 Release Tag 仍待外部授权或用户操作；生产发布门禁保持 `CLOSED`。
+**执行状态（2026-07-20）：** 发布资产契约、本地完整门禁、Caddy/release Compose、一键三业务与重启 smoke、中文学习包和真实模型代表性验证已完成；本地发布提交为 `a3994ef`，真实模型验证实现提交为 `b517ab8`。公网交互 HTTPS、用户掌握检查、当前远程 CI 与 Release Tag 仍待外部授权或用户操作；生产发布门禁保持 `CLOSED`。
 
 **Files:**
 - Create after real execution: `docs/release-evidence/three-business-release.md`
@@ -688,9 +688,11 @@ Set-Location ..
 
 Then run Task 7 Compose smoke and performance matrix. Record exact outputs; do not copy old test counts into new evidence.
 
-- [ ] **Step 3: Perform authorized real-model representative validation**
+- [x] **Step 3: Perform authorized real-model representative validation**
 
 At this checkpoint ask the user to choose/provide an available OpenAI-compatible provider and place the key in an ignored local environment source. Run at least one query and one approved path per business under the fixed contract. If no key is authorized, the gate remains closed and the evidence explicitly says not executed.
+
+Executed 2026-07-20 with user-authorized Moonshot AI `kimi-k2.6`: 6 representative operations and 3 expected model paths passed. Safe report records end-to-end latency and explanation lengths only; raw output, key, token usage and estimated cost are not stored. Evidence: `docs/release-evidence/real-model-representative-validation.md`.
 
 - [ ] **Step 4: Deploy and verify interactive HTTPS demo**
 

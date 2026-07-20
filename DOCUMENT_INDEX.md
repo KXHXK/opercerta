@@ -1,6 +1,8 @@
 # OperCerta 文档索引
 
-新增本地发布候选证据：`docs/release-evidence/three-business-release.md`（提交 `a3994ef` 的 Caddy/release Compose、422 条后端回归、前端 25 条测试、一键三业务与重启 smoke；明确真实模型、公网交互和生产治理仍未完成）。
+新增真实模型证据：`docs/release-evidence/real-model-representative-validation.md`（Moonshot AI `kimi-k2.6` 三业务 6 次代表操作/3 条真实模型路径；记录端到端耗时、无原文/密钥/token/成本虚构，并保留模型兼容、分层超时和凭据轮换复盘）。
+
+新增本地发布候选证据：`docs/release-evidence/three-business-release.md`（提交 `a3994ef` 的 Caddy/release Compose、422 条后端回归、前端 25 条测试、一键三业务与重启 smoke；真实模型随后由独立证据补齐，公网交互和生产治理仍未完成）。
 
 新增缓存矩阵独立证据：`docs/release-evidence/performance-cache-matrix.md`（12 格、60 次 query 的实际 MCP/cache hit 与本机延迟，明确小样本不构成生产性能承诺）。
 
@@ -9,7 +11,7 @@
 新增阶段证据：`docs/release-evidence/three-business-evaluation-compose.md`（42 条三业务固定评测、Compose 三业务/重启恢复，以及 12 格真实缓存矩阵；明确本机小样本边界）。三业务主计划 Task 7 已执行，Task 8 本地阶段随后完成。
 
 新增已确认规格：`docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md`（将 OperCerta 收口范围固定为库存补货、设备维修、作业异常恢复三个真实闭环；共享 LangGraph 可靠性内核，并把六个 MCP 工具、Redis、OpenTelemetry、真实模型代表性验证、交互部署和中文学习包纳入门禁）。
-新增执行中计划：`docs/superpowers/plans/2026-07-20-opercerta-three-business-release.md`（Task 1–7 和 Task 8 本地发布/学习阶段已完成；真实模型、公网交互、用户掌握与最终远程门禁待完成；采用 Inline Execution）。
+新增执行中计划：`docs/superpowers/plans/2026-07-20-opercerta-three-business-release.md`（Task 1–7、Task 8 本地发布/学习和真实模型代表性验证已完成；公网交互、用户掌握与最终远程门禁待完成；采用 Inline Execution）。
 
 新增阶段证据：`docs/release-evidence/cache-tracing-model-adapter.md`（Redis 安全旁路与审批后绕过、OpenTelemetry 脱敏关联、严格真实模型 adapter 和未验证边界；生产发布门禁仍关闭）。
 
@@ -59,7 +61,7 @@
 | 路径 | 用途 | 状态 | 最后核验 commit | 优先级 |
 | --- | --- | --- | --- | --- |
 | `README.md` | 项目概览与使用边界 | 已同步三业务、本地发布候选、学习入口与剩余门禁 | `a3994ef` | 2 |
-| `IMPLEMENTATION_HANDOFF.md` | 会话交接与下一动作 | 已同步本地发布候选与真实模型/公网发布下一边界 | 本次提交 | 3 |
+| `IMPLEMENTATION_HANDOFF.md` | 会话交接与下一动作 | 已同步真实模型验证与公网发布下一边界 | 本次提交 | 3 |
 | `docs/specs/2026-07-14-agent-project-naming-design.md` | 命名设计 | 已冻结基线 | `c7fa618` | 4 |
 | `docs/specs/AI_Agent四项目总体设计规格.md` | 总体设计 | 已冻结基线 | `48d299c` | 5 |
 | `docs/specs/2026-07-14-agent-portfolio-design.md` | 组合设计 | 已冻结基线 | `48d299c` | 5 |
@@ -76,7 +78,7 @@
 | `docs/superpowers/specs/2026-07-18-github-actions-ci-security-gate-design.md` | Private GitHub Actions 分层 CI 安全门禁设计 | 已实施并完成远程门禁 | 本次提交 | 1 |
 | `docs/superpowers/specs/2026-07-19-portfolio-netlify-static-mirror-design.md` | 作品集 Netlify 独立静态镜像设计 | 已实施并完成公网验证 | 本次提交 | 1 |
 | `docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md` | 三业务闭环、技术栈补齐、求职发布与学习交付修订 | 已确认；实施计划已创建 | `632f0a1` | 1 |
-| `docs/superpowers/plans/2026-07-20-opercerta-three-business-release.md` | 三业务求职发布八项 Inline TDD 主计划 | Task 1–7 与 Task 8 本地阶段已执行；外部门禁待完成 | 本次提交 | 1 |
+| `docs/superpowers/plans/2026-07-20-opercerta-three-business-release.md` | 三业务求职发布八项 Inline TDD 主计划 | 真实模型代表性验证已执行；公网和远程门禁待完成 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-14-opercerta-reliability-kernel.md` | 可靠性内核 TDD 总计划 | Task 1–6 已执行 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-16-langgraph-restart-recovery.md` | Task 5 四点重启恢复可执行 TDD 计划 | 已执行；证据已归档 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-16-work-order-idempotency.md` | Task 4 幂等工单可执行 TDD 计划 | 已执行；证据已归档 | 本次提交 | 1 |
@@ -88,7 +90,7 @@
 | `docs/superpowers/plans/2026-07-18-github-actions-ci-security-gate.md` | Private GitHub Actions CI 安全门禁实施计划 | 已执行；远程证据已归档 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-19-portfolio-netlify-static-mirror.md` | 作品集静态导出与 Netlify 两阶段发布计划 | 已执行；公网证据已归档 | 本次提交 | 1 |
 | `docs/development-log/README.md` | 日志机制说明 | 已初始化 | `f70411f` | 1 |
-| `docs/development-log/current-state.md` | 当前已验证状态 | 已同步 Task 8 本地发布候选与剩余外部门禁 | 本次提交 | 1 |
+| `docs/development-log/current-state.md` | 当前已验证状态 | 已同步真实模型代表性验证与剩余外部门禁 | 本次提交 | 1 |
 | `docs/development-log/interview-casebook.md` | 实施问题、诊断、修复与面试复盘案例 | 已补充稳定哈希、Caddy 路由与代理响应案例 | 本次提交 | 1 |
 | `docs/development-log/learning-method.md` | 学习掌握、单变量实验与面试训练方法 | 已加入三业务学习包和手动闭环建议 | `a3994ef` | 1 |
 | `docs/learning/OperCerta核心技术手册.md` | 一次请求的全技术链路、可靠性设计与技术边界 | 本地学习交付已完成；需用户实践 | `a3994ef` | 1 |
@@ -111,10 +113,11 @@
 | `docs/release-evidence/docker-linux-runtime.md` | WSL2 Ubuntu Compose 健康、业务 smoke 与重启恢复证据 | 单节点本地验证通过；发布门禁仍关闭 | 本次提交 | 1 |
 | `docs/release-evidence/single-page-console.md` | 本地单页运营控制台测试与构建证据 | 本地前端验证通过；不代表公开发布 | `f88ddc5` | 1 |
 | `docs/release-evidence/observability-security-regression.md` | request_id、安全日志、低基数指标与安全回归证据 | 本地门禁通过；发布门禁仍关闭 | 本次提交 | 1 |
-| `docs/release-evidence/cache-tracing-model-adapter.md` | Redis 只读缓存、OpenTelemetry 与 Real model adapter 阶段证据 | 代码与 Compose 缓存已验证；真实模型代表性运行待执行 | 本次提交 | 1 |
+| `docs/release-evidence/cache-tracing-model-adapter.md` | Redis 只读缓存、OpenTelemetry 与 Real model adapter 阶段证据 | adapter 阶段证据；真实模型运行随后由独立证据补齐 | 本次提交 | 1 |
 | `docs/release-evidence/three-business-evaluation-compose.md` | 42 条三业务评测、Compose 重启恢复与 2×2 缓存矩阵证据 | 本地 Task 7 通过；不代表生产发布 | 本次提交 | 1 |
 | `docs/release-evidence/performance-cache-matrix.md` | 12 格缓存/工具模式的 MCP、hit 和本机延迟证据 | 60 次 query 已测；不作生产性能承诺 | 本次提交 | 1 |
-| `docs/release-evidence/three-business-release.md` | Caddy/release Compose、本地总门禁与一键发布候选 smoke | 本地候选通过；真实模型和公网交互待完成 | 本次提交 | 1 |
+| `docs/release-evidence/three-business-release.md` | Caddy/release Compose、本地总门禁与一键发布候选 smoke | 本地候选通过；真实模型已另证，公网交互待完成 | 本次提交 | 1 |
+| `docs/release-evidence/real-model-representative-validation.md` | 三业务真实模型代表性验证、兼容调试与安全边界 | 本地 6 次代表操作通过；公网/生产仍关闭 | 本次提交 | 1 |
 | `docs/release-evidence/github-actions-ci.md` | 初始 Private remote、PR/main 分层 CI、Compose 重启恢复与保护能力历史证据 | 远程门禁通过；仓库现为 public，main 保护尚未配置；发布门禁仍关闭 | 本次提交 | 1 |
 | `docs/release-evidence/public-portfolio-showcase.md` | 公开专题的本地审批、工单、审计、截图与线上部署证据 | 静态 URL 已验证；原发布门禁仍关闭 | 本次提交 | 1 |
 | `docs/release-evidence/portfolio-netlify-static-mirror.md` | Sites 403 对照、作品集静态导出与 Netlify 发布证据 | 公开作品集 URL 已验证；原发布门禁仍关闭 | 本次提交 | 1 |
