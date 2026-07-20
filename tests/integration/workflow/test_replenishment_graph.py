@@ -506,7 +506,7 @@ async def test_rejected_bound_decision_ends_without_work_order_write(
 
 
 @pytest.mark.asyncio
-async def test_approved_decision_fails_when_bound_inventory_facts_changed(
+async def test_approved_revalidation_bypasses_initial_cache_when_facts_changed(
     engine: AsyncEngine,
     checkpoint_database_url: SecretStr,
     mcp_server: McpServerHarness,
@@ -528,6 +528,7 @@ async def test_approved_decision_fails_when_bound_inventory_facts_changed(
                 gateway,
                 CountingModelGateway(),
                 lambda: NOW,
+                initial_gateway=FakeEvidenceGateway(inventory(), policy()),
             )
             await graph.ainvoke(
                 build_replenishment_initial_state(operation_id, request),

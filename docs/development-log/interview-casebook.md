@@ -136,6 +136,23 @@
 - **验证：** 原失败测试 `1 passed`，完整后端 `392 passed`；没有清理开发或演示数据库。
 - **面试表达：** “集成测试本身有状态生命周期。业务逻辑修好后，我没有把恢复测试失败误判为新回归，而是从数据库证据定位到失败用例的清理盲区。”
 
+## 16. 缓存优化不能进入审批后的安全判定
+
+- **问题：** Redis 能降低重复只读取证延迟，但缓存证据可能在人工审批等待期间过期；若批准后仍读缓存，就可能依据旧事实写工单。
+- **设计：** 缓存 wrapper 只传给初次/查询取证节点；三张图的 `revalidate`、写入和写后读始终使用直接 MCP gateway。Redis 异常只变成 miss，PostgreSQL/MCP 仍是业务真相。
+- **验证：** 单元测试证明同一初始读取命中缓存后只调用一次 delegate；集成测试让初始 gateway 固定返回旧快照、随后修改真实 MCP 事实，批准恢复仍得到 `approval_snapshot_mismatch` 且零工单。
+- **限制：** 目前只完成代码与本地测试；Redis 8.8 Compose 拉取、2×2 性能矩阵和实际命中数据留到 Task 7，不能预先声称性能提升。
+- **面试表达：** “我把 Redis 定义为可删除的读优化，不是事实源。缓存只服务初次观察，审批后的安全复核有独立直连路径，并用两个不同 gateway 的测试证明这个边界不是口头约定。”
+
+## 17. Trace 的价值在关联，不在记录更多敏感内容
+
+- **问题：** 只给 API 加 span 不能解释 LangGraph、MCP 和数据库的耗时；但把请求正文、SQL、Prompt 或 token 放进 span 又会制造泄密面。
+- **提交前发现：** OpenTelemetry 默认 `record_exception=True`；即使业务属性有 allowlist，未处理异常的 message 和 stacktrace 仍会以 event 自动进入 span。这是第一版测试未覆盖的旁路泄露面。
+- **设计：** 使用属性 allowlist，仅记录组件、操作、场景、节点和真实关联 ID；关闭自动异常正文/堆栈记录，只保存异常类型与 ERROR 状态。API→MCP 传播 W3C context，MCP 服务提取后建立子 trace。SQL span 不记录 SQL 与参数，模型 adapter 不记录 key 或原始响应。
+- **验证：** in-memory exporter 断言 JWT、API key、消息、证据正文和带秘密的异常 message/stack 均不进入 span；SQL 测试传入秘密参数后，span 只保留 `component=postgresql` 与 `operation=execute`。
+- **限制：** OTLP exporter 默认关闭，当前 Compose 没有 Collector/Grafana；因此只能声称埋点与导出适配器可用，不能声称已建成线上观测平台。
+- **面试表达：** “可观测性不是把所有内容都写日志。我先定义安全字段集合，再关联 API、图节点、MCP、Redis 和 SQL；这样能定位阶段耗时，同时不把业务证据和凭据复制到观测系统。”
+
 ## 相关证据
 
 - `docs/release-evidence/approval-atomicity.md`

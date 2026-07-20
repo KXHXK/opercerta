@@ -57,6 +57,7 @@ class ApiMetrics:
     http_requests: Counter
     http_duration: Histogram
     audit_events: Counter
+    cache_events: Counter
 
     @classmethod
     def create(cls) -> "ApiMetrics":
@@ -82,6 +83,12 @@ class ApiMetrics:
                 ("event_type",),
                 registry=registry,
             ),
+            cache_events=Counter(
+                "opercerta_cache_events_total",
+                "Evidence cache outcomes.",
+                ("outcome",),
+                registry=registry,
+            ),
         )
 
     def observe_http(
@@ -104,6 +111,10 @@ class ApiMetrics:
 
     def count_audit_event(self, event_type: str) -> None:
         self.audit_events.labels(event_type=normalize_audit_event(event_type)).inc()
+
+    def count_cache_event(self, outcome: str) -> None:
+        safe_outcome = outcome if outcome in {"hit", "miss", "write", "error"} else "error"
+        self.cache_events.labels(outcome=safe_outcome).inc()
 
     def render(self) -> bytes:
         return generate_latest(self.registry)

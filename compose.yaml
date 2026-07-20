@@ -10,6 +10,15 @@ services:
       timeout: 3s
       retries: 20
 
+  redis:
+    image: redis:8.8.0-trixie
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
   bootstrap:
     build: .
     env_file: .env.compose
@@ -41,6 +50,8 @@ services:
       bootstrap:
         condition: service_completed_successfully
       mcp:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8080/health/ready').read()"]

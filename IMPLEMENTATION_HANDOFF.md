@@ -2,6 +2,7 @@
 
 ## 当前检查点
 
+- 2026-07-20 三业务主计划 Task 6 已完成代码与本地测试：Redis 只缓存初次/查询证据并在故障时旁路，批准后复核直连 MCP；OpenTelemetry 关联 API、LangGraph、MCP、Redis 和 PostgreSQL，关闭自动异常正文/堆栈记录；OpenAI-compatible adapter 只输出严格解释字段、最多两次尝试且真实模式失败不回退 Mock。最终完整测试 `409 passed in 101.15s`，锁文件/Ruff/131 文件 format/mypy 62 个源文件通过；真实模型调用、Redis 8.8 Compose 和跨业务评测仍待 Task 7–8，发布门禁保持关闭。
 - 2026-07-19 作品集已完成单页视觉刷新并生产替换：无内部 hash 导航，四项目按 OperCerta、ForenTrail、SiteVerum、Federune 排列，后三项明确未启动；邮箱、用户明确授权公开的手机号和 public GitHub 已接入。production deploy `6a5c986587eaef5b3156f49b` 返回 200。源契约 3/3、镜像契约 8/8 及真实构建/导出通过。
 - 2026-07-19 公开专题功能工作树最终本地门禁通过：后端 `342 passed in 65.94s`、Ruff clean、105 文件 format check、mypy 50 个源文件、仓库安全扫描、前端 11 文件/24 条测试和 Vite 构建均通过。首次门禁在后端通过后因测试文件多余空行触发 Ruff `I001`，最小修复后从头重跑整条门禁。PR #4 run `29652818349` 四个快速 job 成功并合并为 `0f262e0`；main run `29652991288` 五个 job（含 Compose smoke、API/MCP 重启恢复与清理）全部成功。原 release gate 仍为 `CLOSED`。
 - 2026-07-18 已将不连接后端的 OperCerta 静态专题生产部署到 <https://opercerta-kxh.netlify.app>。专题资源与静态回退均已核验；个人作品集随后于 2026-07-19 完成独立 Netlify 部署和单页刷新。公开页面只展示合成数据证据，不改变生产 IAM、HTTPS 后端、自动部署和公开 API 的未完成边界。

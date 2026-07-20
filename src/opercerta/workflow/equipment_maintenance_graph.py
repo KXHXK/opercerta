@@ -1,7 +1,7 @@
 import asyncio
 from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Protocol, cast
+from typing import TYPE_CHECKING, Any, Protocol, cast
 from uuid import UUID
 
 from langgraph.graph import END, START, StateGraph
@@ -47,6 +47,7 @@ from opercerta.domain.work_orders import (
 )
 from opercerta.infrastructure.db.evidence_repository import EvidenceRepository
 from opercerta.infrastructure.db.operation_repository import OperationRepository
+from opercerta.observability.tracing import NOOP_TRACING, Tracing, trace_async_node
 from opercerta.workflow.replenishment_graph import ReplenishmentState
 
 if TYPE_CHECKING:
@@ -84,10 +85,13 @@ def build_equipment_maintenance_graph(
     model_gateway: ModelGateway,
     clock: Callable[[], datetime],
     *,
+    initial_gateway: MaintenanceGateway | None = None,
+    tracing: Tracing = NOOP_TRACING,
     approval_ttl_seconds: int = 300,
 ) -> EquipmentMaintenanceGraph:
     if approval_ttl_seconds < 1:
         raise ValueError("approval_ttl_seconds must be positive")
+    evidence_gateway = initial_gateway or gateway
 
     def operation_id(state: ReplenishmentState) -> UUID:
         try:
@@ -180,8 +184,8 @@ def build_equipment_maintenance_graph(
             return error_update(DependencyUnavailable.code)
         try:
             raw_equipment, raw_policy = await asyncio.gather(
-                gateway.get_equipment(equipment_id),
-                gateway.get_maintenance_policy(equipment_id),
+                evidence_gateway.get_equipment(equipment_id),
+                evidence_gateway.get_maintenance_policy(equipment_id),
             )
             try:
                 equipment = EquipmentEvidence.model_validate(raw_equipment)
@@ -239,7 +243,7 @@ def build_equipment_maintenance_graph(
 
     async def explain_plan(state: ReplenishmentState) -> dict[str, object]:
         try:
-            explanation = await model_gateway.explain_maintenance(assessment(state))
+            explanation = await model_gateway.explain_plan(assessment(state))
         except Exception:
             return error_update(DependencyUnavailable.code)
         return {"plan": explanation.model_dump(mode="json")}
@@ -415,27 +419,42 @@ def build_equipment_maintenance_graph(
         return {}
 
     builder = StateGraph(ReplenishmentState)
-    builder.add_node("parse_request", parse_request)
-    builder.add_node("mark_gathering", mark_gathering)
-    builder.add_node("gather_evidence", gather_evidence)
-    builder.add_node("calculate_assessment", calculate_assessment)
-    builder.add_node("record_normal_plan", record_normal_plan)
-    builder.add_node("record_query_assessment", record_query_assessment)
-    builder.add_node("mark_reporting", mark_reporting)
-    builder.add_node("complete_without_maintenance", complete_without_maintenance)
-    builder.add_node("explain_plan", explain_plan)
-    builder.add_node("build_and_validate_plan", build_and_validate_plan)
-    builder.add_node("record_repair_plan", record_repair_plan)
-    builder.add_node("prepare_approval", prepare_approval)
-    builder.add_node("request_approval", request_approval)
-    builder.add_node("mark_rejected", mark_rejected)
-    builder.add_node("revalidate_evidence", revalidate_evidence)
-    builder.add_node("mark_executing", mark_executing)
-    builder.add_node("execute_work_order", execute_work_order)
-    builder.add_node("mark_verifying", mark_verifying)
-    builder.add_node("verify_work_order", verify_work_order)
-    builder.add_node("mark_completed", mark_completed)
-    builder.add_node("mark_failed", mark_failed)
+    nodes = {
+        "parse_request": parse_request,
+        "mark_gathering": mark_gathering,
+        "gather_evidence": gather_evidence,
+        "calculate_assessment": calculate_assessment,
+        "record_normal_plan": record_normal_plan,
+        "record_query_assessment": record_query_assessment,
+        "mark_reporting": mark_reporting,
+        "complete_without_maintenance": complete_without_maintenance,
+        "explain_plan": explain_plan,
+        "build_and_validate_plan": build_and_validate_plan,
+        "record_repair_plan": record_repair_plan,
+        "prepare_approval": prepare_approval,
+        "request_approval": request_approval,
+        "mark_rejected": mark_rejected,
+        "revalidate_evidence": revalidate_evidence,
+        "mark_executing": mark_executing,
+        "execute_work_order": execute_work_order,
+        "mark_verifying": mark_verifying,
+        "verify_work_order": verify_work_order,
+        "mark_completed": mark_completed,
+        "mark_failed": mark_failed,
+    }
+    for name, node in nodes.items():
+        builder.add_node(
+            name,
+            cast(
+                Any,
+                trace_async_node(
+                    tracing,
+                    scenario="equipment",
+                    node=name,
+                    function=node,
+                ),
+            ),
+        )
     builder.add_edge(START, "parse_request")
     builder.add_conditional_edges(
         "parse_request", route_error, {"continue": "mark_gathering", "failure": "mark_failed"}

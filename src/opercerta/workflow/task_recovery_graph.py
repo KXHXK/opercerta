@@ -1,7 +1,7 @@
 import asyncio
 from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Protocol, cast
+from typing import TYPE_CHECKING, Any, Protocol, cast
 from uuid import UUID
 
 from langgraph.graph import END, START, StateGraph
@@ -40,6 +40,7 @@ from opercerta.domain.task_recovery import (
 from opercerta.domain.work_orders import WorkOrderCommand, WorkOrderRecord, WorkOrderWriteResult
 from opercerta.infrastructure.db.evidence_repository import EvidenceRepository
 from opercerta.infrastructure.db.operation_repository import OperationRepository
+from opercerta.observability.tracing import NOOP_TRACING, Tracing, trace_async_node
 from opercerta.workflow.replenishment_graph import ReplenishmentState
 
 if TYPE_CHECKING:
@@ -71,10 +72,13 @@ def build_task_recovery_graph(
     model_gateway: ModelGateway,
     clock: Callable[[], datetime],
     *,
+    initial_gateway: TaskGateway | None = None,
+    tracing: Tracing = NOOP_TRACING,
     approval_ttl_seconds: int = 300,
 ) -> TaskRecoveryGraph:
     if approval_ttl_seconds < 1:
         raise ValueError("approval_ttl_seconds must be positive")
+    evidence_gateway = initial_gateway or gateway
 
     def operation_id(state: ReplenishmentState) -> UUID:
         return UUID(state["operation_id"])
@@ -162,7 +166,8 @@ def build_task_recovery_graph(
             return error_update(DependencyUnavailable.code)
         try:
             raw_task, raw_policy = await asyncio.gather(
-                gateway.get_task(task_id), gateway.get_task_recovery_policy(task_id)
+                evidence_gateway.get_task(task_id),
+                evidence_gateway.get_task_recovery_policy(task_id),
             )
             try:
                 task = TaskEvidence.model_validate(raw_task)
@@ -220,7 +225,7 @@ def build_task_recovery_graph(
 
     async def explain_plan(state: ReplenishmentState) -> dict[str, object]:
         try:
-            explanation = await model_gateway.explain_task_recovery(assessment(state))
+            explanation = await model_gateway.explain_plan(assessment(state))
         except Exception:
             return error_update(DependencyUnavailable.code)
         return {"plan": explanation.model_dump(mode="json")}
@@ -411,7 +416,18 @@ def build_task_recovery_graph(
         "fail": fail,
     }
     for name, node in nodes.items():
-        builder.add_node(name, node)
+        builder.add_node(
+            name,
+            cast(
+                Any,
+                trace_async_node(
+                    tracing,
+                    scenario="task",
+                    node=name,
+                    function=node,
+                ),
+            ),
+        )
     builder.add_edge(START, "parse_request")
     builder.add_conditional_edges(
         "parse_request", route_error, {"continue": "mark_gathering", "failure": "fail"}

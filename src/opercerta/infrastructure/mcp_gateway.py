@@ -9,6 +9,7 @@ import httpx
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 from mcp.types import CallToolResult, TextContent
+from opentelemetry.propagate import inject
 from pydantic import ValidationError
 
 from opercerta.domain.errors import (
@@ -64,7 +65,10 @@ async def default_session_factory(
     url: str,
     timeout_seconds: float,
 ) -> AsyncIterator[ClientSession]:
+    trace_headers: dict[str, str] = {}
+    inject(trace_headers)
     async with httpx.AsyncClient(
+        headers=trace_headers,
         timeout=timeout_seconds,
         trust_env=False,
     ) as http_client:

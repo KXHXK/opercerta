@@ -1,5 +1,9 @@
 # OperCerta 当前状态
 
+## 最新核验：Redis、OpenTelemetry 与 Real model adapter 已完成代码门禁
+
+2026-07-20 已实现只读证据 Redis 缓存、批准后缓存绕过、低基数缓存指标、API/LangGraph/MCP/Redis/PostgreSQL OpenTelemetry span、API→MCP trace context 传播，以及严格解释型 OpenAI-compatible adapter。Compose 默认仍使用 Mock，OTLP 默认关闭；真实模型代表性运行、Redis 镜像拉取和三业务 Compose smoke 尚未执行。提交前安全审查修复了自动异常正文/堆栈进入 span 与指标故障破坏缓存旁路两项问题；最终完整测试 `409 passed in 101.15s`，锁文件、Ruff、131 文件格式和 mypy 62 个源文件通过。发布门禁保持 `CLOSED`。
+
 ## 最新核验：三业务后端与单页控制台已完成本地门禁
 
 2026-07-20 已完成库存补货、设备维修、作业异常恢复三条合成业务闭环的领域契约、六个 FastMCP 工具、PostgreSQL 状态/审计/工单、LangGraph 审批与恢复路径，以及 React 单页控制台。三对象同时支持只读 `query` 和受控 `create_work_order`；查询只取证和评估，零审批、零工单。新鲜门禁为后端 392 条、Ruff、125 文件格式检查、mypy 59 个源文件，以及前端 12 文件/25 条测试和生产构建全部通过。Task 6–8 的 Redis/OpenTelemetry/真实模型、跨业务评测/Compose 和发布学习交付仍未完成，发布门禁保持 `CLOSED`。
@@ -100,7 +104,7 @@
 
 ## 当前阻塞与风险
 
-- Redis 只读缓存、OpenTelemetry Trace、真实模型代表性验证、三业务固定评测、最新版 Compose 重启门禁、生产 IAM/SSO、Caddy/HTTPS 后端和公开 API 尚未完成；只读静态专题和独立静态作品集镜像已完成部署，发布门禁保持关闭。
+- Redis 只读缓存、OpenTelemetry Trace 和真实模型 adapter 的代码与本地测试已完成；真实模型代表性验证、Redis 8.8 镜像/三业务 Compose、跨业务固定评测、生产 IAM/SSO、Caddy/HTTPS 后端和公开 API 尚未完成。只读静态专题和独立静态作品集镜像已完成部署，发布门禁保持关闭。
 - Windows 原生真实服务需要显式 Selector loop；WSL2 Ubuntu Compose 已验证默认 Linux 容器进程、健康检查、MCP 服务名访问、独立 PostgreSQL volume 和 API/MCP 重启，但这不代表高可用或生产承诺。
 - Docker/Linux 运行时已修订为 WSL2 → Ubuntu 26.04 LTS，不使用 Docker Desktop 或 Hyper-V VM。Ubuntu 官方仓库的 Docker `29.1.3`、Compose `2.40.3`、Buildx `0.30.1` 已安装；Docker Hub 直连超时后，经用户授权配置了三个可达的第三方 registry mirror。OperCerta Compose 已通过构建、健康、真实业务数据库断言与重启恢复；完整证据见 `docs/release-evidence/docker-linux-runtime.md`，供应链例外见 `docs/superpowers/specs/2026-07-17-wsl2-runtime-amendment-design.md`。
 - 一次预期失败的 Pytest/Psycopg traceback 曾展开旧的本地测试数据库连接密码；代码、Git 和文档未保存该值，fixture 已改为无密码 URL + 临时 `PGPASSWORD`，角色密码也已轮换和复验。
@@ -109,8 +113,8 @@
 
 ## 下一步
 
-继续只实施 OperCerta。下一步执行三业务发布计划 Task 6：Redis 只读证据缓存、OpenTelemetry Trace 与真实模型 adapter；随后完成跨业务固定评测、最新版 Compose 重启门禁、公开静态更新和中文学习交付。公共 registry mirror 的风险与后续每个实际镜像 digest 仍须留证。
+继续只实施 OperCerta。下一步执行 Task 7：把原 30 条库存用例纳入三业务版本化评测，生成透明逐例报告与性能矩阵入口，并在 WSL2 Compose 中验证 Redis 8.8、三业务成功/拒绝/竞态/幂等和 API/MCP 重启恢复。真实模型调用、交互 HTTPS 部署和中文学习交付保留到 Task 8 的人工授权节点。
 
 ## 发布门禁
 
-`OperCerta production release gate: CLOSED`。当前证据证明三业务本地后端与单页控制台、既有 WSL2 Compose、演示身份、库存固定评测、可观测性安全基础、GitHub Actions 分层 CI、只读静态专题与独立静态作品集入口通过；Task 6–8、生产身份、HTTPS 后端、自动部署和公开 API 仍待完成。求职演示发布门禁不能与生产门禁混用。
+`OperCerta production release gate: CLOSED`。当前证据证明三业务本地后端与单页控制台、Redis/Trace/Real model adapter 代码、既有 WSL2 Compose、演示身份、库存固定评测、GitHub Actions 分层 CI、只读静态专题与独立静态作品集入口通过对应阶段门禁；Task 7–8、生产身份、HTTPS 后端、自动部署和公开 API 仍待完成。求职演示发布门禁不能与生产门禁混用。

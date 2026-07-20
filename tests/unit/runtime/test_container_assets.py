@@ -4,11 +4,25 @@ from pathlib import Path
 def test_compose_keeps_internal_services_off_host_and_unprivileged() -> None:
     compose = Path("compose.yaml").read_text(encoding="utf-8")
 
-    assert all(name in compose for name in ("postgres:", "bootstrap:", "mcp:", "api:"))
+    assert all(name in compose for name in ("postgres:", "redis:", "bootstrap:", "mcp:", "api:"))
     assert "privileged:" not in compose
     assert "docker.sock" not in compose
     assert "postgres:5432" not in compose
     assert "mcp:8001" not in compose
+    assert "redis:6379" not in compose
+
+
+def test_redis_is_internal_healthy_and_required_only_by_api() -> None:
+    compose = Path("compose.yaml").read_text(encoding="utf-8")
+    example = Path(".env.compose.example").read_text(encoding="utf-8")
+
+    assert "redis-cli" in compose
+    assert "image: redis:8.8.0-trixie" in compose
+    assert "condition: service_healthy" in compose
+    assert "OPERCERTA_REDIS_URL=redis://redis:6379/0" in example
+    assert "OPERCERTA_CACHE_ENABLED=true" in example
+    assert "OPERCERTA_CACHE_TTL_SECONDS=60" in example
+    assert "OPERCERTA_OTLP_ENABLED=false" in example
 
 
 def test_postgres_18_uses_the_parent_data_mount() -> None:
