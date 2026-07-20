@@ -2,7 +2,7 @@
 
 核验日期：2026-07-20（Asia/Shanghai）  
 功能分支：`feat/zero-cost-showcase-walkthrough`  
-状态：本机发布候选与 Draft PR 快速门禁通过；PR 合并和 Netlify 生产替换尚未执行
+状态：PR #6 已合并，`main` 全部门禁通过；OperCerta 静态专题与作品集生产替换已验证
 生产发布门禁：`CLOSED`
 
 ## 目标与边界
@@ -101,20 +101,24 @@ uv run python scripts/verify_repository_safety.py
 - 第一项掌握检查勾选后刷新仍保持，证明 localStorage 恢复；验证结束后点击“重置本地进度”，4 项均恢复未勾选；
 - 手机公开标题最初约 39 px，静态契约先 RED，随后收紧为约 35 px。
 
+## 本轮已完成
+
+- [PR #6](https://github.com/KXHXK/opercerta/pull/6) 经用户批准后以 merge commit `e48366593c311b6b99ae94fdc202d916552da831` 合并，保留 23 个原子提交；
+- `main` [Actions run 29738863357](https://github.com/KXHXK/opercerta/actions/runs/29738863357) 的五个 job 全部通过，包含 Compose 三业务 smoke、API/MCP 重启恢复与清理；
+- OperCerta 生产静态专题替换为 deploy `6a5e0bb5563acf4706a09c0d`，公开地址 <https://opercerta-kxh.netlify.app>；根 HTML、构建指纹、JS/CSS 和两张证据图均返回 200；
+- 作品集静态镜像替换为 deploy `6a5e1b8824ba2290cf63c897`，公开地址 <https://kxh-agent-portfolio.netlify.app>；三业务文案、完整技术栈、四项目顺序、联系方式和专题链接均通过 HTTP 与浏览器核验；
+- 作品集源契约 3/3、镜像契约 9/9、构建、导出和 lint 通过；移动端 375 px 无横向溢出、坏图或 fixed/sticky 元素。
+
 ## 仍未完成
 
-- Draft PR #6 已建立，但尚未人工批准合并；
-- PR 事件不会运行 Compose smoke；合并后必须等待 `main` workflow 的 compose-smoke 通过；
-- Netlify 生产专题仍是上一版，尚未用本分支构建产物替换；
-- 作品集入口尚未同步新版专题事实；
 - 公网可写 HTTPS 后端、生产 IAM/SSO、限流、防滥用、备份恢复和高可用仍未建设；
 - Release Tag 与用户亲手演示/口述掌握检查仍待执行。
 
-因此，本报告只能支持“零成本静态展示与本地工程详解已通过本机发布候选和 PR 快速门禁”，不能支持“生产系统已上线”或“新版页面已公开部署”。
+因此，本报告支持“零成本招聘展示已公开部署、三业务后端已在本地与 CI/Compose 验证”，不支持“公网可写生产系统已上线”。产品生产发布门禁继续为 `CLOSED`，ForenTrail 仍为 `NOT STARTED`。
 
 ## GitHub 远程门禁
 
-功能分支相对刷新后的 `origin/main` 领先 22 个提交、落后 0 个提交，推送后建立 [Draft PR #6](https://github.com/KXHXK/opercerta/pull/6)。PR 明确包含此前尚未进入远程主线的三业务发布候选与本轮展示，不把 146 文件、13,919 行新增/528 行删除伪装成单纯视觉改动。
+功能分支相对当时的 `origin/main` 领先 22 个提交、落后 0 个提交，推送后建立 [Draft PR #6](https://github.com/KXHXK/opercerta/pull/6)。PR 明确包含此前尚未进入远程主线的三业务发布候选与本轮展示，不把 146 文件、13,919 行新增/528 行删除伪装成单纯视觉改动。
 
 首轮 [Actions run 29738331269](https://github.com/KXHXK/opercerta/actions/runs/29738331269) 对提交 `655f30d0a402277a604d5aef70daf6fab65bea01` 的结果：
 
@@ -126,4 +130,14 @@ uv run python scripts/verify_repository_safety.py
 | `backend-tests` | success | PostgreSQL 服务、完整后端测试、42 条三业务契约评测 |
 | `compose-smoke` | skipped | 工作流只在非 PR 事件运行；合并后必须独立核验 |
 
-该远程结果证明当前 PR 的快速门禁通过，不证明尚未执行的 `main` Compose smoke、Netlify 生产替换或生产发布门禁通过。
+最终 PR run `29738611605` 的四个快速 job 全部通过；用户批准后，PR #6 于 2026-07-20 合并。随后 `main` run `29738863357` 的 `repository-safety`、`python-quality`、`frontend`、`backend-tests` 和 `compose-smoke` 全部成功。`compose-smoke` 从构建/启动开始，执行三业务断言，重启 API/MCP 后验证恢复并无条件清理。
+
+该远程结果证明当前主线提交的代码、测试、三业务契约与单节点 Compose 重启恢复门禁通过；它仍不证明公网 IAM、高可用、备份恢复或生产 SLA。
+
+## Netlify 两阶段发布
+
+OperCerta 先发布 preview `6a5e0971b2944336ee23288c` 并核对根 HTML、构建资产和证据图片，再把同一构建发布为 production `6a5e0bb5563acf4706a09c0d`。生产根路径、JavaScript、CSS 与两张 PNG 均返回 200，公开地址保持 <https://opercerta-kxh.netlify.app>。
+
+作品集先发布修正后的 preview `6a5e1b5621f28b5fbc1342e8`；初次移动端检查发现顶部导航为 sticky，新增失败契约后移除该行为，再重新构建与预览。最终 production deploy 为 `6a5e1b8824ba2290cf63c897`。生产 HTML 与本地导出资产指纹一致，四项目顺序为 OperCerta、ForenTrail、SiteVerum、Federune；无 `#projects` 导航，OperCerta 链接精确指向生产专题。
+
+回滚依据分别为上一版 OperCerta 生产 deploy 和作品集历史 deploy `6a5c986587eaef5b3156f49b`；如新静态展示出现事实或渲染问题，可在 Netlify 控制台恢复上一已知生产 deploy。回滚只影响静态展示，不影响本地 FastAPI、MCP、PostgreSQL 或 Redis 数据。
