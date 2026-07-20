@@ -2,7 +2,7 @@
 
 OperCerta 是面向库存异常、设备告警和运营工单的智能运营处置 Agent 独立作品仓库。
 
-> 当前状态：库存补货、设备维修、作业异常恢复三条 FastAPI + LangGraph + FastMCP + PostgreSQL 闭环、演示 JWT/RBAC、42 条固定合成契约评测、Redis 只读缓存、OpenTelemetry 适配、本地 React 控制台与 GitHub Actions 均已有自动化证据；Moonshot AI `kimi-k2.6` 已完成三业务 6 次代表操作/3 条真实模型路径的本地验证。新版零成本展示候选已在功能分支完成：公开根路径为即时打开、零写入的三业务专题，`/engineering` 只在 localhost 开发模式提供 10 步工程链路、10 个真实故障复盘和本地掌握检查，`/console` 保留真实本地控制台。当前 [Netlify 静态项目专题](https://opercerta-kxh.netlify.app)、[单页作品集](https://kxh-agent-portfolio.netlify.app)和 [public GitHub](https://github.com/KXHXK/opercerta)仍是已验证公网入口；新版专题尚待远程 CI、合并和生产替换。公开页面不提供后端写入口；生产身份、交互 HTTPS 后端、自动部署和公开 API 尚未完成，生产发布门禁：`CLOSED`。
+> 当前状态：库存补货、设备维修、作业异常恢复三条 FastAPI + LangGraph + FastMCP + PostgreSQL 闭环、演示 JWT/RBAC、42 条固定合成契约评测、Redis 只读缓存、OpenTelemetry 适配、本地 React 控制台与 GitHub Actions 均已有自动化证据；Moonshot AI `kimi-k2.6` 已完成三业务 6 次代表操作/3 条真实模型路径的本地验证。新版零成本展示候选已在 [Draft PR #6](https://github.com/KXHXK/opercerta/pull/6) 发布：公开根路径为即时打开、零写入的三业务专题，`/engineering` 只在 localhost 开发模式提供 10 步工程链路、10 个真实故障复盘和本地掌握检查，`/console` 保留真实本地控制台。PR 首轮四个快速门禁已通过，Compose smoke 按设计待合并到 `main` 后运行。当前 [Netlify 静态项目专题](https://opercerta-kxh.netlify.app)和[单页作品集](https://kxh-agent-portfolio.netlify.app)仍是上一版已验证公网入口；新版尚待人工批准合并和生产替换。公开页面不提供后端写入口；生产身份、交互 HTTPS 后端、自动部署和公开 API 尚未完成，生产发布门禁：`CLOSED`。
 
 ## 当前已验证范围
 
@@ -27,7 +27,7 @@ OperCerta 是面向库存异常、设备告警和运营工单的智能运营处�
 
 ## 下一实施边界
 
-下一阶段仍只实施 OperCerta。零成本静态展示与本地工程详解已完成本机门禁；下一关键节点是发布功能分支并执行远程 CI，经人工批准后合并，再替换 Netlify 生产专题并同步作品集入口。公网可写 HTTPS 后端不属于本轮零成本方案；生产 IAM、限流/防滥用、备份、高可用、Release Tag 与个人手动掌握检查仍待完成。生产发布门禁为 `CLOSED`，关闭前不启动其他项目。
+下一阶段仍只实施 OperCerta。零成本静态展示与本地工程详解已完成本机门禁，Draft PR #6 首轮远程快速门禁已通过；下一关键节点是人工批准合并。合并后核验 `main` Compose smoke，再替换 Netlify 生产专题并同步作品集入口。公网可写 HTTPS 后端不属于本轮零成本方案；生产 IAM、限流/防滥用、备份、高可用、Release Tag 与个人手动掌握检查仍待完成。生产发布门禁为 `CLOSED`，关闭前不启动其他项目。
 
 三业务收口规格与八项 TDD 主计划见 [设计](docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md)和[计划](docs/superpowers/plans/2026-07-20-opercerta-three-business-release.md)。历史库存切片设计仍作为可靠性内核演进记录保留。
 

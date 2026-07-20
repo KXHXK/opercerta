@@ -2,7 +2,7 @@
 
 核验日期：2026-07-20（Asia/Shanghai）  
 功能分支：`feat/zero-cost-showcase-walkthrough`  
-状态：本机发布候选通过；远程 CI、PR 合并和 Netlify 生产替换尚未执行  
+状态：本机发布候选与 Draft PR 快速门禁通过；PR 合并和 Netlify 生产替换尚未执行
 生产发布门禁：`CLOSED`
 
 ## 目标与边界
@@ -103,11 +103,27 @@ uv run python scripts/verify_repository_safety.py
 
 ## 仍未完成
 
-- 功能分支尚未推送，当前提交尚无 GitHub Actions 远程证据；
-- 尚未建立/合并 PR；
+- Draft PR #6 已建立，但尚未人工批准合并；
+- PR 事件不会运行 Compose smoke；合并后必须等待 `main` workflow 的 compose-smoke 通过；
 - Netlify 生产专题仍是上一版，尚未用本分支构建产物替换；
 - 作品集入口尚未同步新版专题事实；
 - 公网可写 HTTPS 后端、生产 IAM/SSO、限流、防滥用、备份恢复和高可用仍未建设；
 - Release Tag 与用户亲手演示/口述掌握检查仍待执行。
 
-因此，本报告只能支持“零成本静态展示与本地工程详解已通过本机发布候选门禁”，不能支持“生产系统已上线”或“新版页面已公开部署”。
+因此，本报告只能支持“零成本静态展示与本地工程详解已通过本机发布候选和 PR 快速门禁”，不能支持“生产系统已上线”或“新版页面已公开部署”。
+
+## GitHub 远程门禁
+
+功能分支相对刷新后的 `origin/main` 领先 22 个提交、落后 0 个提交，推送后建立 [Draft PR #6](https://github.com/KXHXK/opercerta/pull/6)。PR 明确包含此前尚未进入远程主线的三业务发布候选与本轮展示，不把 146 文件、13,919 行新增/528 行删除伪装成单纯视觉改动。
+
+首轮 [Actions run 29738331269](https://github.com/KXHXK/opercerta/actions/runs/29738331269) 对提交 `655f30d0a402277a604d5aef70daf6fab65bea01` 的结果：
+
+| Job | 结果 | 覆盖 |
+| --- | --- | --- |
+| `repository-safety` | success | 仓库秘密与安全资产扫描 |
+| `python-quality` | success | 冻结依赖、Ruff lint/format、Mypy |
+| `frontend` | success | 冻结依赖、Vitest、TypeScript/Vite build |
+| `backend-tests` | success | PostgreSQL 服务、完整后端测试、42 条三业务契约评测 |
+| `compose-smoke` | skipped | 工作流只在非 PR 事件运行；合并后必须独立核验 |
+
+该远程结果证明当前 PR 的快速门禁通过，不证明尚未执行的 `main` Compose smoke、Netlify 生产替换或生产发布门禁通过。
