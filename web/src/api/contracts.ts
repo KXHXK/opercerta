@@ -1,10 +1,14 @@
 export type ApprovalBinding = {
-  inventory_evidence_id: string;
+  scenario: "inventory" | "equipment" | "task";
+  subject_evidence_id: string;
   policy_evidence_id: string;
   rule_version: string;
   decision_facts_hash: string;
   plan_hash: string;
-  recommended_quantity: number;
+  parameters:
+    | { kind: "replenishment"; recommended_quantity: number }
+    | { kind: "repair"; alert_code: string; priority: "normal" | "high" | "urgent" }
+    | { kind: "task_recovery"; recovery_action: "manual_requeue" };
 };
 
 export type OperationAccepted = {
@@ -16,6 +20,7 @@ export type OperationAccepted = {
 export type WorkOrderSummary = {
   id: string;
   status: string;
+  payload: Record<string, unknown>;
 };
 
 export type OperationResult = {
@@ -26,7 +31,11 @@ export type OperationResult = {
 export type OperationDetail = {
   operation_id: string;
   status: string;
-  request: { message: string };
+  request: {
+    message: string;
+    object_type: "inventory" | "equipment" | "task";
+    object_id: string;
+  };
   evidence: Record<string, unknown>[];
   assessment: Record<string, unknown> | null;
   plan: Record<string, unknown> | null;

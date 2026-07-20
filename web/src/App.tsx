@@ -10,6 +10,7 @@ import { OperationDetail } from "./components/OperationDetail";
 import { ProjectBoundary } from "./components/ProjectBoundary";
 import { resolveConsoleApiBaseUrl } from "./runtime/console-runtime";
 import { DemoSession, type DemoRole } from "./session";
+import type { OperationAction, ScenarioDefinition } from "./scenarios";
 import { ConsoleUnavailable } from "./showcase/ConsoleUnavailable";
 import { ShowcasePage } from "./showcase/ShowcasePage";
 
@@ -47,13 +48,14 @@ function ConsoleApp({ apiBaseUrl }: { apiBaseUrl: string }) {
     }
   }
 
-  async function createOperation(sku: string) {
+  async function createOperation(scenario: ScenarioDefinition, action: OperationAction) {
     setIsBusy(true);
-    setMessage("正在创建补货处置…");
+    const actionLabel = action === "query" ? "查询" : "创建处置";
+    setMessage(`正在${actionLabel}${scenario.label}…`);
     try {
-      const accepted = await client.createOperation(sku);
+      const accepted = await client.createOperation(scenario, action);
       await loadOperation(accepted.operation_id);
-      setMessage(`已读取后端创建的处置：${accepted.operation_id}`);
+      setMessage(`已完成${actionLabel}并读取处置：${accepted.operation_id}`);
     } catch {
       setMessage("处置创建或审计回放失败，请检查本地服务状态后重试。");
     } finally {
@@ -97,7 +99,7 @@ function ConsoleApp({ apiBaseUrl }: { apiBaseUrl: string }) {
             role={role}
             isAuthenticated={isAuthenticated && !isBusy}
             onRoleChange={(nextRole) => void selectRole(nextRole)}
-            onCreate={(sku) => void createOperation(sku)}
+            onCreate={(scenario, action) => void createOperation(scenario, action)}
             onLoad={(operationId) => void readOperation(operationId)}
           />
         </article>

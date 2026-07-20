@@ -1,12 +1,13 @@
 import { useState } from "react";
 
 import type { DemoRole } from "../session";
+import { operationScenarios, type OperationAction, type ScenarioDefinition } from "../scenarios";
 
 type OperationControlsProps = {
   role: DemoRole;
   isAuthenticated: boolean;
   onRoleChange: (role: DemoRole) => void;
-  onCreate: (sku: string) => void;
+  onCreate: (scenario: ScenarioDefinition, action: OperationAction) => void;
   onLoad: (operationId: string) => void;
 };
 
@@ -17,8 +18,9 @@ export function OperationControls({
   onCreate,
   onLoad
 }: OperationControlsProps) {
-  const [sku, setSku] = useState("SKU-LOW-001");
+  const [objectType, setObjectType] = useState<ScenarioDefinition["objectType"]>("inventory");
   const [operationId, setOperationId] = useState("");
+  const scenario = operationScenarios.find((item) => item.objectType === objectType) ?? operationScenarios[0];
 
   return (
     <section aria-label="操作控制区">
@@ -30,17 +32,36 @@ export function OperationControls({
         <option value="demo-admin">demo-admin｜演示管理员</option>
       </select>
 
-      <label className="field-label" htmlFor="demo-sku">库存 SKU</label>
-      <select id="demo-sku" value={sku} onChange={(event) => setSku(event.target.value)}>
-        <option value="SKU-LOW-001">SKU-LOW-001｜库存不足</option>
-      </select>
-      <button
-        type="button"
-        disabled={!isAuthenticated || role !== "operator"}
-        onClick={() => onCreate(sku)}
+      <label className="field-label" htmlFor="business-scenario">业务场景</label>
+      <select
+        id="business-scenario"
+        value={objectType}
+        onChange={(event) => setObjectType(event.target.value as ScenarioDefinition["objectType"])}
       >
-        创建补货处置
-      </button>
+        {operationScenarios.map((item) => (
+          <option key={item.objectType} value={item.objectType}>{item.label}</option>
+        ))}
+      </select>
+      <div className="scenario-brief">
+        <strong>{scenario.objectId}</strong>
+        <span>{scenario.explanation}</span>
+      </div>
+      <div className="scenario-actions">
+        <button
+          type="button"
+          disabled={!isAuthenticated || role !== "operator"}
+          onClick={() => onCreate(scenario, "query")}
+        >
+          查询状态
+        </button>
+        <button
+          type="button"
+          disabled={!isAuthenticated || role !== "operator"}
+          onClick={() => onCreate(scenario, "create_work_order")}
+        >
+          创建处置
+        </button>
+      </div>
 
       <label className="field-label" htmlFor="operation-id">处置编号</label>
       <div className="inline-fields">

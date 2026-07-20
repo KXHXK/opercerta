@@ -36,13 +36,14 @@ it("renders the controls, facts, approval, and audit areas", () => {
 
 it("loads a created operation after acquiring an in-memory demo token", async () => {
   const binding = {
-    inventory_evidence_id: "inventory-evidence", policy_evidence_id: "policy-evidence",
+    scenario: "inventory" as const,
+    subject_evidence_id: "inventory-evidence", policy_evidence_id: "policy-evidence",
     rule_version: "rule-v1", decision_facts_hash: "facts-hash", plan_hash: "plan-hash",
-    recommended_quantity: 18
+    parameters: { kind: "replenishment" as const, recommended_quantity: 18 }
   };
   const detail = {
     operation_id: "operation-1", status: "awaiting_approval",
-    request: { message: "为 SKU-LOW-001 创建库存补货工单" },
+    request: { message: "为 SKU-LOW-001 创建库存补货工单", object_type: "inventory", object_id: "SKU-LOW-001" },
     evidence: [], assessment: null, plan: null, approval_binding: binding, approval: null,
     work_order: null, result: null, error: null, last_audit_sequence: 2
   };
@@ -56,8 +57,8 @@ it("loads a created operation after acquiring an in-memory demo token", async ()
 
   render(<App />);
   fireEvent.change(screen.getByLabelText("演示角色"), { target: { value: "operator" } });
-  await waitFor(() => expect(screen.getByRole("button", { name: "创建补货处置" })).toBeEnabled());
-  fireEvent.click(screen.getByRole("button", { name: "创建补货处置" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "创建处置" })).toBeEnabled());
+  fireEvent.click(screen.getByRole("button", { name: "创建处置" }));
 
   expect(await screen.findByText("operation-1")).toBeInTheDocument();
   expect(screen.getAllByText("等待审批")).not.toHaveLength(0);

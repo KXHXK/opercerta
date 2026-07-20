@@ -142,7 +142,7 @@ def build_task_recovery_graph(
         except ValidationError:
             return error_update(DependencyUnavailable.code)
         if (
-            parsed.requested_action is not ActionType.CREATE_WORK_ORDER
+            parsed.requested_action not in {ActionType.QUERY, ActionType.CREATE_WORK_ORDER}
             or parsed.object_type is not ObjectType.TASK
             or parsed.object_id is None
         ):
@@ -189,10 +189,16 @@ def build_task_recovery_graph(
     def route_assessment(state: ReplenishmentState) -> str:
         if state["error"] is not None:
             return "failure"
+        if request(state).requested_action is ActionType.QUERY:
+            return "query"
         return "recover" if assessment(state).recovery_required else "normal"
 
     async def record_normal_plan(state: ReplenishmentState) -> dict[str, object]:
         await operations.record_validated_plan(operation_id(state), assessment(state), None)
+        return {}
+
+    async def record_query_assessment(state: ReplenishmentState) -> dict[str, object]:
+        await operations.record_query_assessment(operation_id(state), assessment(state))
         return {}
 
     async def mark_reporting(state: ReplenishmentState) -> dict[str, object]:
@@ -200,9 +206,14 @@ def build_task_recovery_graph(
         return {}
 
     async def complete_without_recovery(state: ReplenishmentState) -> dict[str, object]:
+        is_query = request(state).requested_action is ActionType.QUERY
         result = OperationResult(
-            outcome="task_recovery_not_required",
-            message="Task state is within the recovery policy.",
+            outcome="query_completed" if is_query else "task_recovery_not_required",
+            message=(
+                "Evidence-backed task status returned without creating a work order."
+                if is_query
+                else "Task state is within the recovery policy."
+            ),
         )
         await operations.complete_without_replenishment(operation_id(state), result)
         return {"result": result.model_dump(mode="json")}
@@ -382,6 +393,7 @@ def build_task_recovery_graph(
         "gather_evidence": gather_evidence,
         "calculate_assessment": calculate_assessment,
         "record_normal_plan": record_normal_plan,
+        "record_query_assessment": record_query_assessment,
         "mark_reporting": mark_reporting,
         "complete_without_recovery": complete_without_recovery,
         "explain_plan": explain_plan,
@@ -413,9 +425,15 @@ def build_task_recovery_graph(
     builder.add_conditional_edges(
         "calculate_assessment",
         route_assessment,
-        {"normal": "record_normal_plan", "recover": "explain_plan", "failure": "fail"},
+        {
+            "query": "record_query_assessment",
+            "normal": "record_normal_plan",
+            "recover": "explain_plan",
+            "failure": "fail",
+        },
     )
     builder.add_edge("record_normal_plan", "mark_reporting")
+    builder.add_edge("record_query_assessment", "mark_reporting")
     builder.add_edge("mark_reporting", "complete_without_recovery")
     builder.add_edge("complete_without_recovery", END)
     builder.add_edge("explain_plan", "build_plan")

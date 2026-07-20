@@ -36,9 +36,15 @@ export function ApprovalPanel({ role, binding, onDecision }: ApprovalPanelProps)
   }
 
   const disabled = isSubmitting || hasDecided;
+  const bindingSummary = binding.parameters.kind === "replenishment"
+    ? `建议补货 ${binding.parameters.recommended_quantity} 件`
+    : binding.parameters.kind === "repair"
+      ? `${binding.parameters.alert_code} · ${binding.parameters.priority} 优先级`
+      : `恢复动作 · ${binding.parameters.recovery_action}`;
   return (
     <section aria-label="审批操作">
-      <p className="panel-note">推荐补货数量：{binding.recommended_quantity}</p>
+      <p className="binding-kind">{binding.scenario}</p>
+      <p className="panel-note">{bindingSummary}</p>
       <div className="decision-actions">
         <button type="button" disabled={disabled} onClick={() => decide("approved")}>批准</button>
         <button type="button" disabled={disabled} onClick={() => decide("rejected")}>驳回</button>

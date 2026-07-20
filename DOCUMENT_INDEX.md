@@ -66,7 +66,7 @@
 | `docs/superpowers/specs/2026-07-18-github-actions-ci-security-gate-design.md` | Private GitHub Actions 分层 CI 安全门禁设计 | 已实施并完成远程门禁 | 本次提交 | 1 |
 | `docs/superpowers/specs/2026-07-19-portfolio-netlify-static-mirror-design.md` | 作品集 Netlify 独立静态镜像设计 | 已实施并完成公网验证 | 本次提交 | 1 |
 | `docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md` | 三业务闭环、技术栈补齐、求职发布与学习交付修订 | 已确认；实施计划已创建 | `632f0a1` | 1 |
-| `docs/superpowers/plans/2026-07-20-opercerta-three-business-release.md` | 三业务求职发布八项 Inline TDD 主计划 | 待执行 | 本次提交 | 1 |
+| `docs/superpowers/plans/2026-07-20-opercerta-three-business-release.md` | 三业务求职发布八项 Inline TDD 主计划 | Task 1–5 已执行；Task 6–8 待执行 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-14-opercerta-reliability-kernel.md` | 可靠性内核 TDD 总计划 | Task 1–6 已执行 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-16-langgraph-restart-recovery.md` | Task 5 四点重启恢复可执行 TDD 计划 | 已执行；证据已归档 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-16-work-order-idempotency.md` | Task 4 幂等工单可执行 TDD 计划 | 已执行；证据已归档 | 本次提交 | 1 |
@@ -78,14 +78,14 @@
 | `docs/superpowers/plans/2026-07-18-github-actions-ci-security-gate.md` | Private GitHub Actions CI 安全门禁实施计划 | 已执行；远程证据已归档 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-19-portfolio-netlify-static-mirror.md` | 作品集静态导出与 Netlify 两阶段发布计划 | 已执行；公网证据已归档 | 本次提交 | 1 |
 | `docs/development-log/README.md` | 日志机制说明 | 已初始化 | `f70411f` | 1 |
-| `docs/development-log/current-state.md` | 当前已验证状态 | 已同步 public remote、真实 Actions、作品集与剩余发布边界 | `bbb67c9` | 1 |
+| `docs/development-log/current-state.md` | 当前已验证状态 | 已同步三业务本地门禁与 Task 6–8 剩余边界 | 本次提交 | 1 |
 | `docs/development-log/interview-casebook.md` | 实施问题、诊断、修复与面试复盘案例 | 已初始化；只记录真实证据和限制 | 本次提交 | 1 |
 | `docs/development-log/learning-method.md` | 学习掌握、单变量实验与面试训练方法 | 已初始化；后续随实施持续补充 | 本次提交 | 1 |
 | `docs/development-log/daily/2026-07-15.md` | 当日过程记录 | 已初始化 | `f70411f` | 2 |
 | `docs/development-log/daily/2026-07-16.md` | 当日过程记录 | 已记录库存补货 Task 1–9 实施、调试与验证 | 本次提交 | 2 |
 | `docs/development-log/daily/2026-07-18.md` | 当日过程记录 | 已记录前端、可观测性与 GitHub Actions 实施证据 | 本次提交 | 2 |
 | `docs/development-log/daily/2026-07-19.md` | 当日过程记录 | 已记录公开专题门禁与作品集静态镜像发布 | 本次提交 | 2 |
-| `docs/development-log/daily/2026-07-20.md` | 当日过程记录 | 已记录四规格复核、实现差距与三业务范围决策 | 本次提交 | 2 |
+| `docs/development-log/daily/2026-07-20.md` | 当日过程记录 | 已记录三业务 Task 1–5、query 规格纠偏、测试污染诊断与门禁 | 本次提交 | 2 |
 | `docs/development-log/decisions/2026-07-15-windows-native-postgres.md` | 环境架构决策 | 已初始化 | `f70411f` | 2 |
 | `docs/development-log/decisions/2026-07-16-risk-based-review-and-progress-control.md` | 风险分级复核、进度口径与纵向闭环保护 | 已采用 | 本次提交 | 1 |
 | `docs/release-evidence/native-postgres-environment.md` | 本机数据库环境核验证据 | 已记录；不代表发布通过 | `fc974f5` | 2 |

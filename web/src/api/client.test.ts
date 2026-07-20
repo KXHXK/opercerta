@@ -4,7 +4,7 @@ import { ApiClient } from "./client";
 
 afterEach(() => vi.unstubAllGlobals());
 
-it("submits only the six approval binding fields with an in-memory authorization header", async () => {
+it("submits the backend approval binding unchanged with an in-memory authorization header", async () => {
   const fetchMock = vi.fn().mockResolvedValue(
     new Response(JSON.stringify({ operation_id: "operation-1", status: "completed" }), {
       status: 202,
@@ -15,12 +15,13 @@ it("submits only the six approval binding fields with an in-memory authorization
   const client = new ApiClient(() => "Bearer memory-only");
 
   await client.submitApproval("operation-1", {
-    inventory_evidence_id: "inventory-evidence",
+    scenario: "equipment",
+    subject_evidence_id: "equipment-evidence",
     policy_evidence_id: "policy-evidence",
     rule_version: "rule-v1",
     decision_facts_hash: "facts-hash",
     plan_hash: "plan-hash",
-    recommended_quantity: 18
+    parameters: { kind: "repair", alert_code: "MOTOR_OVERHEAT", priority: "urgent" }
   }, "approved");
 
   expect(fetchMock).toHaveBeenCalledWith("/api/v1/operations/operation-1/approval", {
@@ -32,12 +33,15 @@ it("submits only the six approval binding fields with an in-memory authorization
     body: JSON.stringify({
       decision: "approved",
       reason: "演示审批：approved",
-      expected_inventory_evidence_id: "inventory-evidence",
-      expected_policy_evidence_id: "policy-evidence",
-      expected_rule_version: "rule-v1",
-      expected_decision_facts_hash: "facts-hash",
-      expected_plan_hash: "plan-hash",
-      expected_recommended_quantity: 18
+      expected_binding: {
+        scenario: "equipment",
+        subject_evidence_id: "equipment-evidence",
+        policy_evidence_id: "policy-evidence",
+        rule_version: "rule-v1",
+        decision_facts_hash: "facts-hash",
+        plan_hash: "plan-hash",
+        parameters: { kind: "repair", alert_code: "MOTOR_OVERHEAT", priority: "urgent" }
+      }
     })
   });
   expect(localStorage.length).toBe(0);
@@ -74,7 +78,7 @@ it("prefixes requests with an explicitly configured API base URL", async () => {
   expect(fetchMock).toHaveBeenCalledWith("http://127.0.0.1:8080/api/v1/auth/demo-token", expect.any(Object));
 });
 
-it("creates and reads an inventory replenishment operation", async () => {
+it("creates and reads an operation from the selected scenario contract", async () => {
   const fetchMock = vi
     .fn()
     .mockResolvedValueOnce(
@@ -105,17 +109,24 @@ it("creates and reads an inventory replenishment operation", async () => {
   vi.stubGlobal("fetch", fetchMock);
   const client = new ApiClient(() => "Bearer memory-only");
 
-  await expect(client.createOperation("SKU-LOW-001")).resolves.toMatchObject({ operation_id: "operation-1" });
+  await expect(client.createOperation({
+    objectType: "equipment",
+    objectId: "EQ-PUMP-001",
+    label: "设备告警",
+    message: "检查设备并在必要时创建维修工单",
+    action: "create_work_order",
+    explanation: "严重告警需要审批后创建维修工单"
+  }, "query")).resolves.toMatchObject({ operation_id: "operation-1" });
   await expect(client.getOperation("operation-1")).resolves.toMatchObject({ last_audit_sequence: 2 });
 
   expect(fetchMock).toHaveBeenNthCalledWith(1, "/api/v1/operations", {
     method: "POST",
     headers: { Authorization: "Bearer memory-only", "Content-Type": "application/json" },
     body: JSON.stringify({
-      message: "为 SKU-LOW-001 创建库存补货工单",
-      requested_action: "create_work_order",
-      object_type: "inventory",
-      object_id: "SKU-LOW-001"
+      message: "检查设备并在必要时创建维修工单",
+      requested_action: "query",
+      object_type: "equipment",
+      object_id: "EQ-PUMP-001"
     })
   });
   expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/v1/operations/operation-1", {

@@ -1,5 +1,9 @@
 # OperCerta 当前状态
 
+## 最新核验：三业务后端与单页控制台已完成本地门禁
+
+2026-07-20 已完成库存补货、设备维修、作业异常恢复三条合成业务闭环的领域契约、六个 FastMCP 工具、PostgreSQL 状态/审计/工单、LangGraph 审批与恢复路径，以及 React 单页控制台。三对象同时支持只读 `query` 和受控 `create_work_order`；查询只取证和评估，零审批、零工单。新鲜门禁为后端 392 条、Ruff、125 文件格式检查、mypy 59 个源文件，以及前端 12 文件/25 条测试和生产构建全部通过。Task 6–8 的 Redis/OpenTelemetry/真实模型、跨业务评测/Compose 和发布学习交付仍未完成，发布门禁保持 `CLOSED`。
+
 ## 最新核验：公开作品集 Netlify 静态镜像已完成生产部署验证
 
 2026-07-19 已将 `D:\CODEX\resume\portfolio` 的 SSR 首页导出为独立静态镜像并部署至 <https://kxh-agent-portfolio.netlify.app>。单页刷新后无内部 hash 导航，四项目依次为 OperCerta、ForenTrail、SiteVerum、Federune；后三项诚实标记未启动。源作品集契约 3/3、镜像契约 8/8、真实构建与静态导出均通过。production deploy `6a5c986587eaef5b3156f49b` 实测 200，邮箱、电话和 public GitHub 均存在。该镜像不提供 OperCerta API 或写入能力；原产品发布门禁仍为 `CLOSED`。证据见 `docs/release-evidence/portfolio-netlify-static-mirror.md`。
@@ -28,7 +32,7 @@
 
 ## 当前阶段
 
-可靠性内核与库存补货纵向切片 Task 1–9 已完成 Windows 原生 PostgreSQL 后端本地门禁。后端已覆盖严格输入、证据与计划、绑定审批、真实 MCP 读写、批准后重取事实、写后读验证、拒绝、过期、A/B 重启恢复、FastAPI 创建/查询/审批以及独立服务进程真实传输。发布门禁仍关闭。
+可靠性内核、库存补货、设备维修、作业异常恢复和三业务单页控制台已完成本地代码门禁。后端已覆盖严格输入、证据与计划、绑定审批、真实 MCP 读写、批准后重取事实、写后读验证、拒绝、过期、A/B 重启恢复以及 FastAPI 查询/创建/审批。发布门禁仍关闭。
 
 ## 已验证事实
 
@@ -96,7 +100,7 @@
 
 ## 当前阻塞与风险
 
-- 设备场景、生产 IAM/SSO、人工接管、Git 自动部署、Caddy/HTTPS 后端、集中指标采集/告警和公开 API 尚未完成；只读静态专题和独立静态作品集镜像已完成部署，发布门禁保持关闭。
+- Redis 只读缓存、OpenTelemetry Trace、真实模型代表性验证、三业务固定评测、最新版 Compose 重启门禁、生产 IAM/SSO、Caddy/HTTPS 后端和公开 API 尚未完成；只读静态专题和独立静态作品集镜像已完成部署，发布门禁保持关闭。
 - Windows 原生真实服务需要显式 Selector loop；WSL2 Ubuntu Compose 已验证默认 Linux 容器进程、健康检查、MCP 服务名访问、独立 PostgreSQL volume 和 API/MCP 重启，但这不代表高可用或生产承诺。
 - Docker/Linux 运行时已修订为 WSL2 → Ubuntu 26.04 LTS，不使用 Docker Desktop 或 Hyper-V VM。Ubuntu 官方仓库的 Docker `29.1.3`、Compose `2.40.3`、Buildx `0.30.1` 已安装；Docker Hub 直连超时后，经用户授权配置了三个可达的第三方 registry mirror。OperCerta Compose 已通过构建、健康、真实业务数据库断言与重启恢复；完整证据见 `docs/release-evidence/docker-linux-runtime.md`，供应链例外见 `docs/superpowers/specs/2026-07-17-wsl2-runtime-amendment-design.md`。
 - 一次预期失败的 Pytest/Psycopg traceback 曾展开旧的本地测试数据库连接密码；代码、Git 和文档未保存该值，fixture 已改为无密码 URL + 临时 `PGPASSWORD`，角色密码也已轮换和复验。
@@ -105,8 +109,8 @@
 
 ## 下一步
 
-继续只实施 OperCerta。静态专题、独立作品集入口、public GitHub 与 Actions 已有真实远程证据；下一步按求职演示最小发布口径补齐可重复演示、门禁说明与交接，再把生产 IAM、Caddy/HTTPS 后端、自动部署和公开 API 明确归入生产演进项。公共 registry mirror 的风险与后续每个实际镜像 digest 仍须留证。
+继续只实施 OperCerta。下一步执行三业务发布计划 Task 6：Redis 只读证据缓存、OpenTelemetry Trace 与真实模型 adapter；随后完成跨业务固定评测、最新版 Compose 重启门禁、公开静态更新和中文学习交付。公共 registry mirror 的风险与后续每个实际镜像 digest 仍须留证。
 
 ## 发布门禁
 
-`OperCerta production release gate: CLOSED`。当前证据证明库存补货纵向切片、WSL2 Compose、演示身份、固定评测、单页控制台、可观测性安全基础、GitHub Actions 分层 CI、只读静态专题与独立静态作品集入口通过；完整产品面、生产身份、HTTPS 后端、自动部署和公开 API 仍待完成。求职演示发布门禁将在新的范围修订中单独定义，不能与生产门禁混用。
+`OperCerta production release gate: CLOSED`。当前证据证明三业务本地后端与单页控制台、既有 WSL2 Compose、演示身份、库存固定评测、可观测性安全基础、GitHub Actions 分层 CI、只读静态专题与独立静态作品集入口通过；Task 6–8、生产身份、HTTPS 后端、自动部署和公开 API 仍待完成。求职演示发布门禁不能与生产门禁混用。

@@ -183,6 +183,7 @@ class OperationResult(BaseModel):
         "replenishment_not_required",
         "maintenance_not_required",
         "task_recovery_not_required",
+        "query_completed",
         "work_order_completed",
     ]
     message: SafeText

@@ -41,7 +41,9 @@ class TaskRecoveryScenario:
 class ScenarioRegistry:
     def __init__(self, scenarios: tuple[ControlledActionScenario, ...]) -> None:
         self._scenarios = {
-            (ActionType.CREATE_WORK_ORDER, scenario.object_type): scenario for scenario in scenarios
+            (action, scenario.object_type): scenario
+            for scenario in scenarios
+            for action in (ActionType.QUERY, ActionType.CREATE_WORK_ORDER)
         }
 
     def get(self, request: OperationRequest) -> ControlledActionScenario:

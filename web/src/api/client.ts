@@ -1,4 +1,5 @@
 import type { ApprovalBinding, OperationAccepted, OperationDetail } from "./contracts";
+import type { OperationAction, ScenarioDefinition } from "../scenarios";
 
 export type { ApprovalBinding } from "./contracts";
 
@@ -25,7 +26,10 @@ export class ApiClient {
     return body.access_token;
   }
 
-  async createOperation(sku: string): Promise<OperationAccepted> {
+  async createOperation(
+    scenario: ScenarioDefinition,
+    action: OperationAction = scenario.action
+  ): Promise<OperationAccepted> {
     const response = await fetch(this.endpoint("/api/v1/operations"), {
       method: "POST",
       headers: {
@@ -33,10 +37,10 @@ export class ApiClient {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        message: `为 ${sku} 创建库存补货工单`,
-        requested_action: "create_work_order",
-        object_type: "inventory",
-        object_id: sku
+        message: scenario.message,
+        requested_action: action,
+        object_type: scenario.objectType,
+        object_id: scenario.objectId
       })
     });
     if (!response.ok) throw new Error(`api_status_${response.status}`);
@@ -65,12 +69,7 @@ export class ApiClient {
       body: JSON.stringify({
         decision,
         reason: `演示审批：${decision}`,
-        expected_inventory_evidence_id: binding.inventory_evidence_id,
-        expected_policy_evidence_id: binding.policy_evidence_id,
-        expected_rule_version: binding.rule_version,
-        expected_decision_facts_hash: binding.decision_facts_hash,
-        expected_plan_hash: binding.plan_hash,
-        expected_recommended_quantity: binding.recommended_quantity
+        expected_binding: binding
       })
     });
     if (!response.ok) throw new Error(`api_status_${response.status}`);

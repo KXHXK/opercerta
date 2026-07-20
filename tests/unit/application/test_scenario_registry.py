@@ -48,6 +48,19 @@ def test_default_registry_dispatches_task_scenario() -> None:
     assert scenario.kind.value == "task"
 
 
+@pytest.mark.parametrize("object_type", list(ObjectType))
+def test_default_registry_dispatches_query_scenarios(object_type: ObjectType) -> None:
+    module = registry_module()
+    registry = module.build_default_scenario_registry()
+    operation_request = request(object_type).model_copy(
+        update={"requested_action": ActionType.QUERY}
+    )
+
+    scenario = registry.get(operation_request)
+
+    assert scenario.object_type is object_type
+
+
 def test_incomplete_request_fails_closed() -> None:
     module = registry_module()
     registry = module.build_default_scenario_registry()

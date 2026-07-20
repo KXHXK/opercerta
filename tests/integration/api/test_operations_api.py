@@ -326,6 +326,48 @@ async def test_create_approve_and_query_task_recovery_operation(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("object_type", "object_id"),
+    [
+        ("inventory", "SKU-LOW-001"),
+        ("equipment", "EQ-PUMP-001"),
+        ("task", "TASK-BLOCKED-001"),
+    ],
+)
+async def test_query_returns_evidence_without_approval_or_work_order(
+    engine: AsyncEngine,
+    checkpoint_database_url: SecretStr,
+    mcp_server: McpServerHarness,
+    object_type: str,
+    object_id: str,
+) -> None:
+    async with open_api_harness(engine, checkpoint_database_url, mcp_server) as harness:
+        response = await harness.client.post(
+            "/api/v1/operations",
+            headers=harness.headers(DemoAccount.OPERATOR),
+            json={
+                "message": f"查询 {object_id} 当前状态",
+                "requested_action": "query",
+                "object_type": object_type,
+                "object_id": object_id,
+            },
+        )
+
+        assert response.status_code == 202
+        accepted = response.json()
+        operation_id = UUID(accepted["operation_id"])
+        harness.operation_ids.append(operation_id)
+        detail = (await harness.client.get(f"/api/v1/operations/{operation_id}")).json()
+        assert detail["status"] == "completed"
+        assert detail["result"]["outcome"] == "query_completed"
+        assert detail["assessment"] is not None
+        assert len(detail["evidence"]) == 2
+        assert detail["approval_binding"] is None
+        assert detail["approval"] is None
+        assert detail["work_order"] is None
+
+
+@pytest.mark.asyncio
 async def test_authorized_audit_event_stream_replays_from_last_event_id(
     engine: AsyncEngine,
     checkpoint_database_url: SecretStr,
@@ -542,10 +584,10 @@ async def test_validation_missing_and_stale_binding_use_safe_error_envelopes(
         unsupported = await harness.client.post(
             "/api/v1/operations",
             json={
-                "message": "查询设备状态",
+                "message": "查询未知对象状态",
                 "requested_action": "query",
-                "object_type": "equipment",
-                "object_id": "EQ-001",
+                "object_type": "building",
+                "object_id": "BUILDING-001",
             },
         )
         assert unsupported.status_code == 422

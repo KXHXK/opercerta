@@ -305,6 +305,30 @@ class ReplenishmentOperationRepository:
             ),
         )
 
+    async def record_query_assessment(
+        self,
+        operation_id: UUID,
+        assessment: ReplenishmentAssessment | MaintenanceAssessment | TaskRecoveryAssessment,
+    ) -> None:
+        assessment_payload = cast(
+            dict[str, JsonValue],
+            assessment.model_dump(mode="json"),
+        )
+        await self._transition(
+            operation_id,
+            allowed=frozenset({OperationStatus.PLANNING}),
+            target=OperationStatus.VALIDATING,
+            event_type="query_assessed",
+            payload={"assessment": assessment_payload},
+            snapshot_builder=lambda snapshot: OperationSnapshot(
+                schema_version=1,
+                request=snapshot.request,
+                risk={**snapshot.risk, "assessment": assessment_payload},
+                plan={},
+                work_order_payload={},
+            ),
+        )
+
     async def mark_reporting(self, operation_id: UUID) -> None:
         await self._transition(
             operation_id,
@@ -437,6 +461,7 @@ class ReplenishmentOperationRepository:
                 "replenishment_not_required",
                 "maintenance_not_required",
                 "task_recovery_not_required",
+                "query_completed",
             }
             or result.work_order_id is not None
         ):

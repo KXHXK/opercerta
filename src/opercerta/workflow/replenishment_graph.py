@@ -202,7 +202,7 @@ def build_replenishment_graph(
         except ValidationError:
             return error_update(DependencyUnavailable.code)
         if (
-            parsed.requested_action is not ActionType.CREATE_WORK_ORDER
+            parsed.requested_action not in {ActionType.QUERY, ActionType.CREATE_WORK_ORDER}
             or parsed.object_type is not ObjectType.INVENTORY
             or parsed.object_id is None
         ):
@@ -252,6 +252,8 @@ def build_replenishment_graph(
     def route_assessment(state: ReplenishmentState) -> str:
         if state["error"] is not None:
             return "failure"
+        if request(state).requested_action is ActionType.QUERY:
+            return "query"
         return "low" if assessment(state).replenishment_required else "normal"
 
     async def record_normal_plan(
@@ -264,6 +266,10 @@ def build_replenishment_graph(
         )
         return {}
 
+    async def record_query_assessment(state: ReplenishmentState) -> dict[str, object]:
+        await operations.record_query_assessment(operation_id(state), assessment(state))
+        return {}
+
     async def mark_reporting(state: ReplenishmentState) -> dict[str, object]:
         await operations.mark_reporting(operation_id(state))
         return {}
@@ -271,9 +277,14 @@ def build_replenishment_graph(
     async def complete_without_replenishment(
         state: ReplenishmentState,
     ) -> dict[str, object]:
+        is_query = request(state).requested_action is ActionType.QUERY
         result = OperationResult(
-            outcome="replenishment_not_required",
-            message="Inventory is at or above the approved reorder point.",
+            outcome="query_completed" if is_query else "replenishment_not_required",
+            message=(
+                "Evidence-backed inventory status returned without creating a work order."
+                if is_query
+                else "Inventory is at or above the approved reorder point."
+            ),
         )
         await operations.complete_without_replenishment(
             operation_id(state),
@@ -514,6 +525,7 @@ def build_replenishment_graph(
     builder.add_node("gather_evidence", gather_evidence)
     builder.add_node("calculate_assessment", calculate_assessment)
     builder.add_node("record_normal_plan", record_normal_plan)
+    builder.add_node("record_query_assessment", record_query_assessment)
     builder.add_node("mark_reporting", mark_reporting)
     builder.add_node(
         "complete_without_replenishment",
@@ -548,12 +560,14 @@ def build_replenishment_graph(
         "calculate_assessment",
         route_assessment,
         {
+            "query": "record_query_assessment",
             "normal": "record_normal_plan",
             "low": "explain_plan",
             "failure": "mark_failed",
         },
     )
     builder.add_edge("record_normal_plan", "mark_reporting")
+    builder.add_edge("record_query_assessment", "mark_reporting")
     builder.add_edge("mark_reporting", "complete_without_replenishment")
     builder.add_edge("complete_without_replenishment", END)
     builder.add_edge("explain_plan", "build_and_validate_plan")
