@@ -13,8 +13,10 @@ it("renders the static showcase at the root without calling fetch", () => {
 
   render(<App />);
 
-  expect(screen.getByRole("heading", { name: "OperCerta" })).toBeInTheDocument();
-  expect(screen.getByText(/release gate: CLOSED/i)).toBeInTheDocument();
+  expect(
+    screen.getByRole("heading", { name: "可审批、可恢复的运营工单 Agent" }),
+  ).toBeInTheDocument();
+  expect(screen.getByText(/生产门禁.*CLOSED/)).toBeInTheDocument();
   expect(fetchMock).not.toHaveBeenCalled();
 });
 
