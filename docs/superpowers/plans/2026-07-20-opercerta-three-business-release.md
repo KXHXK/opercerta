@@ -546,7 +546,7 @@ git commit -m "feat: add cache tracing and real model adapter"
 
 ## Task 7: 跨业务固定评测、性能矩阵和三业务 Compose smoke
 
-**执行状态：** 2026-07-20 已完成本地实现与证据；Task 8 待执行。
+**执行状态：** 2026-07-20 已完成本地实现与证据；Task 8 本地发布候选和学习包随后完成，外部门禁仍待执行。
 
 **Files:**
 - Create: `data/evals/opercerta-three-business-v1.json`
@@ -616,6 +616,8 @@ git commit -m "test: verify three-business release contracts"
 
 ## Task 8: 求职发布证据、交互部署与中文学习包
 
+**执行状态（2026-07-20）：** 发布资产契约、本地完整门禁、Caddy/release Compose、一键三业务与重启 smoke、中文学习包和本地证据已完成，代码提交为 `a3994ef`。真实模型代表性验证、公网交互 HTTPS、用户掌握检查、当前远程 CI 与 Release Tag 仍待外部授权或用户操作；生产发布门禁保持 `CLOSED`。
+
 **Files:**
 - Create after real execution: `docs/release-evidence/three-business-release.md`
 - Create after real execution: `docs/release-evidence/real-model-representative-validation.md`
@@ -642,7 +644,7 @@ git commit -m "test: verify three-business release contracts"
 - Public interactive deployment exposes only HTTPS Web/API through Caddy or equivalent; MCP/PostgreSQL/Redis/metrics administration remain private.
 - Learning package supports 30-second, 3-minute and 10-minute explanations plus manual fault labs.
 
-- [ ] **Step 1: Write failing documentation/release contract tests**
+- [x] **Step 1: Write failing documentation/release contract tests**
 
 Extend repository-safety/static asset tests so they require the three learning files, three scenario names, exact public/static/local boundaries, no placeholder contacts, no Private GitHub wording in current-state files, and no release claim before an evidence document records actual commands and commit.
 
@@ -668,7 +670,7 @@ uv run pytest tests/unit/runtime/test_static_hosting_assets.py tests/unit/runtim
 
 Expected: RED until docs and truthful release metadata exist.
 
-- [ ] **Step 2: Run the fresh local release gate**
+- [x] **Step 2: Run the fresh local release gate**
 
 ```powershell
 uv sync --frozen --all-groups
@@ -694,7 +696,7 @@ At this checkpoint ask the user to choose/provide an available OpenAI-compatible
 
 At this checkpoint present cost/security options and obtain approval before creating paid resources. Deploy fixed Commit SHA, run migrations, health checks, three-scenario smoke, rate-limit/reset checks and rollback rehearsal. Verify desktop/mobile links from the portfolio. A sleeping/free host is acceptable only if the portfolio states the wake-up behavior and the measured response is usable; otherwise keep the static page as entry and do not claim interactive release.
 
-- [ ] **Step 5: Write evidence and learning documents from observed facts**
+- [x] **Step 5: Write evidence and learning documents from observed facts**
 
 The manual lab must include exact WSL2/Compose/test/API/PostgreSQL/restart/failure/cleanup commands and expected observations. The technology handbook follows one request through UI → FastAPI → LangGraph → MCP → PostgreSQL/Redis → SSE/Trace. The interview guide contains architecture choices, alternatives, exactly-once explanation, checkpoint/business DB distinction, approval revalidation, three real bug stories and truthful limitations.
 
@@ -706,7 +708,7 @@ User manually completes one full business, one rule modification and one depende
 
 Push through the normal GitHub flow, wait for all five CI jobs including Compose smoke, then create a semantic release tag only if every release gate item is evidenced. Update the portfolio state and URLs after the tag/deploy are verified. If any gate remains open, publish an honest pre-release or keep `production release gate: CLOSED`.
 
-- [ ] **Step 8: Commit documentation and evidence separately**
+- [x] **Step 8: Commit documentation and evidence separately**
 
 ```powershell
 git add README.md IMPLEMENTATION_HANDOFF.md DOCUMENT_INDEX.md docs/development-log docs/learning docs/demo-script.md docs/release-evidence/three-business-release.md docs/release-evidence/real-model-representative-validation.md docs/release-evidence/performance-cache-matrix.md

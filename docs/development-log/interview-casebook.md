@@ -80,8 +80,8 @@
 
 ## 9. 当前未完成范围也应能诚实说明
 
-- **已完成：** 库存补货、设备维修、作业恢复三业务后端、可靠性内核、Docker Compose 单节点验证、本地 JWT/RBAC、SSE 审计回放、React 控制台、库存固定合成契约评测、安全回归、基础可观测性与 GitHub Actions 分层 CI。
-- **未完成：** Redis 缓存、OpenTelemetry Trace、真实模型代表性验证、三业务固定评测、完整浏览器 E2E、生产 IAM/SSO、高可用与公开 API 部署。
+- **已完成：** 库存补货、设备维修、作业恢复三业务后端、可靠性内核、Docker Compose/Caddy 单节点发布候选、本地 JWT/RBAC、SSE 审计回放、React 控制台、42 条三业务固定合成评测、Redis 只读缓存、OpenTelemetry 适配、安全回归与 GitHub Actions 分层 CI。
+- **未完成：** 真实模型代表性验证、公开交互 HTTPS 后端、生产 IAM/SSO、限流/防滥用、备份恢复、高可用、当前远程发布门禁与 Release Tag。
 - **面试表达：** “我优先证明了高风险写操作的可靠性内核，完整产品能力仍按发布门禁分阶段推进；不会把本地后端证据说成生产上线。”
 
 ## 10. 源码正确但旧镜像仍会让接口 404
@@ -169,6 +169,33 @@
 - **限制：** 这仍不是第三方验收或生产流量；后续可让面试官现场修改合成事实或新增黑盒用例。
 - **面试表达：** “我承认自建评测存在偏差，所以把旧套件设为不可漂移基线，并用工具调用、数据库断言和独立 Compose smoke 交叉取证；通过率不是唯一证据。”
 
+## 20. 时间派生展示字段不能直接进入审批哈希
+
+- **问题：** 设备状态、规则和分类都没有变化，但从创建到批准跨过一秒后仍返回 `approval_snapshot_mismatch`。
+- **根因：** `decision_facts_hash` 包含 `heartbeat_age_seconds`；它是由当前时钟派生的展示值，不是源事实，因此每秒变化。
+- **修复：** 先写同一证据在 60 秒和 61 秒评估时“展示年龄变化但哈希稳定”的失败测试；哈希改为设备 source version、last heartbeat、severity、state、告警允许性、是否 stale 和最终分类等稳定决策输入。
+- **验证：** 聚焦维护/设备工作流/重启/API 回归通过，随后完整后端 422 条通过；release Compose 三业务重新通过。
+- **限制：** 跨过 stale 阈值会改变分类和哈希，这是应有行为；测试只排除分类不变时的时钟噪声。
+- **面试表达：** “审批哈希应绑定可审计的决策事实，而不是每次读取都变化的派生展示值。我保留年龄用于 UI，但把稳定事实和分类结果作为绑定内容。”
+
+## 21. 反向代理配置正确不等于路由优先级正确
+
+- **问题：** API 容器内部 `/health/ready` 返回 200，但经 Caddy 访问得到 React HTML。
+- **根因：** Caddy 会按指令顺序适配配置；裸 `reverse_proxy` 与 SPA catch-all 组合后，实际执行顺序不符合文本视觉顺序。
+- **修复：** 使用互斥 `handle @api` 与静态 `handle` 明确路由，资产测试要求 API matcher、反向代理和 SPA fallback 同时存在，且没有 metrics/MCP/数据库路由。
+- **验证：** `caddy fmt`、`caddy validate` 和一键 release smoke 通过；三业务只经 Caddy 完成，`/metrics` 返回静态 HTML 而非内部指标。
+- **限制：** 本地使用 HTTP 地址；自动 HTTPS 仍需要真实域名、DNS 和入站端口验证。
+- **面试表达：** “我没有因为 API 内部健康就归因给业务服务，而是比较代理前后响应类型，定位到路由层，并用配置结构测试防止 catch-all 再吞掉 API。”
+
+## 22. 故障窗口的代理响应不一定是 JSON
+
+- **问题：** API/MCP 重启期间 Caddy 返回空正文 502，smoke 脚本先因 `json.loads` 失败退出，掩盖了真正的依赖启动状态。
+- **根因：** 诊断客户端假设所有成功和错误响应都符合应用 JSON envelope；代理在上游尚未恢复时不受这个应用契约约束。
+- **修复：** 先为 JSON、空正文和代理文本写解码测试；通用 request 返回可空 body，readiness 轮询容忍暂态非 JSON，业务结果仍严格要求 JSON 与目标终态。
+- **验证：** 解码聚焦测试和一键重启恢复 smoke 通过；空代理错误不再让诊断器自身崩溃。
+- **限制：** 这不是吞掉业务错误；达到 deadline 或业务断言不符仍失败，并输出 Caddy/API 诊断。
+- **面试表达：** “健康轮询面对的是代理和应用两个协议边界。我只放宽启动窗口的解析，不放宽业务完成条件，让诊断工具在故障时继续提供证据。”
+
 ## 相关证据
 
 - `docs/release-evidence/approval-atomicity.md`
@@ -179,3 +206,5 @@
 - `docs/release-evidence/public-portfolio-showcase.md`
 - `docs/release-evidence/portfolio-netlify-static-mirror.md`
 - `docs/release-evidence/three-business-evaluation-compose.md`
+- `docs/release-evidence/three-business-release.md`
+- `docs/release-evidence/performance-cache-matrix.md`

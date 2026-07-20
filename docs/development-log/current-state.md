@@ -1,8 +1,12 @@
 # OperCerta 当前状态
 
+## 最新核验：Task 8 本地发布候选与中文学习包已完成
+
+2026-07-20 提交 `a3994ef` 新增 Caddy/React 多阶段镜像、仅 Caddy 暴露端口的 `compose.release.yaml`、一键发布 smoke，以及中文核心技术、手动实验和面试讲解三份材料。本轮完整后端门禁为 `422 passed in 94.96s`，Ruff、136 文件格式、mypy 62 个源文件、锁定依赖和仓库安全扫描通过；前端 12 个测试文件/25 条测试与生产构建通过。`scripts/verify_release_compose.sh` 新鲜运行退出码 0、耗时 70.8 秒，三业务、拒绝、重复审批、数据库事实、Caddy 路由、API/MCP 重启恢复和 metrics 不公开均通过应用断言。真实模型代表性调用、公网交互 HTTPS、生产 IAM/限流/备份、用户手动掌握、当前远程 CI 与 Release Tag 尚未完成，生产发布门禁保持 `CLOSED`。
+
 ## 最新核验：三业务固定评测、Compose 与缓存矩阵已通过
 
-2026-07-20 Task 7 已完成：版本化套件在 FastAPI + FastMCP + PostgreSQL 边界运行 42 条（库存 30、设备 6、作业 6），42 passed、0 failed；Compose 三业务与 API/MCP 重启恢复通过。2×2 本机矩阵 60/60 个 query completed、零错误，缓存关闭为每场景 10 次 MCP/0 hit，开启为 2 次 MCP/8 hit。最终总门禁 414 passed in 103.80s，锁文件、Ruff、134 文件格式、mypy 62 个源文件和安全扫描通过。每格仅 5 次，延迟不作为生产指标。证据见 `docs/release-evidence/three-business-evaluation-compose.md`。Task 8 发布、真实模型代表性验证和中文学习交付尚未完成，发布门禁保持 `CLOSED`。
+2026-07-20 Task 7 已完成：版本化套件在 FastAPI + FastMCP + PostgreSQL 边界运行 42 条（库存 30、设备 6、作业 6），42 passed、0 failed；Compose 三业务与 API/MCP 重启恢复通过。2×2 本机矩阵 60/60 个 query completed、零错误，缓存关闭为每场景 10 次 MCP/0 hit，开启为 2 次 MCP/8 hit。最终总门禁 414 passed in 103.80s，锁文件、Ruff、134 文件格式、mypy 62 个源文件和安全扫描通过。每格仅 5 次，延迟不作为生产指标。证据见 `docs/release-evidence/three-business-evaluation-compose.md`。Task 8 本地发布与中文学习交付随后已完成；真实模型代表性验证尚未完成，发布门禁保持 `CLOSED`。
 
 ## 最新核验：Redis、OpenTelemetry 与 Real model adapter 已完成代码门禁
 
@@ -10,7 +14,7 @@
 
 ## 最新核验：三业务后端与单页控制台已完成本地门禁
 
-2026-07-20 已完成库存补货、设备维修、作业异常恢复三条合成业务闭环的领域契约、六个 FastMCP 工具、PostgreSQL 状态/审计/工单、LangGraph 审批与恢复路径，以及 React 单页控制台。三对象同时支持只读 `query` 和受控 `create_work_order`；查询只取证和评估，零审批、零工单。新鲜门禁为后端 392 条、Ruff、125 文件格式检查、mypy 59 个源文件，以及前端 12 文件/25 条测试和生产构建全部通过。Task 6–8 的 Redis/OpenTelemetry/真实模型、跨业务评测/Compose 和发布学习交付仍未完成，发布门禁保持 `CLOSED`。
+2026-07-20 已完成库存补货、设备维修、作业异常恢复三条合成业务闭环的领域契约、六个 FastMCP 工具、PostgreSQL 状态/审计/工单、LangGraph 审批与恢复路径，以及 React 单页控制台。三对象同时支持只读 `query` 和受控 `create_work_order`；查询只取证和评估，零审批、零工单。该阶段门禁为后端 392 条、Ruff、125 文件格式检查、mypy 59 个源文件，以及前端 12 文件/25 条测试和生产构建全部通过。后续 Redis/OpenTelemetry、跨业务评测/Compose 和本地发布学习交付现已完成；真实模型与公网交互仍未完成。
 
 ## 最新核验：公开作品集 Netlify 静态镜像已完成生产部署验证
 
@@ -36,11 +40,11 @@
 
 本地短时 JWT 与四角色 RBAC 已实施，审批主体只从 JWT `sub` 取得。库存补货固定合成契约评测当前有效版本为 `replenishment-v3`：真实 FastAPI、FastMCP、PostgreSQL 与恢复夹具运行 30 条，30 passed、0 failed。已新增 SSE 审计快照回放与 `Last-Event-ID` 续传；全量 pytest 为 325 passed。详见 `docs/release-evidence/demo-jwt-rbac.md`、`docs/release-evidence/replenishment-contract-evaluation.md` 和 `docs/release-evidence/sse-audit-replay.md`。
 
-最后核验：2026-07-19 Asia/Shanghai；发布门禁仍为 `CLOSED`。
+最后核验：2026-07-20 Asia/Shanghai；发布门禁仍为 `CLOSED`。
 
 ## 当前阶段
 
-可靠性内核、库存补货、设备维修、作业异常恢复和三业务单页控制台已完成本地代码门禁。后端已覆盖严格输入、证据与计划、绑定审批、真实 MCP 读写、批准后重取事实、写后读验证、拒绝、过期、A/B 重启恢复以及 FastAPI 查询/创建/审批。发布门禁仍关闭。
+可靠性内核、库存补货、设备维修、作业异常恢复、三业务单页控制台和本地 Caddy 发布候选已完成代码与本机运行门禁。后端已覆盖严格输入、证据与计划、绑定审批、真实 MCP 读写、批准后重取事实、写后读验证、拒绝、过期、A/B 重启恢复以及 FastAPI 查询/创建/审批。真实模型、公网交互与生产治理仍未完成，发布门禁保持关闭。
 
 ## 已验证事实
 
@@ -108,7 +112,7 @@
 
 ## 当前阻塞与风险
 
-- Redis 只读缓存、OpenTelemetry Trace 和真实模型 adapter 的代码与本地测试已完成；真实模型代表性验证、Redis 8.8 镜像/三业务 Compose、跨业务固定评测、生产 IAM/SSO、Caddy/HTTPS 后端和公开 API 尚未完成。只读静态专题和独立静态作品集镜像已完成部署，发布门禁保持关闭。
+- Redis 只读缓存、OpenTelemetry Trace、真实模型 adapter、Redis 8.8/三业务 Compose、跨业务固定评测和本地 Caddy 发布候选已完成；真实模型代表性验证、生产 IAM/SSO、公网 HTTPS、限流/备份和公开 API 尚未完成。只读静态专题和独立静态作品集镜像已完成部署，发布门禁保持关闭。
 - Windows 原生真实服务需要显式 Selector loop；WSL2 Ubuntu Compose 已验证默认 Linux 容器进程、健康检查、MCP 服务名访问、独立 PostgreSQL volume 和 API/MCP 重启，但这不代表高可用或生产承诺。
 - Docker/Linux 运行时已修订为 WSL2 → Ubuntu 26.04 LTS，不使用 Docker Desktop 或 Hyper-V VM。Ubuntu 官方仓库的 Docker `29.1.3`、Compose `2.40.3`、Buildx `0.30.1` 已安装；Docker Hub 直连超时后，经用户授权配置了三个可达的第三方 registry mirror。OperCerta Compose 已通过构建、健康、真实业务数据库断言与重启恢复；完整证据见 `docs/release-evidence/docker-linux-runtime.md`，供应链例外见 `docs/superpowers/specs/2026-07-17-wsl2-runtime-amendment-design.md`。
 - 一次预期失败的 Pytest/Psycopg traceback 曾展开旧的本地测试数据库连接密码；代码、Git 和文档未保存该值，fixture 已改为无密码 URL + 临时 `PGPASSWORD`，角色密码也已轮换和复验。
@@ -117,8 +121,8 @@
 
 ## 下一步
 
-继续只实施 OperCerta。下一步执行 Task 7：把原 30 条库存用例纳入三业务版本化评测，生成透明逐例报告与性能矩阵入口，并在 WSL2 Compose 中验证 Redis 8.8、三业务成功/拒绝/竞态/幂等和 API/MCP 重启恢复。真实模型调用、交互 HTTPS 部署和中文学习交付保留到 Task 8 的人工授权节点。
+继续只实施 OperCerta。下一步进入 Task 8 外部门禁：用户选择 OpenAI-compatible provider 并以不回显方式配置密钥后执行三业务真实模型代表性验证；通过后再提出公网交互 HTTPS 的成本/安全选项。用户掌握检查、当前远程 CI 和 Release Tag 随后执行。
 
 ## 发布门禁
 
-`OperCerta production release gate: CLOSED`。当前证据证明三业务本地后端与单页控制台、Redis/Trace/Real model adapter 代码、既有 WSL2 Compose、演示身份、库存固定评测、GitHub Actions 分层 CI、只读静态专题与独立静态作品集入口通过对应阶段门禁；Task 7–8、生产身份、HTTPS 后端、自动部署和公开 API 仍待完成。求职演示发布门禁不能与生产门禁混用。
+`OperCerta production release gate: CLOSED`。当前证据证明三业务本地后端与单页控制台、Redis/Trace/Real model adapter、42 条固定评测、WSL2/Caddy 本地发布候选、演示身份、GitHub Actions 分层 CI、只读静态专题、独立静态作品集入口和中文学习包通过对应阶段门禁；真实模型代表性验证、生产身份、公网 HTTPS 后端、限流/备份、自动部署、用户掌握和 Release Tag 仍待完成。求职演示发布门禁不能与生产门禁混用。

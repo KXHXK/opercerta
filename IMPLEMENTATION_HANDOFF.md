@@ -2,6 +2,8 @@
 
 ## 当前检查点
 
+- 2026-07-20 三业务主计划 Task 8 已完成本地发布候选阶段：提交 `a3994ef` 新增 Caddy/React 多阶段镜像、内部服务不暴露端口的 release Compose、一键三业务/重启 smoke、三份中文学习材料，以及设备审批哈希稳定性和代理非 JSON 故障窗口修复。本轮后端 `422 passed in 94.96s`，Ruff/136 文件格式/mypy 62 个源文件/锁定依赖/安全扫描通过；前端 12 文件/25 条测试与构建通过；release smoke 退出码 0、70.8 秒。真实模型、公网交互 HTTPS、生产治理、用户掌握、当前远程 CI 和 Release Tag 仍未完成，生产门禁保持 `CLOSED`。证据见 `docs/release-evidence/three-business-release.md`。
+
 - 2026-07-20 三业务主计划 Task 7 已完成本地证据：固定套件 42/42 通过；Compose 三业务与 API/MCP 重启恢复通过；2×2 矩阵 60/60 个 query completed、零错误。缓存关闭每场景 10 次 MCP/0 hit，开启为 2 次 MCP/8 hit；最终总门禁 414 passed，锁文件/Ruff/134 文件 format/mypy 62 个源文件/安全扫描通过。每格仅 5 次，不作生产性能承诺。证据见 `docs/release-evidence/three-business-evaluation-compose.md`。Task 8 与发布门禁仍未完成。
 
 - 2026-07-20 三业务主计划 Task 6 已完成代码与本地测试：Redis 只缓存初次/查询证据并在故障时旁路，批准后复核直连 MCP；OpenTelemetry 关联 API、LangGraph、MCP、Redis 和 PostgreSQL；严格 OpenAI-compatible adapter 最多两次尝试且真实模式失败不回退 Mock。Task 7 随后已验证 Redis 8.8 Compose、跨业务评测和缓存矩阵；真实模型代表性调用仍待 Task 8，发布门禁保持关闭。
@@ -22,7 +24,7 @@
 - Task 5 最终完整测试为 `116 passed`，重启矩阵十个独立 Pytest 进程实测 `10/10`；Ruff、format 和 mypy（19 个源文件）通过。这些是本地验证，不是生产指标。
 - checkpointer 首次连接失败 traceback 展开了当时的本地测试角色密码；代码、Git 和文档未保存该值，封装已改为无密码 DSN + 临时 `PGPASSWORD`。用户已同步轮换 PostgreSQL 角色密码与 `.env.local`，轮换后 focused checkpointer 回归新鲜 `4 passed`。
 - 后续采用风险分级复核：用户决定产品范围、成本、外部账号和发布；内部技术细节由 Codex 以 TDD、静态检查和证据负责。进度必须区分可靠性内核与完整发布范围。
-- 当前 Git 已配置 `origin` 为 Private `KXHXK/opercerta`，本地 `main` 跟踪 `origin/main`；禁止 force push、删除远程历史或未经全绿 PR 直接合并。
+- 当前 Git 已配置 `origin` 为 public `KXHXK/opercerta`，本地 `main` 跟踪 `origin/main`；禁止 force push、删除远程历史或未经全绿 PR 直接合并。
 - 发布门禁保持 `CLOSED`，不启动 ForenTrail 或其他项目。
 - 首个纵向业务闭环已确定为“库存不足 → 补货工单”；设计见 `docs/superpowers/specs/2026-07-16-inventory-replenishment-vertical-slice-design.md`，可执行计划见 `docs/superpowers/plans/2026-07-16-inventory-replenishment-vertical-slice.md`。
 - 库存补货 Task 1–7 已完成。Task 7 实现提交为 `9b830d2`：批准后重新读取库存与规则、比较审批绑定事实、幂等创建工单、写后读验证、拒绝终止、审批过期扫描、`OperationRunner` 和补货专用恢复协调器。
@@ -40,7 +42,7 @@
 ## 新对话必须先做
 
 1. 先阅读 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md` 和最近每日日志，再阅读相关设计、计划、交接和 Git 状态。
-2. 只实施 OperCerta；库存补货 Task 1–9、WSL2 Docker Compose、演示 JWT/RBAC、固定 30 条契约评测、单页控制台、可观测性安全基础、GitHub Actions、静态专题和作品集已有证据。下一步按求职演示最小发布口径补齐可重复演示与交接；生产身份、Caddy/HTTPS 后端、自动部署与公开 API 作为独立生产演进项，不启动其他项目。
+2. 只实施 OperCerta；三业务、42 条固定评测、Redis/Trace adapter、WSL2 Compose、Caddy 本地发布候选、演示 JWT/RBAC、单页控制台、GitHub Actions、静态专题、作品集和中文学习包已有对应阶段证据。下一步先完成真实模型代表性验证，再在用户批准成本/安全方案后处理公网交互 HTTPS；不启动其他项目。
 3. 运行集成测试前，以不回显方式从已忽略 `.env.local` 加载 `OPERCERTA_DATABASE_URL`；不得提交该文件或任何凭据。
 4. 每个效果数字都保留基线、测试数据、测量脚本和结果证据；指标未测出前使用目标值或空值，不写成已实现结果。
 5. 使用公开或合成数据，从零编写全部代码和文档，不导入任何原单位源码、数据、截图、模型、品牌或内部规则。
@@ -54,4 +56,4 @@
 
 ## 可复制到新对话的启动语
 
-> 工作目录为本 OperCerta 仓库根目录。请先读取 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md`、最近每日日志、`README.md`、`IMPLEMENTATION_HANDOFF.md`、`docs/specs/` 下的四份设计文件及当前相关规格、计划和证据；库存补货、WSL2 Compose、JWT/RBAC、固定评测、单页控制台、可观测性、GitHub Actions、静态专题和作品集已有自动化证据。下一步只规划和实施 OperCerta 求职演示最小发布范围，不复用旧公司材料，不虚构指标，不启动其他项目。
+> 工作目录为本 OperCerta 仓库根目录。请先读取 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md`、最近每日日志、`README.md`、`IMPLEMENTATION_HANDOFF.md`、`docs/specs/` 下的四份设计文件及当前相关规格、计划和证据；三业务、42 条固定评测、Redis/Trace adapter、WSL2 Compose、Caddy 本地发布候选、JWT/RBAC、单页控制台、GitHub Actions、静态专题、作品集和中文学习包已有对应阶段证据。下一步只实施真实模型代表性验证与获批后的公网交互发布，不复用旧公司材料，不虚构指标，不启动其他项目。
