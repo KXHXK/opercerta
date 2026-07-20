@@ -74,9 +74,11 @@ sudo python3 scripts/verify_compose.py
 
 ### 阶段 E：完整产品门禁
 
-主题：JWT/RBAC、SSE、React、设备场景、固定评测、安全回归、可观测性、CI/CD、HTTPS 与回滚。
+主题：JWT/RBAC、SSE、React、三业务场景、固定评测、安全回归、可观测性、CI/CD、HTTPS 与回滚。
 
 完成标准：每完成一项，都有规格、RED/GREEN、自动化验证、证据、限制说明和一段面试表达；不提前声称上线。
+
+三业务学习材料：`docs/learning/OperCerta核心技术手册.md`、`docs/learning/OperCerta手动实验手册.md`、`docs/learning/OperCerta面试讲解.md`。建议先选一个场景，亲手完成“查询 → 创建 → 审批 → 工单 → 审计”，再做一次规则修改和一次 MCP 故障实验。
 
 ## 每周复盘模板
 

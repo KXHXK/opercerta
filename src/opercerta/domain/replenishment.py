@@ -179,7 +179,13 @@ class ApprovalBinding(BaseModel):
 class OperationResult(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    outcome: Literal["replenishment_not_required", "work_order_completed"]
+    outcome: Literal[
+        "replenishment_not_required",
+        "maintenance_not_required",
+        "task_recovery_not_required",
+        "query_completed",
+        "work_order_completed",
+    ]
     message: SafeText
     work_order_id: UUID | None = None
 

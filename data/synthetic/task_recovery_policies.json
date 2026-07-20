@@ -1,0 +1,11 @@
+{
+  "source_version": "task-recovery-policy-seed-v1",
+  "rule_version": "task-recovery-v1",
+  "items": [
+    {"task_id": "TASK-BLOCKED-001", "blocked_states": ["blocked"], "overdue_grace_seconds": 300, "maximum_retry_count": 3, "recovery_action": "manual_requeue", "evidence_ttl_seconds": 300, "approval_required": true},
+    {"task_id": "TASK-NORMAL-001", "blocked_states": ["blocked"], "overdue_grace_seconds": 300, "maximum_retry_count": 3, "recovery_action": "manual_requeue", "evidence_ttl_seconds": 300, "approval_required": true},
+    {"task_id": "TASK-OVERDUE-001", "blocked_states": ["blocked"], "overdue_grace_seconds": 300, "maximum_retry_count": 3, "recovery_action": "manual_requeue", "evidence_ttl_seconds": 300, "approval_required": true},
+    {"task_id": "TASK-MUTABLE-001", "blocked_states": ["blocked"], "overdue_grace_seconds": 300, "maximum_retry_count": 3, "recovery_action": "manual_requeue", "evidence_ttl_seconds": 300, "approval_required": true},
+    {"task_id": "TASK-RETRY-LIMIT-001", "blocked_states": ["blocked"], "overdue_grace_seconds": 300, "maximum_retry_count": 3, "recovery_action": "manual_requeue", "evidence_ttl_seconds": 300, "approval_required": true}
+  ]
+}

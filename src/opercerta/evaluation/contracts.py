@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, JsonValue, StringConstraints, model_
 
 CaseId = Annotated[
     str,
-    StringConstraints(pattern=r"^RPL-(?:00[1-9]|0[12][0-9]|030)$"),
+    StringConstraints(pattern=r"^(?:RPL-(?:00[1-9]|0[12][0-9]|030)|EQP-00[1-6]|TSK-00[1-6])$"),
 ]
 Title = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
 RuleReference = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
@@ -21,6 +21,12 @@ class EvalActor(StrEnum):
     DEMO_ADMIN = "demo-admin"
 
 
+class EvalScenario(StrEnum):
+    INVENTORY = "inventory"
+    EQUIPMENT = "equipment"
+    TASK = "task"
+
+
 class EvalCase(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -28,6 +34,8 @@ class EvalCase(BaseModel):
     title: Title
     rule_refs: tuple[RuleReference, ...]
     actor: EvalActor
+    scenario: EvalScenario = EvalScenario.INVENTORY
+    expected_tools: tuple[str, ...] = ()
     steps: tuple[dict[str, JsonValue], ...]
     expected: dict[str, JsonValue]
 
@@ -45,16 +53,44 @@ class EvalCase(BaseModel):
 class EvalSuite(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    suite_version: Annotated[str, StringConstraints(pattern=r"^replenishment-v[1-9][0-9]*$")]
+    suite_version: Annotated[
+        str,
+        StringConstraints(pattern=r"^(?:replenishment-v[1-9][0-9]*|opercerta-three-business-v1)$"),
+    ]
+    extends: str | None = None
     cases: tuple[EvalCase, ...]
 
     @model_validator(mode="after")
     def require_frozen_case_ids(self) -> "EvalSuite":
-        expected = [f"RPL-{number:03d}" for number in range(1, 31)]
-        if [case.id for case in self.cases] != expected:
-            raise ValueError("case_ids_must_be_rpl_001_through_rpl_030")
+        inventory_ids = [f"RPL-{number:03d}" for number in range(1, 31)]
+        ids = [case.id for case in self.cases]
+        if self.suite_version.startswith("replenishment-"):
+            if ids != inventory_ids:
+                raise ValueError("case_ids_must_be_rpl_001_through_rpl_030")
+            return self
+        expected = (
+            inventory_ids
+            + [f"EQP-{number:03d}" for number in range(1, 7)]
+            + [f"TSK-{number:03d}" for number in range(1, 7)]
+        )
+        if ids != expected:
+            raise ValueError("three_business_case_ids_must_be_frozen_and_ordered")
+        if {case.scenario for case in self.cases} != set(EvalScenario):
+            raise ValueError("three_business_suite_must_cover_all_scenarios")
         return self
 
 
 def load_suite(path: Path) -> EvalSuite:
-    return EvalSuite.model_validate(json.loads(path.read_text(encoding="utf-8")))
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("evaluation_suite_must_be_an_object")
+    extends = payload.get("extends")
+    if extends is not None:
+        if extends != "replenishment-v3.json":
+            raise ValueError("unsupported_evaluation_suite_base")
+        base = load_suite(path.with_name(extends))
+        declared_cases = payload.get("cases")
+        if not isinstance(declared_cases, list):
+            raise ValueError("evaluation_suite_cases_must_be_a_list")
+        payload["cases"] = [case.model_dump(mode="json") for case in base.cases] + declared_cases
+    return EvalSuite.model_validate(payload)

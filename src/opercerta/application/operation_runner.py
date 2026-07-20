@@ -8,21 +8,22 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.types import Command
 
 from opercerta.application.approval_expiry import ApprovalExpiryService
+from opercerta.application.scenario_registry import ScenarioRegistry
 from opercerta.domain.approvals import BoundApprovalCommand
 from opercerta.domain.contracts import OperationRequest
 from opercerta.domain.errors import RecoveryStateConflict
 from opercerta.domain.replenishment import OperationError
 from opercerta.infrastructure.db.approval_repository import ApprovalRepository
-from opercerta.infrastructure.db.replenishment_operation_repository import (
-    ReplenishmentOperationRepository,
+from opercerta.infrastructure.db.operation_repository import OperationRepository
+from opercerta.workflow.controlled_action_graph import (
+    ControlledActionGraph,
+    ControlledActionState,
+    build_controlled_action_initial_state,
 )
-from opercerta.workflow.replenishment_graph import (
-    ReplenishmentGraph,
-    build_replenishment_initial_state,
+from opercerta.workflow.controlled_action_recovery import (
+    ControlledActionRecoveryCoordinator,
 )
-from opercerta.workflow.replenishment_recovery import (
-    ReplenishmentRecoveryCoordinator,
-)
+from opercerta.workflow.replenishment_graph import build_replenishment_initial_state
 
 LOGGER = logging.getLogger(__name__)
 
@@ -30,12 +31,13 @@ LOGGER = logging.getLogger(__name__)
 class OperationRunner:
     def __init__(
         self,
-        graph: ReplenishmentGraph,
+        graph: ControlledActionGraph,
         approvals: ApprovalRepository,
-        operations: ReplenishmentOperationRepository,
-        recovery: ReplenishmentRecoveryCoordinator,
+        operations: OperationRepository,
+        recovery: ControlledActionRecoveryCoordinator,
         expiry: ApprovalExpiryService,
         clock: Callable[[], datetime],
+        registry: ScenarioRegistry | None = None,
     ) -> None:
         self._graph = graph
         self._approvals = approvals
@@ -43,11 +45,12 @@ class OperationRunner:
         self._recovery = recovery
         self._expiry = expiry
         self._clock = clock
+        self._registry = registry
 
     async def start(self, request: OperationRequest) -> UUID:
         operation_id = await self._operations.create(request)
         await self._graph.ainvoke(
-            build_replenishment_initial_state(operation_id, request),
+            self._initial_state(operation_id, request),
             config=self._config(operation_id),
         )
         return operation_id
@@ -91,7 +94,7 @@ class OperationRunner:
                 )
             except Exception:
                 LOGGER.exception(
-                    "replenishment recovery deferred",
+                    "controlled action recovery deferred",
                     extra={"operation_id": str(operation_id)},
                 )
                 continue
@@ -104,6 +107,19 @@ class OperationRunner:
 
     def _config(self, operation_id: UUID) -> RunnableConfig:
         return {"configurable": {"thread_id": str(operation_id)}}
+
+    def _initial_state(
+        self,
+        operation_id: UUID,
+        request: OperationRequest,
+    ) -> ControlledActionState:
+        if self._registry is not None:
+            return build_controlled_action_initial_state(
+                operation_id,
+                request,
+                self._registry,
+            )
+        return build_replenishment_initial_state(operation_id, request)
 
     def _require_aware(self, value: datetime) -> None:
         if value.tzinfo is None or value.utcoffset() is None:

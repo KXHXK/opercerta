@@ -1,7 +1,7 @@
 import asyncio
 from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Protocol, TypedDict, cast
+from typing import TYPE_CHECKING, Any, Protocol, TypedDict, cast
 from uuid import UUID
 
 from langgraph.graph import END, START, StateGraph
@@ -47,6 +47,7 @@ from opercerta.infrastructure.db.evidence_repository import EvidenceRepository
 from opercerta.infrastructure.db.replenishment_operation_repository import (
     ReplenishmentOperationRepository,
 )
+from opercerta.observability.tracing import NOOP_TRACING, Tracing, trace_async_node
 
 if TYPE_CHECKING:
     from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -120,10 +121,14 @@ def build_replenishment_graph(
     model_gateway: ModelGateway,
     clock: Callable[[], datetime],
     *,
+    initial_gateway: EvidenceGateway | None = None,
+    tracing: Tracing = NOOP_TRACING,
+    parallel_evidence_reads: bool = True,
     approval_ttl_seconds: int = 300,
 ) -> ReplenishmentGraph:
     if approval_ttl_seconds < 1:
         raise ValueError("approval_ttl_seconds must be positive")
+    evidence_gateway = initial_gateway or gateway
 
     def operation_id(state: ReplenishmentState) -> UUID:
         try:
@@ -202,7 +207,7 @@ def build_replenishment_graph(
         except ValidationError:
             return error_update(DependencyUnavailable.code)
         if (
-            parsed.requested_action is not ActionType.CREATE_WORK_ORDER
+            parsed.requested_action not in {ActionType.QUERY, ActionType.CREATE_WORK_ORDER}
             or parsed.object_type is not ObjectType.INVENTORY
             or parsed.object_id is None
         ):
@@ -221,10 +226,14 @@ def build_replenishment_graph(
         if sku is None:
             return error_update(DependencyUnavailable.code)
         try:
-            raw_inventory, raw_policy = await asyncio.gather(
-                gateway.get_inventory(sku),
-                gateway.get_policy(sku),
-            )
+            if parallel_evidence_reads:
+                raw_inventory, raw_policy = await asyncio.gather(
+                    evidence_gateway.get_inventory(sku),
+                    evidence_gateway.get_policy(sku),
+                )
+            else:
+                raw_inventory = await evidence_gateway.get_inventory(sku)
+                raw_policy = await evidence_gateway.get_policy(sku)
             try:
                 inventory = InventoryEvidence.model_validate(raw_inventory)
             except ValidationError:
@@ -252,6 +261,8 @@ def build_replenishment_graph(
     def route_assessment(state: ReplenishmentState) -> str:
         if state["error"] is not None:
             return "failure"
+        if request(state).requested_action is ActionType.QUERY:
+            return "query"
         return "low" if assessment(state).replenishment_required else "normal"
 
     async def record_normal_plan(
@@ -264,6 +275,10 @@ def build_replenishment_graph(
         )
         return {}
 
+    async def record_query_assessment(state: ReplenishmentState) -> dict[str, object]:
+        await operations.record_query_assessment(operation_id(state), assessment(state))
+        return {}
+
     async def mark_reporting(state: ReplenishmentState) -> dict[str, object]:
         await operations.mark_reporting(operation_id(state))
         return {}
@@ -271,9 +286,14 @@ def build_replenishment_graph(
     async def complete_without_replenishment(
         state: ReplenishmentState,
     ) -> dict[str, object]:
+        is_query = request(state).requested_action is ActionType.QUERY
         result = OperationResult(
-            outcome="replenishment_not_required",
-            message="Inventory is at or above the approved reorder point.",
+            outcome="query_completed" if is_query else "replenishment_not_required",
+            message=(
+                "Evidence-backed inventory status returned without creating a work order."
+                if is_query
+                else "Inventory is at or above the approved reorder point."
+            ),
         )
         await operations.complete_without_replenishment(
             operation_id(state),
@@ -509,29 +529,42 @@ def build_replenishment_graph(
         return {}
 
     builder = StateGraph(ReplenishmentState)
-    builder.add_node("parse_request", parse_request)
-    builder.add_node("mark_gathering", mark_gathering)
-    builder.add_node("gather_evidence", gather_evidence)
-    builder.add_node("calculate_assessment", calculate_assessment)
-    builder.add_node("record_normal_plan", record_normal_plan)
-    builder.add_node("mark_reporting", mark_reporting)
-    builder.add_node(
-        "complete_without_replenishment",
-        complete_without_replenishment,
-    )
-    builder.add_node("explain_plan", explain_plan)
-    builder.add_node("build_and_validate_plan", build_and_validate_plan)
-    builder.add_node("record_low_plan", record_low_plan)
-    builder.add_node("prepare_approval", prepare_approval)
-    builder.add_node("request_approval", request_approval)
-    builder.add_node("mark_rejected", mark_rejected)
-    builder.add_node("revalidate_evidence", revalidate_evidence)
-    builder.add_node("mark_executing", mark_executing)
-    builder.add_node("execute_work_order", execute_work_order)
-    builder.add_node("mark_verifying", mark_verifying)
-    builder.add_node("verify_work_order", verify_work_order)
-    builder.add_node("mark_completed", mark_completed)
-    builder.add_node("mark_failed", mark_failed)
+    nodes = {
+        "parse_request": parse_request,
+        "mark_gathering": mark_gathering,
+        "gather_evidence": gather_evidence,
+        "calculate_assessment": calculate_assessment,
+        "record_normal_plan": record_normal_plan,
+        "record_query_assessment": record_query_assessment,
+        "mark_reporting": mark_reporting,
+        "complete_without_replenishment": complete_without_replenishment,
+        "explain_plan": explain_plan,
+        "build_and_validate_plan": build_and_validate_plan,
+        "record_low_plan": record_low_plan,
+        "prepare_approval": prepare_approval,
+        "request_approval": request_approval,
+        "mark_rejected": mark_rejected,
+        "revalidate_evidence": revalidate_evidence,
+        "mark_executing": mark_executing,
+        "execute_work_order": execute_work_order,
+        "mark_verifying": mark_verifying,
+        "verify_work_order": verify_work_order,
+        "mark_completed": mark_completed,
+        "mark_failed": mark_failed,
+    }
+    for name, node in nodes.items():
+        builder.add_node(
+            name,
+            cast(
+                Any,
+                trace_async_node(
+                    tracing,
+                    scenario="inventory",
+                    node=name,
+                    function=node,
+                ),
+            ),
+        )
     builder.add_edge(START, "parse_request")
     builder.add_conditional_edges(
         "parse_request",
@@ -548,12 +581,14 @@ def build_replenishment_graph(
         "calculate_assessment",
         route_assessment,
         {
+            "query": "record_query_assessment",
             "normal": "record_normal_plan",
             "low": "explain_plan",
             "failure": "mark_failed",
         },
     )
     builder.add_edge("record_normal_plan", "mark_reporting")
+    builder.add_edge("record_query_assessment", "mark_reporting")
     builder.add_edge("mark_reporting", "complete_without_replenishment")
     builder.add_edge("complete_without_replenishment", END)
     builder.add_edge("explain_plan", "build_and_validate_plan")

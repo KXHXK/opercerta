@@ -1,0 +1,21 @@
+{$OPERCERTA_PUBLIC_ADDRESS:http://localhost} {
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		X-Frame-Options DENY
+		-Server
+	}
+
+	@api path /api/* /health/live /health/ready
+	handle @api {
+		reverse_proxy api:8080
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

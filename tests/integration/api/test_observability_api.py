@@ -8,6 +8,9 @@ from uuid import UUID
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 from pydantic import SecretStr
 from starlette.types import Receive, Scope, Send
 
@@ -25,6 +28,7 @@ from opercerta.infrastructure.db.replenishment_operation_repository import (
 from opercerta.observability.context import current_request_id
 from opercerta.observability.logging import SafeJsonFormatter
 from opercerta.observability.metrics import ApiMetrics
+from opercerta.observability.tracing import Tracing
 
 SERVER_REQUEST_ID = "00000000-0000-4000-8000-000000000001"
 
@@ -77,6 +81,37 @@ async def test_server_request_id_ignores_untrusted_header_and_metrics_default_of
     assert "attacker-value" not in live.headers.values()
     assert metrics.status_code == 404
     assert "opercerta_http_requests" not in metrics.text
+
+
+@pytest.mark.asyncio
+async def test_api_request_creates_safe_trace_span() -> None:
+    exporter = InMemorySpanExporter()
+    provider = TracerProvider()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+    app = create_app(
+        empty_runtime(),
+        observability=ObservabilityConfig(
+            tracing=Tracing(provider.get_tracer("opercerta-api-test")),
+            request_id_factory=lambda: SERVER_REQUEST_ID,
+        ),
+    )
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+        response = await client.get(
+            "/health/live",
+            headers={"Authorization": "Bearer must-not-enter-span"},
+        )
+
+    assert response.status_code == 200
+    spans = exporter.get_finished_spans()
+    assert len(spans) == 1
+    assert spans[0].name == "api.request"
+    assert dict(spans[0].attributes) == {
+        "component": "api",
+        "operation": "GET",
+        "request_id": SERVER_REQUEST_ID,
+    }
 
 
 @pytest.mark.asyncio

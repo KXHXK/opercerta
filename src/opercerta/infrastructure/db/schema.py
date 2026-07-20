@@ -53,6 +53,8 @@ approvals = sa.Table(
     sa.Column("decision_facts_hash", sa.String(length=64)),
     sa.Column("plan_hash", sa.String(length=64)),
     sa.Column("recommended_quantity", sa.BigInteger()),
+    sa.Column("subject_evidence_id", postgresql.UUID(as_uuid=True)),
+    sa.Column("binding_payload", postgresql.JSONB()),
     sa.Column(
         "created_at",
         sa.DateTime(timezone=True),

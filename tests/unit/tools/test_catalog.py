@@ -13,6 +13,10 @@ from opercerta.tools.catalog import SyntheticCatalog
 ROOT = Path(__file__).resolve().parents[3]
 INVENTORY_PATH = ROOT / "data" / "synthetic" / "inventory.json"
 POLICY_PATH = ROOT / "data" / "synthetic" / "replenishment_policies.json"
+EQUIPMENT_PATH = ROOT / "data" / "synthetic" / "equipment.json"
+MAINTENANCE_POLICY_PATH = ROOT / "data" / "synthetic" / "maintenance_policies.json"
+TASK_PATH = ROOT / "data" / "synthetic" / "tasks.json"
+TASK_RECOVERY_POLICY_PATH = ROOT / "data" / "synthetic" / "task_recovery_policies.json"
 NOW = datetime(2026, 7, 16, 8, 0, tzinfo=UTC)
 EXPECTED_SKUS = {
     "SKU-NORMAL-001",
@@ -34,6 +38,10 @@ def load_catalog() -> SyntheticCatalog:
     return SyntheticCatalog.load(
         INVENTORY_PATH,
         POLICY_PATH,
+        equipment_path=EQUIPMENT_PATH,
+        maintenance_policy_path=MAINTENANCE_POLICY_PATH,
+        task_path=TASK_PATH,
+        task_recovery_policy_path=TASK_RECOVERY_POLICY_PATH,
         id_factory=lambda: next(ids),
     )
 
@@ -67,6 +75,38 @@ def test_each_catalog_read_allocates_fresh_evidence_with_aware_capture_time() ->
     assert first.evidence_id != second.evidence_id != policy.evidence_id
     assert first.captured_at == second.captured_at == policy.captured_at == NOW
     assert first.captured_at.utcoffset() is not None
+
+
+def test_catalog_returns_versioned_equipment_and_maintenance_policy() -> None:
+    catalog = load_catalog()
+
+    equipment = catalog.equipment_status("EQ-PUMP-001", NOW)
+    policy = catalog.maintenance_policy_constraints("EQ-PUMP-001", NOW)
+
+    assert equipment.source_version == "equipment-seed-v1"
+    assert equipment.alert_code == "MOTOR_OVERHEAT"
+    assert equipment.severity == "critical"
+    assert policy.rule_version == "maintenance-v1"
+    assert policy.maximum_heartbeat_age_seconds == 300
+
+
+def test_missing_equipment_has_stable_error() -> None:
+    catalog = load_catalog()
+
+    with pytest.raises(LookupError, match="equipment_not_found"):
+        catalog.equipment_status("EQ-UNKNOWN-001", NOW)
+
+
+def test_catalog_returns_versioned_task_and_recovery_policy() -> None:
+    catalog = load_catalog()
+
+    task = catalog.task_status("TASK-BLOCKED-001", NOW)
+    policy = catalog.task_recovery_policy_constraints("TASK-BLOCKED-001", NOW)
+
+    assert task.source_version == "task-seed-v1"
+    assert task.blocker_code == "UPSTREAM_TIMEOUT"
+    assert policy.rule_version == "task-recovery-v1"
+    assert policy.maximum_retry_count == 3
 
 
 @pytest.mark.parametrize(

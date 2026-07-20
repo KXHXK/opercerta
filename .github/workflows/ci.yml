@@ -93,6 +93,8 @@ jobs:
         run: uv sync --frozen --all-groups
       - name: Run complete backend tests
         run: uv run pytest -q
+      - name: Run three-business contract evaluation
+        run: uv run python scripts/run_opercerta_evaluation.py
 
   frontend:
     name: frontend

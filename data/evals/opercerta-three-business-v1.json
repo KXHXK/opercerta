@@ -1,0 +1,126 @@
+{
+  "suite_version": "opercerta-three-business-v1",
+  "extends": "replenishment-v3.json",
+  "cases": [
+    {
+      "id": "EQP-001",
+      "title": "离线设备创建维修处置后等待审批",
+      "rule_refs": ["docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md#31-设备维修"],
+      "actor": "operator",
+      "scenario": "equipment",
+      "expected_tools": ["equipment.get_status", "policy.list_constraints"],
+      "steps": [{"action": "create_operation", "object_type": "equipment", "object_id": "EQ-PUMP-001"}],
+      "expected": {"status_code": 202, "terminal_status": "awaiting_approval", "approval_count": 0, "work_order_count": 0}
+    },
+    {
+      "id": "EQP-002",
+      "title": "设备状态查询只返回证据且零审批零工单",
+      "rule_refs": ["docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md#31-设备维修"],
+      "actor": "operator",
+      "scenario": "equipment",
+      "expected_tools": ["equipment.get_status", "policy.list_constraints"],
+      "steps": [{"action": "create_operation", "requested_action": "query", "object_type": "equipment", "object_id": "EQ-PUMP-001"}],
+      "expected": {"status_code": 202, "terminal_status": "completed", "approval_count": 0, "work_order_count": 0}
+    },
+    {
+      "id": "EQP-003",
+      "title": "健康设备无需维修并直接完成",
+      "rule_refs": ["docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md#31-设备维修"],
+      "actor": "operator",
+      "scenario": "equipment",
+      "expected_tools": ["equipment.get_status", "policy.list_constraints"],
+      "steps": [{"action": "create_operation", "object_type": "equipment", "object_id": "EQ-FAN-001"}],
+      "expected": {"status_code": 202, "terminal_status": "completed", "approval_count": 0, "work_order_count": 0}
+    },
+    {
+      "id": "EQP-004",
+      "title": "设备审批通过后创建并验证唯一维修工单",
+      "rule_refs": ["docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md#31-设备维修"],
+      "actor": "approver",
+      "scenario": "equipment",
+      "expected_tools": ["equipment.get_status", "policy.list_constraints", "work_order.create", "work_order.get"],
+      "steps": [{"action": "create_operation_as", "actor": "operator", "object_type": "equipment", "object_id": "EQ-PUMP-001"}, {"action": "submit_approval", "decision": "approved"}, {"action": "get_operation"}],
+      "expected": {"status_code": 200, "terminal_status": "completed", "approval_count": 1, "work_order_count": 1}
+    },
+    {
+      "id": "EQP-005",
+      "title": "设备维修审批拒绝后零工单终止",
+      "rule_refs": ["docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md#31-设备维修"],
+      "actor": "approver",
+      "scenario": "equipment",
+      "expected_tools": ["equipment.get_status", "policy.list_constraints"],
+      "steps": [{"action": "create_operation_as", "actor": "operator", "object_type": "equipment", "object_id": "EQ-PUMP-001"}, {"action": "submit_approval", "decision": "rejected"}, {"action": "get_operation"}],
+      "expected": {"status_code": 200, "terminal_status": "rejected", "approval_count": 1, "work_order_count": 0}
+    },
+    {
+      "id": "EQP-006",
+      "title": "未知设备以稳定错误安全失败",
+      "rule_refs": ["equipment_not_found"],
+      "actor": "operator",
+      "scenario": "equipment",
+      "expected_tools": ["equipment.get_status", "policy.list_constraints"],
+      "steps": [{"action": "create_operation", "object_type": "equipment", "object_id": "EQ-UNKNOWN-001"}, {"action": "get_operation"}],
+      "expected": {"status_code": 200, "terminal_status": "failed", "error_code": "equipment_not_found", "approval_count": 0, "work_order_count": 0}
+    },
+    {
+      "id": "TSK-001",
+      "title": "阻塞作业创建恢复处置后等待审批",
+      "rule_refs": ["docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md#32-作业异常恢复"],
+      "actor": "operator",
+      "scenario": "task",
+      "expected_tools": ["task.get_status", "policy.list_constraints"],
+      "steps": [{"action": "create_operation", "object_type": "task", "object_id": "TASK-BLOCKED-001"}],
+      "expected": {"status_code": 202, "terminal_status": "awaiting_approval", "approval_count": 0, "work_order_count": 0}
+    },
+    {
+      "id": "TSK-002",
+      "title": "作业状态查询只返回证据且零审批零工单",
+      "rule_refs": ["docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md#32-作业异常恢复"],
+      "actor": "operator",
+      "scenario": "task",
+      "expected_tools": ["task.get_status", "policy.list_constraints"],
+      "steps": [{"action": "create_operation", "requested_action": "query", "object_type": "task", "object_id": "TASK-BLOCKED-001"}],
+      "expected": {"status_code": 202, "terminal_status": "completed", "approval_count": 0, "work_order_count": 0}
+    },
+    {
+      "id": "TSK-003",
+      "title": "正常作业无需恢复并直接完成",
+      "rule_refs": ["docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md#32-作业异常恢复"],
+      "actor": "operator",
+      "scenario": "task",
+      "expected_tools": ["task.get_status", "policy.list_constraints"],
+      "steps": [{"action": "create_operation", "object_type": "task", "object_id": "TASK-NORMAL-001"}],
+      "expected": {"status_code": 202, "terminal_status": "completed", "approval_count": 0, "work_order_count": 0}
+    },
+    {
+      "id": "TSK-004",
+      "title": "作业审批通过后创建并验证唯一恢复工单",
+      "rule_refs": ["docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md#32-作业异常恢复"],
+      "actor": "approver",
+      "scenario": "task",
+      "expected_tools": ["task.get_status", "policy.list_constraints", "work_order.create", "work_order.get"],
+      "steps": [{"action": "create_operation_as", "actor": "operator", "object_type": "task", "object_id": "TASK-BLOCKED-001"}, {"action": "submit_approval", "decision": "approved"}, {"action": "get_operation"}],
+      "expected": {"status_code": 200, "terminal_status": "completed", "approval_count": 1, "work_order_count": 1}
+    },
+    {
+      "id": "TSK-005",
+      "title": "作业恢复审批拒绝后零工单终止",
+      "rule_refs": ["docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md#32-作业异常恢复"],
+      "actor": "approver",
+      "scenario": "task",
+      "expected_tools": ["task.get_status", "policy.list_constraints"],
+      "steps": [{"action": "create_operation_as", "actor": "operator", "object_type": "task", "object_id": "TASK-BLOCKED-001"}, {"action": "submit_approval", "decision": "rejected"}, {"action": "get_operation"}],
+      "expected": {"status_code": 200, "terminal_status": "rejected", "approval_count": 1, "work_order_count": 0}
+    },
+    {
+      "id": "TSK-006",
+      "title": "达到重试上限的作业以策略错误安全失败",
+      "rule_refs": ["task_recovery_out_of_policy"],
+      "actor": "operator",
+      "scenario": "task",
+      "expected_tools": ["task.get_status", "policy.list_constraints"],
+      "steps": [{"action": "create_operation", "object_type": "task", "object_id": "TASK-RETRY-LIMIT-001"}, {"action": "get_operation"}],
+      "expected": {"status_code": 200, "terminal_status": "failed", "error_code": "task_recovery_out_of_policy", "approval_count": 0, "work_order_count": 0}
+    }
+  ]
+}

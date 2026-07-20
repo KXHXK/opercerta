@@ -13,6 +13,8 @@ def test_metrics_use_isolated_registry_and_low_cardinality_labels() -> None:
         0.125,
     )
     metrics_a.count_audit_event("unknown-user-controlled-event")
+    metrics_a.count_mcp_tool_call("inventory.get_snapshot")
+    metrics_a.count_mcp_tool_call("user-controlled-tool")
 
     rendered_a = metrics_a.render().decode()
     rendered_b = metrics_b.render().decode()
@@ -21,4 +23,7 @@ def test_metrics_use_isolated_registry_and_low_cardinality_labels() -> None:
     assert 'event_type="other"' in rendered_a
     assert secret_operation_id not in rendered_a
     assert "unknown-user-controlled-event" not in rendered_a
+    assert 'tool_name="inventory.get_snapshot"' in rendered_a
+    assert 'tool_name="other"' in rendered_a
+    assert "user-controlled-tool" not in rendered_a
     assert 'route="unmatched"' not in rendered_b

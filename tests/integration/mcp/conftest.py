@@ -47,6 +47,10 @@ async def mcp_server(engine: AsyncEngine) -> AsyncIterator[McpServerHarness]:
     catalog = SyntheticCatalog.load(
         ROOT / "data" / "synthetic" / "inventory.json",
         ROOT / "data" / "synthetic" / "replenishment_policies.json",
+        equipment_path=ROOT / "data" / "synthetic" / "equipment.json",
+        maintenance_policy_path=ROOT / "data" / "synthetic" / "maintenance_policies.json",
+        task_path=ROOT / "data" / "synthetic" / "tasks.json",
+        task_recovery_policy_path=ROOT / "data" / "synthetic" / "task_recovery_policies.json",
     )
     port = unused_loopback_port()
     mcp = build_mcp_server(

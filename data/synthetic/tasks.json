@@ -1,0 +1,10 @@
+{
+  "source_version": "task-seed-v1",
+  "items": [
+    {"task_id": "TASK-BLOCKED-001", "state": "blocked", "due_at": "2026-07-16T08:10:00Z", "last_progress_at": "2026-07-16T07:55:00Z", "blocker_code": "UPSTREAM_TIMEOUT", "retry_count": 1},
+    {"task_id": "TASK-NORMAL-001", "state": "running", "due_at": "2026-07-16T08:10:00Z", "last_progress_at": "2026-07-16T07:59:00Z", "blocker_code": null, "retry_count": 0},
+    {"task_id": "TASK-OVERDUE-001", "state": "running", "due_at": "2026-07-16T07:54:59Z", "last_progress_at": "2026-07-16T07:50:00Z", "blocker_code": null, "retry_count": 2},
+    {"task_id": "TASK-MUTABLE-001", "state": "blocked", "due_at": "2026-07-16T08:10:00Z", "last_progress_at": "2026-07-16T07:55:00Z", "blocker_code": "LOCK_CONTENTION", "retry_count": 1},
+    {"task_id": "TASK-RETRY-LIMIT-001", "state": "blocked", "due_at": "2026-07-16T08:10:00Z", "last_progress_at": "2026-07-16T07:55:00Z", "blocker_code": "UPSTREAM_TIMEOUT", "retry_count": 4}
+  ]
+}

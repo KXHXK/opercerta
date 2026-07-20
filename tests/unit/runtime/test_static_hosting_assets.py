@@ -23,3 +23,20 @@ def test_netlify_local_link_state_is_ignored() -> None:
     content = (ROOT / ".gitignore").read_text(encoding="utf-8")
 
     assert ".netlify/" in content
+
+
+def test_showcase_visual_contract_avoids_scroll_traps_and_heavy_generated_treatments() -> None:
+    css = (ROOT / "web" / "src" / "styles.css").read_text(encoding="utf-8")
+
+    for forbidden in (
+        "position: fixed",
+        "position: sticky",
+        "scroll-snap-type",
+        "animation-iteration-count: infinite",
+    ):
+        assert forbidden not in css
+    assert "prefers-reduced-motion" in css
+    assert "--scenario-inventory" in css
+    assert "--scenario-equipment" in css
+    assert "--scenario-task" in css
+    assert "--showcase-title-mobile: clamp(2rem, 9vw, 2.2rem)" in css

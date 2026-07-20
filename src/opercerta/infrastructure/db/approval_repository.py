@@ -11,6 +11,7 @@ from opercerta.domain.approvals import (
     ApprovalRecord,
     BoundApprovalCommand,
 )
+from opercerta.domain.contracts import ObjectType, OperationRequest
 from opercerta.domain.errors import (
     ApprovalAlreadyDecided,
     ApprovalExpired,
@@ -18,12 +19,25 @@ from opercerta.domain.errors import (
     OperationNotFound,
     RecoveryStateConflict,
 )
+from opercerta.domain.maintenance import (
+    MaintenanceEvidenceBundle,
+    MaintenancePlan,
+    build_maintenance_approval_binding,
+)
 from opercerta.domain.operation_state import OperationSnapshot
 from opercerta.domain.replenishment import (
-    ApprovalBinding,
     EvidenceBundle,
     ReplenishmentPlan,
     build_approval_binding,
+)
+from opercerta.domain.scenarios import (
+    ApprovalBinding,
+    ReplenishmentParameters,
+)
+from opercerta.domain.task_recovery import (
+    TaskRecoveryEvidenceBundle,
+    TaskRecoveryPlan,
+    build_task_recovery_approval_binding,
 )
 from opercerta.infrastructure.db.schema import approvals, audit_events, operations
 
@@ -184,7 +198,9 @@ class ApprovalRepository:
                         approver_id=command.approver_id,
                         decision=command.decision.value,
                         reason=command.reason,
-                        **current_binding.model_dump(mode="python"),
+                        subject_evidence_id=current_binding.subject_evidence_id,
+                        binding_payload=current_binding.model_dump(mode="json"),
+                        **self._legacy_inventory_values(current_binding),
                         created_at=now,
                     )
                 )
@@ -232,15 +248,55 @@ class ApprovalRepository:
         try:
             snapshot = OperationSnapshot.model_validate(snapshot_value)
             stored_binding = ApprovalBinding.model_validate(snapshot.risk.get("approval_binding"))
-            bundle = EvidenceBundle.model_validate(snapshot.risk.get("evidence"))
-            plan = ReplenishmentPlan.model_validate(snapshot.plan)
+            request = OperationRequest.model_validate(snapshot.request)
+            if request.object_type is ObjectType.INVENTORY:
+                bundle = EvidenceBundle.model_validate(snapshot.risk.get("evidence"))
+                plan = ReplenishmentPlan.model_validate(snapshot.plan)
+                derived_binding = ApprovalBinding.model_validate(
+                    build_approval_binding(bundle, plan)
+                )
+            elif request.object_type is ObjectType.EQUIPMENT:
+                maintenance_bundle = MaintenanceEvidenceBundle.model_validate(
+                    snapshot.risk.get("evidence")
+                )
+                maintenance_plan = MaintenancePlan.model_validate(snapshot.plan)
+                derived_binding = build_maintenance_approval_binding(
+                    maintenance_bundle,
+                    maintenance_plan,
+                )
+            elif request.object_type is ObjectType.TASK:
+                task_bundle = TaskRecoveryEvidenceBundle.model_validate(
+                    snapshot.risk.get("evidence")
+                )
+                task_plan = TaskRecoveryPlan.model_validate(snapshot.plan)
+                derived_binding = build_task_recovery_approval_binding(
+                    task_bundle,
+                    task_plan,
+                )
+            else:
+                raise ApprovalSnapshotMismatch
         except ValidationError:
             raise ApprovalSnapshotMismatch from None
 
-        derived_binding = build_approval_binding(bundle, plan)
         if stored_binding != derived_binding:
             raise ApprovalSnapshotMismatch
         return stored_binding
+
+    def _legacy_inventory_values(
+        self,
+        binding: ApprovalBinding,
+    ) -> dict[str, object]:
+        parameters = binding.parameters
+        if not isinstance(parameters, ReplenishmentParameters):
+            return {}
+        return {
+            "inventory_evidence_id": binding.subject_evidence_id,
+            "policy_evidence_id": binding.policy_evidence_id,
+            "rule_version": binding.rule_version,
+            "decision_facts_hash": binding.decision_facts_hash,
+            "plan_hash": binding.plan_hash,
+            "recommended_quantity": parameters.recommended_quantity,
+        }
 
     def _require_timezone(self, value: datetime) -> None:
         if value.tzinfo is None or value.utcoffset() is None:

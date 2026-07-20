@@ -32,6 +32,7 @@ class CaseExecution(BaseModel):
     approval_count: int | None = None
     work_order_count: int | None = None
     audit_event_names: tuple[str, ...] | None = None
+    tool_names: tuple[str, ...] = ()
 
 
 class CaseExecutor(Protocol):
@@ -44,8 +45,12 @@ class EvaluationCaseResult(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     id: str
+    scenario: str
     status: str
     duration_ms: int = Field(ge=0)
+    expected: Mapping[str, object]
+    expected_tools: tuple[str, ...]
+    actual: CaseExecution | None = None
     failure_summary: str | None = None
 
 
@@ -74,6 +79,7 @@ async def run_suite(
     results: list[EvaluationCaseResult] = []
     for case in suite.cases:
         started = perf_counter()
+        execution: CaseExecution | None = None
         try:
             execution = await executor.execute(case)
             _assert_expected(case, execution)
@@ -81,8 +87,12 @@ async def run_suite(
             results.append(
                 EvaluationCaseResult(
                     id=case.id,
+                    scenario=case.scenario.value,
                     status="failed",
                     duration_ms=_duration_ms(started),
+                    expected=dict(case.expected),
+                    expected_tools=case.expected_tools,
+                    actual=execution,
                     failure_summary=_safe_failure_summary(error),
                 )
             )
@@ -90,8 +100,12 @@ async def run_suite(
             results.append(
                 EvaluationCaseResult(
                     id=case.id,
+                    scenario=case.scenario.value,
                     status="passed",
                     duration_ms=_duration_ms(started),
+                    expected=dict(case.expected),
+                    expected_tools=case.expected_tools,
+                    actual=execution,
                 )
             )
 
@@ -122,6 +136,9 @@ def _assert_expected(case: EvalCase, execution: CaseExecution) -> None:
             continue
         if actual_value != expected_value:
             raise AssertionError(f"{field} expected {expected_value!r}, got {actual_value!r}")
+    missing_tools = [name for name in case.expected_tools if name not in execution.tool_names]
+    if missing_tools:
+        raise AssertionError(f"tool_names missing {missing_tools!r}, got {execution.tool_names!r}")
 
 
 def _duration_ms(started: float) -> int:

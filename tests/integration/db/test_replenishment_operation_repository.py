@@ -24,6 +24,7 @@ from opercerta.domain.replenishment import (
     ReplenishmentAssessment,
     ReplenishmentPlan,
 )
+from opercerta.domain.scenarios import ApprovalBinding as ScenarioApprovalBinding
 from opercerta.domain.work_orders import WorkOrderCommand
 from opercerta.infrastructure.db.approval_repository import ApprovalRepository
 from opercerta.infrastructure.db.replenishment_operation_repository import (
@@ -113,6 +114,10 @@ def binding() -> ApprovalBinding:
         plan_hash=plan().plan_hash,
         recommended_quantity=plan().recommended_quantity,
     )
+
+
+def scenario_binding() -> ScenarioApprovalBinding:
+    return ScenarioApprovalBinding.model_validate(binding())
 
 
 async def cleanup_operation(engine: AsyncEngine, operation_id: UUID) -> None:
@@ -598,7 +603,7 @@ async def test_create_and_approval_lifecycle_persist_snapshot_and_ordered_audit(
         assert view.approval_expires_at == expires_at
         assert view.assessment == assessment()
         assert view.plan == plan()
-        assert view.approval_binding == binding()
+        assert view.approval_binding == scenario_binding()
         assert [record.evidence_type for record in view.evidence] == [
             "inventory",
             "policy",
@@ -699,7 +704,7 @@ async def test_approved_execution_and_rejected_paths_store_terminal_facts(
         assert completed.approval is not None
         assert completed.approval.decision is ApprovalDecision.APPROVED
         assert completed.approval.binding is None
-        assert completed.approval_binding == binding()
+        assert completed.approval_binding == scenario_binding()
         assert completed.work_order is not None
         assert completed.work_order.payload == {
             "sku": "SKU-DEMO-001",
@@ -1030,7 +1035,7 @@ async def test_load_detail_validates_complete_and_partial_approval_bindings(
 
         complete = await repository.load_detail(complete_id)
         assert complete.approval is not None
-        assert complete.approval.binding == binding()
+        assert complete.approval.binding == scenario_binding()
         assert complete.approval_binding == complete.approval.binding
 
         with pytest.raises(RecoveryStateConflict, match="recovery_state_conflict"):

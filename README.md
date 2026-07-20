@@ -2,7 +2,7 @@
 
 OperCerta 是面向库存异常、设备告警和运营工单的智能运营处置 Agent 独立作品仓库。
 
-> 当前状态：库存不足到补货工单的 FastAPI 后端纵向闭环、演示 JWT/RBAC、30 条固定合成契约评测、本地单页运营控制台、可观测性与安全回归，以及 GitHub Actions 分层 CI 均已有自动化证据；[公开静态项目专题](https://opercerta-kxh.netlify.app)、[单页作品集](https://kxh-agent-portfolio.netlify.app)和 [public GitHub](https://github.com/KXHXK/opercerta)均已验证。公开页面不提供后端写入口；真实生产身份、HTTPS 后端、自动部署和公开 API 尚未完成，生产发布门禁保持关闭。
+> 当前状态：库存补货、设备维修、作业异常恢复三条 FastAPI + LangGraph + FastMCP + PostgreSQL 闭环、演示 JWT/RBAC、42 条固定合成契约评测、Redis 只读缓存、OpenTelemetry 适配、本地 React 控制台与 GitHub Actions 均已有自动化证据；Moonshot AI `kimi-k2.6` 已完成三业务 6 次代表操作/3 条真实模型路径的本地验证。新版零成本展示候选已在 [Draft PR #6](https://github.com/KXHXK/opercerta/pull/6) 发布：公开根路径为即时打开、零写入的三业务专题，`/engineering` 只在 localhost 开发模式提供 10 步工程链路、10 个真实故障复盘和本地掌握检查，`/console` 保留真实本地控制台。PR 首轮四个快速门禁已通过，Compose smoke 按设计待合并到 `main` 后运行。当前 [Netlify 静态项目专题](https://opercerta-kxh.netlify.app)和[单页作品集](https://kxh-agent-portfolio.netlify.app)仍是上一版已验证公网入口；新版尚待人工批准合并和生产替换。公开页面不提供后端写入口；生产身份、交互 HTTPS 后端、自动部署和公开 API 尚未完成，生产发布门禁：`CLOSED`。
 
 ## 当前已验证范围
 
@@ -15,18 +15,21 @@ OperCerta 是面向库存异常、设备告警和运营工单的智能运营处�
 - 真实 MCP 工单幂等写入、写后读验证、预写工单安全重放和审批过期扫描；
 - FastAPI 操作创建、业务事实查询、绑定审批、固定安全错误映射和生产 lifespan 启动恢复。
 - 冻结依赖、`0002` 迁移升降级、审批竞态与 A/B 重启重复、真实 FastMCP + FastAPI 双服务进程和 PostgreSQL 终态事实。
-- WSL2 Ubuntu Compose 的非 root 应用镜像、独立 PostgreSQL named volume、API/MCP 健康检查、真实库存补货审批闭环、数据库断言和 API/MCP 重启恢复。
+- WSL2 Ubuntu Compose 的非 root 应用镜像、PostgreSQL/Redis、API/MCP 健康检查、三业务审批/拒绝/唯一工单、数据库断言和 API/MCP 重启恢复。
+- 版本化 42 条固定评测（库存 30、设备 6、作业 6）与 2×2 缓存/工具模式矩阵；小样本只证明调用/命中行为，不作为生产 SLA。
 - 服务端 UUIDv4 request_id、异常后上下文清理、安全 JSON 日志、应用级低基数 Prometheus 指标、SSE 实际回放计数，以及默认关闭的 `/metrics`。
 - Public GitHub remote、只读且固定 Action SHA 的四个 PR 快速门禁，以及 `main` 上实际通过的 Compose 业务 smoke、API/MCP 重启恢复和无条件清理。
 - Netlify 公开静态专题、真实部署资源指纹和证据图片响应验证；该站点不连接 API、数据库或 MCP。
+- 用户授权的 Moonshot AI `kimi-k2.6` 代表性验证：三业务各 1 条 query 与 1 条批准路径，共 6 个 operation、3 条真实模型解释路径；报告不保存模型原文，token/成本因 adapter 未暴露 usage 而明确标记不可用。
+- 零成本展示候选本地门禁：前端 16 个测试文件/40 条测试、后端 430 条测试、Ruff、138 文件格式、mypy 62 个源码文件和仓库安全检查全部通过；Mock release Compose 从全新卷启动并完成 API/MCP 重启恢复；1440/768/390 三档浏览器检查无项目固定模块、横向溢出、坏图或控制台告警。该证据不等于新版专题已部署。
 
-Task 7 新鲜证据见 [补货执行与重启恢复证据](docs/release-evidence/replenishment-execution-restart.md)，Task 1–9 总证据见 [库存补货后端纵向闭环证据](docs/release-evidence/inventory-replenishment-vertical-slice.md)，Docker/Linux 证据见 [WSL2 Ubuntu Compose 运行时证据](docs/release-evidence/docker-linux-runtime.md)，评测证据见 [固定契约评测](docs/release-evidence/replenishment-contract-evaluation.md)，可观测性证据见 [可观测性与安全回归](docs/release-evidence/observability-security-regression.md)，远程门禁证据见 [GitHub Actions 分层 CI](docs/release-evidence/github-actions-ci.md)，静态站点证据见 [公开专题部署证据](docs/release-evidence/public-portfolio-showcase.md)。这不是生产 IAM、HTTPS 后端或公开 API 完成声明。
+三业务评测、Compose 与缓存证据见 [三业务发布前证据](docs/release-evidence/three-business-evaluation-compose.md)，真实模型结果见[真实模型代表性验证](docs/release-evidence/real-model-representative-validation.md)，可靠性内核与历史库存切片证据保留在 `docs/release-evidence/`。中文学习入口为 [核心技术手册](docs/learning/OperCerta核心技术手册.md)、[手动实验手册](docs/learning/OperCerta手动实验手册.md)和[面试讲解](docs/learning/OperCerta面试讲解.md)。这些不是生产 IAM、交互 HTTPS 后端或公开 API 完成声明。
 
 ## 下一实施边界
 
-下一阶段仍只实施 OperCerta。静态专题、作品集、public GitHub 与 Actions 已完成远程验证；按求职演示所需的最小发布口径补齐可重复演示与交接，再决定是否把 Caddy/HTTPS 后端、生产身份和公开 API 延后为生产演进项。在 OperCerta 演示发布门禁关闭前不启动其他项目。
+下一阶段仍只实施 OperCerta。零成本静态展示与本地工程详解已完成本机门禁，Draft PR #6 首轮远程快速门禁已通过；下一关键节点是人工批准合并。合并后核验 `main` Compose smoke，再替换 Netlify 生产专题并同步作品集入口。公网可写 HTTPS 后端不属于本轮零成本方案；生产 IAM、限流/防滥用、备份、高可用、Release Tag 与个人手动掌握检查仍待完成。生产发布门禁为 `CLOSED`，关闭前不启动其他项目。
 
-首个闭环已确定为“库存不足 → 补货工单”，采用独立 FastMCP 服务、四个真实 MCP 工具、Mock 结构化模型、LangGraph 和 FastAPI；[设计规格](docs/superpowers/specs/2026-07-16-inventory-replenishment-vertical-slice-design.md)与[可执行 TDD 计划](docs/superpowers/plans/2026-07-16-inventory-replenishment-vertical-slice.md)已落盘并执行至 Task 9。
+三业务收口规格与八项 TDD 主计划见 [设计](docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md)和[计划](docs/superpowers/plans/2026-07-20-opercerta-three-business-release.md)。历史库存切片设计仍作为可靠性内核演进记录保留。
 
 ## 实施依据
 

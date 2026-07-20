@@ -10,12 +10,23 @@ from typing import Annotated, Literal
 from urllib.parse import urlsplit, urlunsplit
 from uuid import UUID
 
+import httpx
 from fastapi import Depends, FastAPI, Header, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
 from prometheus_client import CONTENT_TYPE_LATEST
-from pydantic import AnyHttpUrl, Field, PositiveFloat, PositiveInt, SecretStr
+from pydantic import (
+    AnyHttpUrl,
+    Field,
+    PositiveFloat,
+    PositiveInt,
+    RedisDsn,
+    SecretStr,
+    field_validator,
+    model_validator,
+)
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from redis.asyncio import Redis
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from sse_starlette.sse import EventSourceResponse
@@ -50,6 +61,7 @@ from opercerta.api.models import (
 )
 from opercerta.application.approval_expiry import ApprovalExpiryService
 from opercerta.application.operation_runner import OperationRunner
+from opercerta.application.scenario_registry import build_default_scenario_registry
 from opercerta.domain.approvals import BoundApprovalCommand
 from opercerta.domain.contracts import (
     ActionType,
@@ -63,21 +75,33 @@ from opercerta.domain.errors import (
     DependencyUnavailable,
     OperationNotFound,
 )
-from opercerta.domain.model_gateway import MockModelGateway
+from opercerta.domain.model_gateway import MockModelGateway, ModelGateway
+from opercerta.infrastructure.cache import (
+    EvidenceCache,
+    NullEvidenceCache,
+    RedisEvidenceCache,
+)
 from opercerta.infrastructure.checkpoints import open_checkpointer
 from opercerta.infrastructure.db.approval_repository import ApprovalRepository
 from opercerta.infrastructure.db.evidence_repository import EvidenceRepository
+from opercerta.infrastructure.db.operation_repository import OperationRepository
 from opercerta.infrastructure.db.replenishment_operation_repository import (
     OperationDetail,
-    ReplenishmentOperationRepository,
 )
 from opercerta.infrastructure.mcp_gateway import McpToolGateway
+from opercerta.infrastructure.model_gateway import OpenAICompatibleModelGateway
 from opercerta.observability.context import new_request_id, request_context
 from opercerta.observability.logging import log_event
 from opercerta.observability.metrics import ApiMetrics
-from opercerta.workflow.replenishment_graph import build_replenishment_graph
-from opercerta.workflow.replenishment_recovery import (
-    ReplenishmentRecoveryCoordinator,
+from opercerta.observability.tracing import (
+    NOOP_TRACING,
+    Tracing,
+    configure_tracing,
+    instrument_sqlalchemy_engine,
+)
+from opercerta.workflow.controlled_action_graph import build_controlled_action_graph
+from opercerta.workflow.controlled_action_recovery import (
+    ControlledActionRecoveryCoordinator,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -90,7 +114,7 @@ class ApiRequestValidationFailed(ValueError):
 @dataclass(frozen=True, slots=True)
 class AppRuntime:
     runner: OperationRunner
-    operations: ReplenishmentOperationRepository
+    operations: OperationRepository
     authenticator: JwtAuthenticator | None = None
     readiness: ReadinessProbe = field(default_factory=UnavailableReadinessProbe)
 
@@ -101,6 +125,7 @@ class ObservabilityConfig:
     metrics_enabled: bool = False
     request_id_factory: Callable[[], str] = new_request_id
     clock_ns: Callable[[], int] = monotonic_ns
+    tracing: Tracing = NOOP_TRACING
 
 
 class ObservabilityMiddleware:
@@ -111,11 +136,13 @@ class ObservabilityMiddleware:
         metrics: ApiMetrics,
         request_id_factory: Callable[[], str] = new_request_id,
         clock_ns: Callable[[], int] = monotonic_ns,
+        tracing: Tracing = NOOP_TRACING,
     ) -> None:
         self._app = app
         self._metrics = metrics
         self._request_id_factory = request_id_factory
         self._clock_ns = clock_ns
+        self._tracing = tracing
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
@@ -135,7 +162,17 @@ class ObservabilityMiddleware:
                 MutableHeaders(scope=message)["X-Request-ID"] = request_id
             await send(message)
 
-        with request_context(request_id):
+        with (
+            request_context(request_id),
+            self._tracing.span(
+                "api.request",
+                {
+                    "component": "api",
+                    "operation": str(scope.get("method", "OTHER")),
+                    "request_id": request_id,
+                },
+            ),
+        ):
             try:
                 await self._app(scope, receive, send_with_request_id)
             except Exception:
@@ -192,8 +229,30 @@ class ProductionSettings(BaseSettings):
     approval_ttl_seconds: PositiveInt = Field(
         validation_alias="OPERCERTA_APPROVAL_TTL_SECONDS",
     )
-    model_mode: Literal["mock"] = Field(
+    model_mode: Literal["mock", "real"] = Field(
         validation_alias="OPERCERTA_MODEL_MODE",
+    )
+    tool_mode: Literal["parallel", "sequential"] = Field(
+        default="parallel", validation_alias="OPERCERTA_TOOL_MODE"
+    )
+    redis_url: RedisDsn | None = Field(default=None, validation_alias="OPERCERTA_REDIS_URL")
+    cache_enabled: bool = Field(default=False, validation_alias="OPERCERTA_CACHE_ENABLED")
+    cache_ttl_seconds: PositiveInt = Field(
+        default=60, validation_alias="OPERCERTA_CACHE_TTL_SECONDS"
+    )
+    model_base_url: AnyHttpUrl | None = Field(
+        default=None, validation_alias="OPERCERTA_MODEL_BASE_URL"
+    )
+    model_name: str | None = Field(default=None, validation_alias="OPERCERTA_MODEL_NAME")
+    model_api_key: SecretStr | None = Field(
+        default=None, validation_alias="OPERCERTA_MODEL_API_KEY"
+    )
+    model_thinking_mode: Literal["default", "disabled"] = Field(
+        default="default", validation_alias="OPERCERTA_MODEL_THINKING_MODE"
+    )
+    otlp_enabled: bool = Field(default=False, validation_alias="OPERCERTA_OTLP_ENABLED")
+    otlp_endpoint: AnyHttpUrl | None = Field(
+        default=None, validation_alias="OPERCERTA_OTLP_ENDPOINT"
     )
     jwt_signing_key: SecretStr = Field(validation_alias="OPERCERTA_JWT_SIGNING_KEY")
     jwt_issuer: str = Field(validation_alias="OPERCERTA_JWT_ISSUER")
@@ -204,6 +263,23 @@ class ProductionSettings(BaseSettings):
         default=False,
         validation_alias="OPERCERTA_METRICS_ENABLED",
     )
+
+    @field_validator("model_base_url", "model_name", "model_api_key", mode="before")
+    @classmethod
+    def empty_optional_model_setting_is_unset(cls, value: object) -> object:
+        return None if value == "" else value
+
+    @model_validator(mode="after")
+    def validate_optional_services(self) -> "ProductionSettings":
+        if self.cache_enabled and self.redis_url is None:
+            raise ValueError("Redis URL is required when cache is enabled")
+        if self.model_mode == "real" and (
+            self.model_base_url is None or self.model_name is None or self.model_api_key is None
+        ):
+            raise ValueError("real model settings are incomplete")
+        if self.otlp_enabled and self.otlp_endpoint is None:
+            raise ValueError("OTLP endpoint is required when tracing is enabled")
+        return self
 
 
 RuntimeProvider = Callable[[], AppRuntime]
@@ -223,6 +299,16 @@ def create_production_app(
     clock: Callable[[], datetime] = lambda: datetime.now(UTC),
 ) -> FastAPI:
     production_settings = settings or ProductionSettings()
+    metrics = ApiMetrics.create()
+    tracing, tracer_provider = configure_tracing(
+        enabled=production_settings.otlp_enabled,
+        endpoint=(
+            str(production_settings.otlp_endpoint)
+            if production_settings.otlp_endpoint is not None
+            else None
+        ),
+        service_name="opercerta-api",
+    )
     active_runtime: AppRuntime | None = None
 
     def runtime_provider() -> AppRuntime:
@@ -234,22 +320,28 @@ def create_production_app(
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         nonlocal active_runtime
         del app
-        async with _open_production_runtime(
-            production_settings,
-            clock,
-        ) as runtime:
-            active_runtime = runtime
-            await runtime.runner.recover_all()
-            try:
+        try:
+            async with _open_production_runtime(
+                production_settings,
+                clock,
+                tracing,
+                metrics,
+            ) as runtime:
+                active_runtime = runtime
+                await runtime.runner.recover_all()
                 yield
-            finally:
-                active_runtime = None
+        finally:
+            active_runtime = None
+            if tracer_provider is not None:
+                tracer_provider.shutdown()
 
     return _build_app(
         runtime_provider,
         lifespan=lifespan,
         observability=ObservabilityConfig(
+            metrics=metrics,
             metrics_enabled=production_settings.metrics_enabled,
+            tracing=tracing,
         ),
     )
 
@@ -258,32 +350,69 @@ def create_production_app(
 async def _open_production_runtime(
     settings: ProductionSettings,
     clock: Callable[[], datetime],
+    tracing: Tracing = NOOP_TRACING,
+    metrics: ApiMetrics | None = None,
 ) -> AsyncIterator[AppRuntime]:
     parsed_url = make_url(settings.database_url.get_secret_value())
     original_pgpassword = os.environ.get("PGPASSWORD")
     if parsed_url.password is not None:
         os.environ["PGPASSWORD"] = parsed_url.password
     engine: AsyncEngine | None = None
+    redis_client: Redis | None = None
+    model_client: httpx.AsyncClient | None = None
     try:
         engine = create_async_engine(
             parsed_url.set(password=None),
             pool_pre_ping=True,
         )
+        instrument_sqlalchemy_engine(engine.sync_engine, tracing)
         async with open_checkpointer(settings.database_url) as saver:
-            operations = ReplenishmentOperationRepository(engine)
-            graph = build_replenishment_graph(
+            operations = OperationRepository(engine)
+            registry = build_default_scenario_registry()
+            active_cache: EvidenceCache = NullEvidenceCache()
+            if settings.cache_enabled and settings.redis_url is not None:
+                redis_client = Redis.from_url(str(settings.redis_url))
+                active_cache = RedisEvidenceCache(
+                    redis_client,
+                    (metrics or ApiMetrics.create()).count_cache_event,
+                )
+            if settings.model_mode == "real":
+                if (
+                    settings.model_base_url is None
+                    or settings.model_name is None
+                    or settings.model_api_key is None
+                ):
+                    raise ValueError("real model settings are incomplete")
+                model_client = httpx.AsyncClient()
+                model_gateway: ModelGateway = OpenAICompatibleModelGateway(
+                    client=model_client,
+                    base_url=str(settings.model_base_url),
+                    model=settings.model_name,
+                    api_key=settings.model_api_key,
+                    timeout_seconds=float(settings.mcp_timeout_seconds),
+                    disable_thinking=settings.model_thinking_mode == "disabled",
+                )
+            else:
+                model_gateway = MockModelGateway()
+            graph = build_controlled_action_graph(
                 saver,
                 operations,
                 EvidenceRepository(engine),
                 McpToolGateway(
                     str(settings.mcp_url),
                     timeout_seconds=float(settings.mcp_timeout_seconds),
+                    on_tool_call=(metrics or ApiMetrics.create()).count_mcp_tool_call,
                 ),
-                MockModelGateway(),
+                model_gateway,
                 clock,
+                registry,
+                cache=active_cache,
+                cache_ttl_seconds=int(settings.cache_ttl_seconds),
+                tracing=tracing,
+                parallel_evidence_reads=settings.tool_mode == "parallel",
                 approval_ttl_seconds=int(settings.approval_ttl_seconds),
             )
-            recovery = ReplenishmentRecoveryCoordinator(graph, operations)
+            recovery = ControlledActionRecoveryCoordinator(graph, operations)
             runner = OperationRunner(
                 graph,
                 ApprovalRepository(engine),
@@ -291,6 +420,7 @@ async def _open_production_runtime(
                 recovery,
                 ApprovalExpiryService(operations, clock),
                 clock,
+                registry,
             )
             yield AppRuntime(
                 runner=runner,
@@ -312,6 +442,10 @@ async def _open_production_runtime(
                 ),
             )
     finally:
+        if model_client is not None:
+            await model_client.aclose()
+        if redis_client is not None:
+            await redis_client.aclose()
         if engine is not None:
             await engine.dispose()
         if original_pgpassword is None:
@@ -341,6 +475,7 @@ def _build_app(
         metrics=active_observability.metrics,
         request_id_factory=active_observability.request_id_factory,
         clock_ns=active_observability.clock_ns,
+        tracing=active_observability.tracing,
     )
 
     if active_observability.metrics_enabled:
@@ -540,8 +675,10 @@ def _build_app(
     ) -> OperationAccepted:
         del actor
         if (
-            operation_request.requested_action is not ActionType.CREATE_WORK_ORDER
-            or operation_request.object_type is not ObjectType.INVENTORY
+            operation_request.requested_action
+            not in {ActionType.QUERY, ActionType.CREATE_WORK_ORDER}
+            or operation_request.object_type
+            not in {ObjectType.INVENTORY, ObjectType.EQUIPMENT, ObjectType.TASK}
             or operation_request.object_id is None
         ):
             raise ApiRequestValidationFailed

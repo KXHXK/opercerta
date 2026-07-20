@@ -8,8 +8,11 @@ import { AuditTimeline } from "./components/AuditTimeline";
 import { OperationControls } from "./components/OperationControls";
 import { OperationDetail } from "./components/OperationDetail";
 import { ProjectBoundary } from "./components/ProjectBoundary";
+import { EngineeringWalkthrough } from "./engineering/EngineeringWalkthrough";
 import { resolveConsoleApiBaseUrl } from "./runtime/console-runtime";
+import { resolvePageKind } from "./runtime/page-runtime";
 import { DemoSession, type DemoRole } from "./session";
+import type { OperationAction, ScenarioDefinition } from "./scenarios";
 import { ConsoleUnavailable } from "./showcase/ConsoleUnavailable";
 import { ShowcasePage } from "./showcase/ShowcasePage";
 
@@ -47,13 +50,14 @@ function ConsoleApp({ apiBaseUrl }: { apiBaseUrl: string }) {
     }
   }
 
-  async function createOperation(sku: string) {
+  async function createOperation(scenario: ScenarioDefinition, action: OperationAction) {
     setIsBusy(true);
-    setMessage("正在创建补货处置…");
+    const actionLabel = action === "query" ? "查询" : "创建处置";
+    setMessage(`正在${actionLabel}${scenario.label}…`);
     try {
-      const accepted = await client.createOperation(sku);
+      const accepted = await client.createOperation(scenario, action);
       await loadOperation(accepted.operation_id);
-      setMessage(`已读取后端创建的处置：${accepted.operation_id}`);
+      setMessage(`已完成${actionLabel}并读取处置：${accepted.operation_id}`);
     } catch {
       setMessage("处置创建或审计回放失败，请检查本地服务状态后重试。");
     } finally {
@@ -97,7 +101,7 @@ function ConsoleApp({ apiBaseUrl }: { apiBaseUrl: string }) {
             role={role}
             isAuthenticated={isAuthenticated && !isBusy}
             onRoleChange={(nextRole) => void selectRole(nextRole)}
-            onCreate={(sku) => void createOperation(sku)}
+            onCreate={(scenario, action) => void createOperation(scenario, action)}
             onLoad={(operationId) => void readOperation(operationId)}
           />
         </article>
@@ -121,11 +125,26 @@ function ConsoleApp({ apiBaseUrl }: { apiBaseUrl: string }) {
   );
 }
 
-export default function App() {
-  if (window.location.pathname === "/") return <ShowcasePage />;
-  if (window.location.pathname === "/console") {
-    const apiBaseUrl = resolveConsoleApiBaseUrl(window.location.hostname);
+type AppProps = {
+  development?: boolean;
+  hostname?: string;
+};
+
+export default function App({
+  development = import.meta.env.DEV,
+  hostname = window.location.hostname,
+}: AppProps = {}) {
+  const page = resolvePageKind(window.location.pathname, hostname, development);
+  if (page === "showcase") return <ShowcasePage />;
+  if (page === "engineering") return <EngineeringWalkthrough />;
+  if (page === "console") {
+    const apiBaseUrl = resolveConsoleApiBaseUrl(hostname);
     return apiBaseUrl === null ? <ConsoleUnavailable /> : <ConsoleApp apiBaseUrl={apiBaseUrl} />;
   }
-  return <main className="console-unavailable"><h1>页面不存在</h1><a href="/">返回项目专题</a></main>;
+  return (
+    <main className="not-found">
+      <h1>页面不存在</h1>
+      <a href="/">返回项目专题</a>
+    </main>
+  );
 }

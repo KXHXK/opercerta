@@ -60,8 +60,10 @@ async def test_mcp_health_routes_coexist_with_inventory_tools(
             listed = await session.list_tools()
 
     assert {tool.name for tool in listed.tools} == {
+        "equipment.get_status",
         "inventory.get_snapshot",
         "policy.list_constraints",
+        "task.get_status",
         "work_order.create",
         "work_order.get",
     }
@@ -82,8 +84,10 @@ async def test_mcp_accepts_the_internal_docker_service_host(
             listed = await session.list_tools()
 
     assert {tool.name for tool in listed.tools} == {
+        "equipment.get_status",
         "inventory.get_snapshot",
         "policy.list_constraints",
+        "task.get_status",
         "work_order.create",
         "work_order.get",
     }

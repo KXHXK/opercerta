@@ -4,11 +4,27 @@ from pathlib import Path
 def test_compose_keeps_internal_services_off_host_and_unprivileged() -> None:
     compose = Path("compose.yaml").read_text(encoding="utf-8")
 
-    assert all(name in compose for name in ("postgres:", "bootstrap:", "mcp:", "api:"))
+    assert all(name in compose for name in ("postgres:", "redis:", "bootstrap:", "mcp:", "api:"))
     assert "privileged:" not in compose
     assert "docker.sock" not in compose
     assert "postgres:5432" not in compose
     assert "mcp:8001" not in compose
+    assert '"6379:6379"' not in compose
+    assert "- 6379:6379" not in compose
+
+
+def test_redis_is_internal_healthy_and_required_only_by_api() -> None:
+    compose = Path("compose.yaml").read_text(encoding="utf-8")
+    example = Path(".env.compose.example").read_text(encoding="utf-8")
+
+    assert "redis-cli" in compose
+    assert "image: redis:8.8.0-trixie" in compose
+    assert "condition: service_healthy" in compose
+    assert "OPERCERTA_REDIS_URL=redis://redis:6379/0" in example
+    assert "OPERCERTA_CACHE_ENABLED=true" in example
+    assert "OPERCERTA_CACHE_TTL_SECONDS=60" in example
+    assert "OPERCERTA_CACHE_ENABLED: ${OPERCERTA_CACHE_ENABLED:-true}" in compose
+    assert "OPERCERTA_OTLP_ENABLED=false" in example
 
 
 def test_postgres_18_uses_the_parent_data_mount() -> None:
@@ -63,3 +79,19 @@ def test_smoke_script_checks_health_duplicate_approval_and_database_facts() -> N
     assert '"approver_id"' not in script
     assert "wait_for_ready" in script
     assert "time.monotonic" in script
+    for kind in ("replenishment", "repair", "task_recovery"):
+        assert kind in script
+    assert "rejected" in script
+    assert "--recovery-only" in script
+
+
+def test_performance_matrix_script_covers_declared_cache_tool_and_scenario_cells() -> None:
+    script = Path("scripts/run_performance_matrix.sh").read_text(encoding="utf-8")
+
+    assert "OPERCERTA_METRICS_ENABLED=true" in script
+    assert "OPERCERTA_PERFORMANCE_CACHE_MODES:-disabled enabled" in script
+    assert "OPERCERTA_PERFORMANCE_TOOL_MODES:-parallel sequential" in script
+    assert "OPERCERTA_PERFORMANCE_SCENARIOS:-inventory equipment task" in script
+    assert "--force-recreate api" in script
+    assert "docker compose up --build -d" in script
+    assert "redis-cli FLUSHDB" in script

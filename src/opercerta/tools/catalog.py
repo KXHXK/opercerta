@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
+from typing import Literal
 from uuid import UUID, uuid4
 
 from pydantic import (
@@ -12,12 +13,26 @@ from pydantic import (
     model_validator,
 )
 
-from opercerta.domain.errors import InventoryNotFound
+from opercerta.domain.errors import EquipmentNotFound, InventoryNotFound, TaskNotFound
+from opercerta.domain.maintenance import (
+    AlertSeverity,
+    EquipmentEvidence,
+    EquipmentId,
+    EquipmentState,
+    MaintenancePolicyEvidence,
+    PriorityMapping,
+)
 from opercerta.domain.replenishment import (
     InventoryEvidence,
     PolicyEvidence,
     Sku,
     Version,
+)
+from opercerta.domain.task_recovery import (
+    TaskEvidence,
+    TaskId,
+    TaskRecoveryPolicyEvidence,
+    TaskState,
 )
 
 
@@ -104,12 +119,172 @@ class _PolicySeed(BaseModel):
         return self
 
 
+class _EquipmentSeedItem(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    equipment_id: EquipmentId
+    state: EquipmentState
+    alert_code: str | None
+    severity: AlertSeverity
+    last_heartbeat: datetime
+
+    @field_validator("last_heartbeat")
+    @classmethod
+    def require_aware_heartbeat(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("last heartbeat must include timezone")
+        return value
+
+    @model_validator(mode="after")
+    def require_consistent_alert(self) -> "_EquipmentSeedItem":
+        if (self.alert_code is None) != (self.severity is AlertSeverity.NONE):
+            raise ValueError("alert code and severity must be present together")
+        return self
+
+
+class _EquipmentSeed(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    source_version: Version
+    items: tuple[_EquipmentSeedItem, ...]
+
+    @model_validator(mode="after")
+    def require_unique_equipment(self) -> "_EquipmentSeed":
+        identifiers = [item.equipment_id for item in self.items]
+        if len(identifiers) != len(set(identifiers)):
+            raise ValueError("equipment seed contains duplicate equipment ID")
+        return self
+
+
+class _MaintenancePolicySeedItem(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    equipment_id: EquipmentId
+    allowed_alert_levels: tuple[Literal["warning", "critical"], ...]
+    maximum_heartbeat_age_seconds: StrictInt
+    priority_mapping: PriorityMapping
+    evidence_ttl_seconds: StrictInt
+    approval_required: StrictBool
+
+    @model_validator(mode="after")
+    def require_safe_policy(self) -> "_MaintenancePolicySeedItem":
+        if not self.allowed_alert_levels or len(self.allowed_alert_levels) != len(
+            set(self.allowed_alert_levels)
+        ):
+            raise ValueError("allowed alert levels must be non-empty and unique")
+        if self.maximum_heartbeat_age_seconds < 1 or self.evidence_ttl_seconds < 1:
+            raise ValueError("maintenance policy durations must be positive")
+        if self.approval_required is not True:
+            raise ValueError("approval_required must be true")
+        return self
+
+
+class _MaintenancePolicySeed(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    source_version: Version
+    rule_version: Version
+    items: tuple[_MaintenancePolicySeedItem, ...]
+
+    @model_validator(mode="after")
+    def require_unique_equipment(self) -> "_MaintenancePolicySeed":
+        identifiers = [item.equipment_id for item in self.items]
+        if len(identifiers) != len(set(identifiers)):
+            raise ValueError("maintenance policy seed contains duplicate equipment ID")
+        return self
+
+
+class _TaskSeedItem(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    task_id: TaskId
+    state: TaskState
+    due_at: datetime
+    last_progress_at: datetime
+    blocker_code: str | None
+    retry_count: StrictInt
+
+    @field_validator("due_at", "last_progress_at")
+    @classmethod
+    def require_aware_time(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("task time must include timezone")
+        return value
+
+    @model_validator(mode="after")
+    def require_safe_task(self) -> "_TaskSeedItem":
+        if self.retry_count < 0:
+            raise ValueError("retry count must be non-negative")
+        if (self.state is TaskState.BLOCKED) != (self.blocker_code is not None):
+            raise ValueError("only blocked tasks may contain a blocker code")
+        return self
+
+
+class _TaskSeed(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    source_version: Version
+    items: tuple[_TaskSeedItem, ...]
+
+    @model_validator(mode="after")
+    def require_unique_tasks(self) -> "_TaskSeed":
+        identifiers = [item.task_id for item in self.items]
+        if len(identifiers) != len(set(identifiers)):
+            raise ValueError("task seed contains duplicate task ID")
+        return self
+
+
+class _TaskRecoveryPolicySeedItem(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    task_id: TaskId
+    blocked_states: tuple[TaskState, ...]
+    overdue_grace_seconds: StrictInt
+    maximum_retry_count: StrictInt
+    recovery_action: Literal["manual_requeue"]
+    evidence_ttl_seconds: StrictInt
+    approval_required: StrictBool
+
+    @model_validator(mode="after")
+    def require_safe_policy(self) -> "_TaskRecoveryPolicySeedItem":
+        if (
+            not self.blocked_states
+            or len(self.blocked_states) != len(set(self.blocked_states))
+            or TaskState.COMPLETED in self.blocked_states
+        ):
+            raise ValueError("blocked states must be non-empty, unique and non-terminal")
+        if self.overdue_grace_seconds < 0 or self.maximum_retry_count < 0:
+            raise ValueError("task recovery limits must be non-negative")
+        if self.evidence_ttl_seconds < 1 or self.approval_required is not True:
+            raise ValueError("task recovery evidence must be approved and have positive TTL")
+        return self
+
+
+class _TaskRecoveryPolicySeed(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    source_version: Version
+    rule_version: Version
+    items: tuple[_TaskRecoveryPolicySeedItem, ...]
+
+    @model_validator(mode="after")
+    def require_unique_tasks(self) -> "_TaskRecoveryPolicySeed":
+        identifiers = [item.task_id for item in self.items]
+        if len(identifiers) != len(set(identifiers)):
+            raise ValueError("task recovery policy seed contains duplicate task ID")
+        return self
+
+
 class SyntheticCatalog:
     def __init__(
         self,
         inventory: _InventorySeed,
         policies: _PolicySeed,
         id_factory: Callable[[], UUID],
+        equipment: _EquipmentSeed | None = None,
+        maintenance_policies: _MaintenancePolicySeed | None = None,
+        tasks: _TaskSeed | None = None,
+        task_recovery_policies: _TaskRecoveryPolicySeed | None = None,
     ) -> None:
         inventory_by_sku = {item.sku: item for item in inventory.items}
         policies_by_sku = {item.sku: item for item in policies.items}
@@ -119,6 +294,46 @@ class SyntheticCatalog:
         self._rule_version = policies.rule_version
         self._inventory = inventory_by_sku
         self._policies = policies_by_sku
+        if (equipment is None) != (maintenance_policies is None):
+            raise ValueError("equipment and maintenance policy seeds must be provided together")
+        equipment_by_id = (
+            {item.equipment_id: item for item in equipment.items} if equipment is not None else {}
+        )
+        maintenance_by_id = (
+            {item.equipment_id: item for item in maintenance_policies.items}
+            if maintenance_policies is not None
+            else {}
+        )
+        if equipment_by_id.keys() != maintenance_by_id.keys():
+            raise ValueError("equipment and maintenance policy IDs must match")
+        self._equipment_source_version = (
+            equipment.source_version if equipment is not None else "unconfigured"
+        )
+        self._maintenance_rule_version = (
+            maintenance_policies.rule_version
+            if maintenance_policies is not None
+            else "unconfigured"
+        )
+        self._equipment = equipment_by_id
+        self._maintenance_policies = maintenance_by_id
+        if (tasks is None) != (task_recovery_policies is None):
+            raise ValueError("task and task recovery policy seeds must be provided together")
+        tasks_by_id = {item.task_id: item for item in tasks.items} if tasks is not None else {}
+        task_policies_by_id = (
+            {item.task_id: item for item in task_recovery_policies.items}
+            if task_recovery_policies is not None
+            else {}
+        )
+        if tasks_by_id.keys() != task_policies_by_id.keys():
+            raise ValueError("task and task recovery policy IDs must match")
+        self._task_source_version = tasks.source_version if tasks is not None else "unconfigured"
+        self._task_rule_version = (
+            task_recovery_policies.rule_version
+            if task_recovery_policies is not None
+            else "unconfigured"
+        )
+        self._tasks = tasks_by_id
+        self._task_recovery_policies = task_policies_by_id
         self._id_factory = id_factory
 
     @classmethod
@@ -127,11 +342,51 @@ class SyntheticCatalog:
         inventory_path: Path,
         policy_path: Path,
         *,
+        equipment_path: Path | None = None,
+        maintenance_policy_path: Path | None = None,
+        task_path: Path | None = None,
+        task_recovery_policy_path: Path | None = None,
         id_factory: Callable[[], UUID] = uuid4,
     ) -> "SyntheticCatalog":
         inventory = _InventorySeed.model_validate_json(inventory_path.read_text(encoding="utf-8"))
         policies = _PolicySeed.model_validate_json(policy_path.read_text(encoding="utf-8"))
-        return cls(inventory, policies, id_factory)
+        if (equipment_path is None) != (maintenance_policy_path is None):
+            raise ValueError("equipment and maintenance policy paths must be provided together")
+        equipment = (
+            _EquipmentSeed.model_validate_json(equipment_path.read_text(encoding="utf-8"))
+            if equipment_path is not None
+            else None
+        )
+        maintenance_policies = (
+            _MaintenancePolicySeed.model_validate_json(
+                maintenance_policy_path.read_text(encoding="utf-8")
+            )
+            if maintenance_policy_path is not None
+            else None
+        )
+        if (task_path is None) != (task_recovery_policy_path is None):
+            raise ValueError("task and task recovery policy paths must be provided together")
+        tasks = (
+            _TaskSeed.model_validate_json(task_path.read_text(encoding="utf-8"))
+            if task_path is not None
+            else None
+        )
+        task_recovery_policies = (
+            _TaskRecoveryPolicySeed.model_validate_json(
+                task_recovery_policy_path.read_text(encoding="utf-8")
+            )
+            if task_recovery_policy_path is not None
+            else None
+        )
+        return cls(
+            inventory,
+            policies,
+            id_factory,
+            equipment,
+            maintenance_policies,
+            tasks,
+            task_recovery_policies,
+        )
 
     @property
     def skus(self) -> frozenset[str]:
@@ -176,6 +431,126 @@ class SyntheticCatalog:
             approval_required=True,
             rule_version=self._rule_version,
             captured_at=captured_at,
+        )
+
+    def equipment_status(
+        self,
+        equipment_id: str,
+        captured_at: datetime,
+    ) -> EquipmentEvidence:
+        try:
+            item = self._equipment[equipment_id]
+        except KeyError:
+            raise EquipmentNotFound from None
+        return EquipmentEvidence(
+            evidence_id=self._id_factory(),
+            equipment_id=item.equipment_id,
+            state=item.state,
+            alert_code=item.alert_code,
+            severity=item.severity,
+            last_heartbeat=item.last_heartbeat,
+            captured_at=captured_at,
+            source_version=self._equipment_source_version,
+        )
+
+    def maintenance_policy_constraints(
+        self,
+        equipment_id: str,
+        captured_at: datetime,
+    ) -> MaintenancePolicyEvidence:
+        try:
+            item = self._maintenance_policies[equipment_id]
+        except KeyError:
+            raise EquipmentNotFound from None
+        return MaintenancePolicyEvidence(
+            evidence_id=self._id_factory(),
+            action="repair_equipment",
+            equipment_id=item.equipment_id,
+            allowed_alert_levels=item.allowed_alert_levels,
+            maximum_heartbeat_age_seconds=item.maximum_heartbeat_age_seconds,
+            priority_mapping=item.priority_mapping,
+            evidence_ttl_seconds=item.evidence_ttl_seconds,
+            approval_required=True,
+            rule_version=self._maintenance_rule_version,
+            captured_at=captured_at,
+        )
+
+    def replace_equipment(
+        self,
+        equipment_id: str,
+        *,
+        state: EquipmentState,
+        alert_code: str | None,
+        severity: AlertSeverity,
+        last_heartbeat: datetime,
+    ) -> None:
+        if equipment_id not in self._equipment:
+            raise EquipmentNotFound
+        self._equipment[equipment_id] = _EquipmentSeedItem(
+            equipment_id=equipment_id,
+            state=state,
+            alert_code=alert_code,
+            severity=severity,
+            last_heartbeat=last_heartbeat,
+        )
+
+    def task_status(self, task_id: str, captured_at: datetime) -> TaskEvidence:
+        try:
+            item = self._tasks[task_id]
+        except KeyError:
+            raise TaskNotFound from None
+        return TaskEvidence(
+            evidence_id=self._id_factory(),
+            task_id=item.task_id,
+            state=item.state,
+            due_at=item.due_at,
+            last_progress_at=item.last_progress_at,
+            blocker_code=item.blocker_code,
+            retry_count=item.retry_count,
+            captured_at=captured_at,
+            source_version=self._task_source_version,
+        )
+
+    def task_recovery_policy_constraints(
+        self, task_id: str, captured_at: datetime
+    ) -> TaskRecoveryPolicyEvidence:
+        try:
+            item = self._task_recovery_policies[task_id]
+        except KeyError:
+            raise TaskNotFound from None
+        return TaskRecoveryPolicyEvidence(
+            evidence_id=self._id_factory(),
+            action="recover_task",
+            task_id=item.task_id,
+            blocked_states=item.blocked_states,
+            overdue_grace_seconds=item.overdue_grace_seconds,
+            maximum_retry_count=item.maximum_retry_count,
+            recovery_action=item.recovery_action,
+            evidence_ttl_seconds=item.evidence_ttl_seconds,
+            approval_required=True,
+            rule_version=self._task_rule_version,
+            captured_at=captured_at,
+        )
+
+    def replace_task(
+        self,
+        task_id: str,
+        *,
+        state: TaskState,
+        due_at: datetime,
+        last_progress_at: datetime,
+        blocker_code: str | None,
+        retry_count: int,
+    ) -> None:
+        if task_id not in self._tasks:
+            raise TaskNotFound
+        self._tasks[task_id] = _TaskSeedItem(
+            task_id=task_id,
+            state=state,
+            due_at=due_at,
+            last_progress_at=last_progress_at,
+            blocker_code=blocker_code,
+            retry_count=retry_count,
         )
 
     def replace_inventory(

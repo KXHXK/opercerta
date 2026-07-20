@@ -1,0 +1,10 @@
+{
+  "source_version": "maintenance-policy-seed-v1",
+  "rule_version": "maintenance-v1",
+  "items": [
+    {"equipment_id": "EQ-PUMP-001", "allowed_alert_levels": ["warning", "critical"], "maximum_heartbeat_age_seconds": 300, "priority_mapping": {"warning": "high", "critical": "urgent", "stale_heartbeat": "urgent"}, "evidence_ttl_seconds": 300, "approval_required": true},
+    {"equipment_id": "EQ-FAN-001", "allowed_alert_levels": ["warning", "critical"], "maximum_heartbeat_age_seconds": 300, "priority_mapping": {"warning": "high", "critical": "urgent", "stale_heartbeat": "urgent"}, "evidence_ttl_seconds": 300, "approval_required": true},
+    {"equipment_id": "EQ-STALE-001", "allowed_alert_levels": ["warning", "critical"], "maximum_heartbeat_age_seconds": 300, "priority_mapping": {"warning": "high", "critical": "urgent", "stale_heartbeat": "urgent"}, "evidence_ttl_seconds": 300, "approval_required": true},
+    {"equipment_id": "EQ-MUTABLE-001", "allowed_alert_levels": ["warning", "critical"], "maximum_heartbeat_age_seconds": 300, "priority_mapping": {"warning": "high", "critical": "urgent", "stale_heartbeat": "urgent"}, "evidence_ttl_seconds": 300, "approval_required": true}
+  ]
+}
