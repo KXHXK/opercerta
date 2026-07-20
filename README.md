@@ -2,7 +2,7 @@
 
 OperCerta 是面向库存异常、设备告警和运营工单的智能运营处置 Agent 独立作品仓库。
 
-> 当前状态：库存补货、设备维修、作业异常恢复三条 FastAPI + LangGraph + FastMCP + PostgreSQL 闭环、演示 JWT/RBAC、42 条固定合成契约评测、Redis 只读缓存、OpenTelemetry 适配、本地 React 控制台与 GitHub Actions 均已有自动化证据；Moonshot AI `kimi-k2.6` 已完成三业务 6 次代表操作/3 条真实模型路径的本地验证；[公开静态项目专题](https://opercerta-kxh.netlify.app)、[单页作品集](https://kxh-agent-portfolio.netlify.app)和 [public GitHub](https://github.com/KXHXK/opercerta)已验证。公开页面不提供后端写入口；生产身份、交互 HTTPS 后端、自动部署和公开 API 尚未完成，生产发布门禁：`CLOSED`。
+> 当前状态：库存补货、设备维修、作业异常恢复三条 FastAPI + LangGraph + FastMCP + PostgreSQL 闭环、演示 JWT/RBAC、42 条固定合成契约评测、Redis 只读缓存、OpenTelemetry 适配、本地 React 控制台与 GitHub Actions 均已有自动化证据；Moonshot AI `kimi-k2.6` 已完成三业务 6 次代表操作/3 条真实模型路径的本地验证。新版零成本展示候选已在功能分支完成：公开根路径为即时打开、零写入的三业务专题，`/engineering` 只在 localhost 开发模式提供 10 步工程链路、10 个真实故障复盘和本地掌握检查，`/console` 保留真实本地控制台。当前 [Netlify 静态项目专题](https://opercerta-kxh.netlify.app)、[单页作品集](https://kxh-agent-portfolio.netlify.app)和 [public GitHub](https://github.com/KXHXK/opercerta)仍是已验证公网入口；新版专题尚待远程 CI、合并和生产替换。公开页面不提供后端写入口；生产身份、交互 HTTPS 后端、自动部署和公开 API 尚未完成，生产发布门禁：`CLOSED`。
 
 ## 当前已验证范围
 
@@ -21,12 +21,13 @@ OperCerta 是面向库存异常、设备告警和运营工单的智能运营处�
 - Public GitHub remote、只读且固定 Action SHA 的四个 PR 快速门禁，以及 `main` 上实际通过的 Compose 业务 smoke、API/MCP 重启恢复和无条件清理。
 - Netlify 公开静态专题、真实部署资源指纹和证据图片响应验证；该站点不连接 API、数据库或 MCP。
 - 用户授权的 Moonshot AI `kimi-k2.6` 代表性验证：三业务各 1 条 query 与 1 条批准路径，共 6 个 operation、3 条真实模型解释路径；报告不保存模型原文，token/成本因 adapter 未暴露 usage 而明确标记不可用。
+- 零成本展示候选本地门禁：前端 16 个测试文件/40 条测试、后端 430 条测试、Ruff、138 文件格式、mypy 62 个源码文件和仓库安全检查全部通过；Mock release Compose 从全新卷启动并完成 API/MCP 重启恢复；1440/768/390 三档浏览器检查无项目固定模块、横向溢出、坏图或控制台告警。该证据不等于新版专题已部署。
 
 三业务评测、Compose 与缓存证据见 [三业务发布前证据](docs/release-evidence/three-business-evaluation-compose.md)，真实模型结果见[真实模型代表性验证](docs/release-evidence/real-model-representative-validation.md)，可靠性内核与历史库存切片证据保留在 `docs/release-evidence/`。中文学习入口为 [核心技术手册](docs/learning/OperCerta核心技术手册.md)、[手动实验手册](docs/learning/OperCerta手动实验手册.md)和[面试讲解](docs/learning/OperCerta面试讲解.md)。这些不是生产 IAM、交互 HTTPS 后端或公开 API 完成声明。
 
 ## 下一实施边界
 
-下一阶段仍只实施 OperCerta。真实模型本地代表性验证已完成；下一关键节点是选择并审批公网交互 HTTPS 的成本与安全方案，其后执行固定提交远程 CI、Release Tag 和个人手动掌握检查。生产发布门禁为 `CLOSED`，关闭前不启动其他项目。
+下一阶段仍只实施 OperCerta。零成本静态展示与本地工程详解已完成本机门禁；下一关键节点是发布功能分支并执行远程 CI，经人工批准后合并，再替换 Netlify 生产专题并同步作品集入口。公网可写 HTTPS 后端不属于本轮零成本方案；生产 IAM、限流/防滥用、备份、高可用、Release Tag 与个人手动掌握检查仍待完成。生产发布门禁为 `CLOSED`，关闭前不启动其他项目。
 
 三业务收口规格与八项 TDD 主计划见 [设计](docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md)和[计划](docs/superpowers/plans/2026-07-20-opercerta-three-business-release.md)。历史库存切片设计仍作为可靠性内核演进记录保留。
 

@@ -1,5 +1,9 @@
 # OperCerta 当前状态
 
+## 最新核验：零成本公开专题与本地工程详解已完成本机门禁
+
+2026-07-20 功能分支 `feat/zero-cost-showcase-walkthrough` 已完成公开根路径、本地 `/engineering` 与本地 `/console` 三种页面职责：公开专题零 API、零写入、只陈述三业务和已验证证据；工程详解仅在开发模式的 localhost/127.0.0.1 渲染，包含 10 步请求链路、三业务差异、10 项技术职责、10 个真实事故复盘和 4 项 localStorage 掌握检查；控制台保持真实本地交互。完整前端为 16 个测试文件/40 条测试，后端为 `430 passed in 106.25s`；Ruff 通过、138 文件格式一致、mypy 检查 62 个源码文件无问题，仓库安全扫描通过。Mock release Compose 使用全新卷启动 PostgreSQL/Redis/MCP/API/Caddy，并在 API/MCP 重启后再次通过恢复验证。浏览器在 1440、768、390 三档检查三个页面，无项目固定/粘性模块、横向溢出、坏图或 console warning/error；学习勾选刷新持久化后已重置。远程 CI、PR 合并、Netlify 生产替换和作品集同步尚未执行，生产门禁仍为 `CLOSED`。证据见 `docs/release-evidence/zero-cost-showcase-engineering-walkthrough.md`。
+
 ## 最新核验：Task 8 真实模型代表性验证已完成
 
 2026-07-20 经用户授权，Moonshot AI `kimi-k2.6` 在本地 release Compose 中完成库存、设备、作业各 1 条 query 与 1 条批准路径，共 6 个 operation、3 条真实模型路径；三条写路径分别生成唯一补货、维修、作业恢复工单。实现提交 `b517ab8`。模型兼容修复后完整后端 `429 passed in 110.61s`，Ruff、138 文件格式、mypy 62 个源文件、92 个锁定包和仓库安全扫描通过；Mock release Compose 新鲜退出码 0、耗时 129.1 秒并自动清理。报告没有模型原文，token/成本因 adapter 未暴露 usage 而标记不可用。证据见 `docs/release-evidence/real-model-representative-validation.md`。生产门禁仍为 `CLOSED`。
@@ -125,7 +129,7 @@
 
 ## 下一步
 
-继续只实施 OperCerta。下一步进入 Task 8 外部门禁：向用户提出公网交互 HTTPS 的成本/安全选项并取得批准，再部署固定提交并验证限流、重置、回滚和作品集入口。用户掌握检查、当前远程 CI 和 Release Tag 随后执行。
+继续只实施 OperCerta。下一步先发布 `feat/zero-cost-showcase-walkthrough`，执行当前 GitHub Actions 并建立 PR；全绿后由用户批准是否合并。合并后再生产替换 Netlify 静态专题并同步作品集入口。公网可写 HTTPS 后端、生产 IAM/限流/备份不属于当前零成本静态方案，仍需独立成本与安全审批；用户手动掌握、Release Tag 也尚未完成。
 
 ## 发布门禁
 

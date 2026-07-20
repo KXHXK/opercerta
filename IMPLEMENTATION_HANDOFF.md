@@ -2,6 +2,8 @@
 
 ## 当前检查点
 
+- 2026-07-20 零成本求职展示与本地工程详解 Task 1--6 已在 `feat/zero-cost-showcase-walkthrough` 完成本机门禁：公开根路径只展示已验证的三业务、8 步受控写路径、可靠性证据和诚实边界；`/engineering` 只在 localhost 开发模式提供 10 步源码/数据库/失败路径拆解、10 个真实事故复盘和 4 项本地掌握检查；`/console` 保留真实本地控制台。前端 16 文件/40 条、后端 430 条、Ruff/138 文件格式/mypy 62 个源码文件/安全扫描通过；Mock release Compose 全新启动并完成 API/MCP 重启恢复；1440/768/390 三档无项目固定模块、横向溢出、坏图或浏览器告警。实现提交为 `e3a78bc`、`129a6eb`、`666b518`、`1e57803`、`540d60c`。尚未发布分支、运行当前远程 CI、合并或替换 Netlify 生产站；生产门禁仍为 `CLOSED`。证据见 `docs/release-evidence/zero-cost-showcase-engineering-walkthrough.md`。
+
 - 2026-07-20 已完成用户授权的 Moonshot AI `kimi-k2.6` 三业务代表性验证：每个业务执行 1 条 query 与 1 条批准路径，共 6 个 operation、3 条真实模型解释路径，三种唯一工单均落库。实现提交 `b517ab8`；随后完整后端 `429 passed in 110.61s`、Ruff/138 文件格式/mypy 62 个源文件/92 个锁定包/安全扫描通过，Mock release Compose 新鲜退出码 0。报告不保存模型原文，adapter 未暴露 token/cost usage，因此不估算。公网交互 HTTPS、生产治理、用户掌握、当前远程 CI 与 Release Tag 仍未完成，生产门禁保持 `CLOSED`。证据见 `docs/release-evidence/real-model-representative-validation.md`。
 
 - 2026-07-20 三业务主计划 Task 8 本地发布候选阶段：提交 `a3994ef` 新增 Caddy/React 多阶段镜像、内部服务不暴露端口的 release Compose、一键三业务/重启 smoke、三份中文学习材料，以及设备审批哈希稳定性和代理非 JSON 故障窗口修复。该检查点后端 `422 passed in 94.96s`，Ruff/136 文件格式/mypy 62 个源文件/锁定依赖/安全扫描通过；前端 12 文件/25 条测试与构建通过；release smoke 退出码 0、70.8 秒。当时真实模型尚未验证，现已由上条独立证据补齐；公网交互 HTTPS、生产治理、用户掌握、当前远程 CI 和 Release Tag 仍未完成，生产门禁保持 `CLOSED`。证据见 `docs/release-evidence/three-business-release.md`。
@@ -44,7 +46,7 @@
 ## 新对话必须先做
 
 1. 先阅读 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md` 和最近每日日志，再阅读相关设计、计划、交接和 Git 状态。
-2. 只实施 OperCerta；三业务、42 条固定评测、Redis/Trace adapter、WSL2 Compose、Caddy 本地发布候选、真实模型代表性验证、演示 JWT/RBAC、单页控制台、GitHub Actions、静态专题、作品集和中文学习包已有对应阶段证据。下一步先让用户批准公网交互 HTTPS 的成本/安全方案，再做固定提交远程 CI、Release Tag 与掌握检查；不启动其他项目。
+2. 只实施 OperCerta；三业务、42 条固定评测、Redis/Trace adapter、WSL2 Compose、Caddy 本地发布候选、真实模型代表性验证、演示 JWT/RBAC、单页控制台、GitHub Actions、静态专题、作品集和中文学习包已有对应阶段证据。零成本展示分支当前下一步是推送、远程 CI 与 PR；合并必须人工批准，合并后才替换 Netlify 静态专题并同步作品集。公网可写后端仍关闭；不启动其他项目。
 3. 运行集成测试前，以不回显方式从已忽略 `.env.local` 加载 `OPERCERTA_DATABASE_URL`；不得提交该文件或任何凭据。
 4. 每个效果数字都保留基线、测试数据、测量脚本和结果证据；指标未测出前使用目标值或空值，不写成已实现结果。
 5. 使用公开或合成数据，从零编写全部代码和文档，不导入任何原单位源码、数据、截图、模型、品牌或内部规则。
@@ -58,4 +60,4 @@
 
 ## 可复制到新对话的启动语
 
-> 工作目录为本 OperCerta 仓库根目录。请先读取 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md`、最近每日日志、`README.md`、`IMPLEMENTATION_HANDOFF.md`、`docs/specs/` 下的四份设计文件及当前相关规格、计划和证据；三业务、42 条固定评测、Redis/Trace adapter、WSL2 Compose、Caddy 本地发布候选、真实模型代表性验证、JWT/RBAC、单页控制台、GitHub Actions、静态专题、作品集和中文学习包已有对应阶段证据。下一步只实施获批后的公网交互发布、远程门禁和掌握检查，不复用旧公司材料，不虚构指标，不启动其他项目。
+> 工作目录为本 OperCerta 仓库根目录。请先读取 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md`、最近每日日志、`README.md`、`IMPLEMENTATION_HANDOFF.md`、`docs/specs/` 下的四份设计文件及当前相关规格、计划和证据；零成本展示功能分支已完成本机门禁，下一步执行分支发布、远程 CI、PR 与人工批准合并，之后才替换 Netlify 静态专题并同步作品集。公开根路径只读、`/engineering` 仅 localhost、`/console` 仅本地真实演示；不复用旧公司材料，不虚构指标，不启动其他项目。

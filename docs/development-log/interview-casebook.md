@@ -221,6 +221,15 @@
 - **改进：** 配置诊断只输出 `SET/UNSET`、长度或白名单安全字段；不打印“脱敏后的整行”，因为脱敏规则自身也可能失效。
 - **面试表达：** “秘密一旦进入可持久化输出，就不能靠撤回或删除证明安全。我的动作是缩小影响面、立即轮换、验证一致性，再把诊断方式改成只输出状态。”
 
+## 26. 开发机配置不能整体继承到测试进程
+
+- **问题：** 新功能分支首次后端基线出现一条失败，表现为“真实模型配置缺项应失败关闭”的测试没有按预期抛错。
+- **根因：** 测试启动命令把本地 `.env.local` 的所有变量注入当前进程，使本应验证缺项的用例意外获得完整真实模型配置；失败来自测试 harness 的环境污染，不是生产实现回归。
+- **修复：** 停止整体导入，只以不回显方式加载 PostgreSQL 集成测试必需的 `OPERCERTA_DATABASE_URL`；模型相关环境保持未设置。真实模型验证继续使用独立白名单脚本。
+- **验证：** 最小环境基线全绿；新增静态展示契约后正式后端门禁为 430/430，真实模型失败关闭测试仍有效。
+- **限制：** 本机测试数据库 URL 仍属于秘密配置，必须位于 ignored 文件且不得出现在日志；CI 应继续显式声明每个变量，而非继承开发 shell。
+- **面试表达：** “环境变量也是测试输入。我遇到的失败不是业务回归，而是 harness 过度授权；我把测试环境改成最小能力，只注入数据库连接，让真实模型缺项测试重新验证正确边界。”
+
 ## 相关证据
 
 - `docs/release-evidence/approval-atomicity.md`
@@ -234,3 +243,4 @@
 - `docs/release-evidence/three-business-release.md`
 - `docs/release-evidence/performance-cache-matrix.md`
 - `docs/release-evidence/real-model-representative-validation.md`
+- `docs/release-evidence/zero-cost-showcase-engineering-walkthrough.md`
