@@ -1,5 +1,7 @@
 import { ENGINEERING_STEPS } from "./engineering-content";
 import { FlowStepDetail } from "./FlowStepDetail";
+import { IncidentReview } from "./IncidentReview";
+import { MasteryChecklist } from "./MasteryChecklist";
 import { ScenarioMatrix } from "./ScenarioMatrix";
 import { TechnologyMap } from "./TechnologyMap";
 
@@ -18,6 +20,8 @@ export function EngineeringWalkthrough() {
       <FlowStepDetail steps={ENGINEERING_STEPS} />
       <ScenarioMatrix />
       <TechnologyMap />
+      <IncidentReview />
+      <MasteryChecklist />
     </main>
   );
 }

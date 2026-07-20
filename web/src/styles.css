@@ -1057,3 +1057,126 @@ code {
     gap: 7px;
   }
 }
+
+.incident-intro,
+.mastery-section > p:not(.section-kicker) {
+  max-width: 72ch;
+  color: var(--muted);
+  line-height: 1.75;
+}
+
+.incident-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 30px;
+}
+
+.incident-list details {
+  border: 1px solid #cfd4ce;
+  background: var(--surface);
+}
+
+.incident-list summary {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 12px;
+  padding: 18px 20px;
+  cursor: pointer;
+  font-weight: 780;
+  line-height: 1.5;
+}
+
+.incident-list summary span {
+  color: var(--accent);
+  font: 750 0.76rem/2 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.incident-list details[open] summary {
+  color: #f8fff9;
+  background: #254f43;
+}
+
+.incident-list details[open] summary span {
+  color: #b9dfd0;
+}
+
+.incident-list dl {
+  margin: 0;
+  padding: 4px 20px 22px 74px;
+}
+
+.incident-list dl div {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 16px;
+  padding: 13px 0;
+  border-top: 1px solid var(--line);
+}
+
+.incident-list dt {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.incident-list dd {
+  margin: 0;
+  line-height: 1.7;
+}
+
+.mastery-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.mastery-list label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 13px;
+  align-items: start;
+  padding: 18px;
+  border: 1px solid #cfd4ce;
+  background: var(--surface);
+  cursor: pointer;
+  line-height: 1.6;
+}
+
+.mastery-list input {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0.18rem 0 0;
+  accent-color: var(--accent);
+}
+
+.mastery-section > button {
+  min-height: 40px;
+  margin-top: 18px;
+  padding: 8px 14px;
+  border: 1px solid #9fa8a1;
+  border-radius: 999px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.mastery-section > button:hover {
+  color: var(--risk);
+  border-color: var(--risk);
+}
+
+@media (max-width: 800px) {
+  .incident-list dl {
+    padding: 4px 16px 18px;
+  }
+
+  .incident-list dl div,
+  .mastery-list {
+    grid-template-columns: 1fr;
+  }
+
+  .incident-list dl div {
+    gap: 6px;
+  }
+}

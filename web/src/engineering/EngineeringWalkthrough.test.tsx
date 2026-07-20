@@ -36,3 +36,14 @@ it("links selected steps to inspectable source and automated evidence", () => {
   expect(screen.getByText("为什么前端不能提交 approver identity？")).toBeInTheDocument();
   expect(screen.getByText(/身份或 API 不可用时显示固定安全提示/)).toBeInTheDocument();
 });
+
+it("turns real incidents into local interview review material", () => {
+  render(<EngineeringWalkthrough />);
+
+  expect(screen.getByRole("heading", { name: "真实故障复盘" })).toBeInTheDocument();
+  expect(screen.getAllByText("面试表达")).toHaveLength(10);
+  expect(screen.getByText("WSL2 功能启用后被 Windows 回滚")).toBeInTheDocument();
+  expect(screen.getByText("OpenAI-compatible 不等于参数完全兼容")).toBeInTheDocument();
+  expect(screen.getByText("本地 Compose 配置误回显后立即轮换")).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "掌握检查" })).toBeInTheDocument();
+});
