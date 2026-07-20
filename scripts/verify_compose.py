@@ -14,6 +14,13 @@ from uuid import UUID
 RECOVERY_MARKER = Path("tmp/compose-recovery-operation.txt")
 
 
+def decode_response_body(body: bytes) -> Any | None:
+    try:
+        return json.loads(body)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return None
+
+
 def request(
     method: str,
     path: str,
@@ -29,9 +36,9 @@ def request(
         http_request.add_header(name, value)
     try:
         with urlopen(http_request, timeout=10) as response:
-            return response.status, json.loads(response.read())
+            return response.status, decode_response_body(response.read())
     except HTTPError as error:
-        return error.code, json.loads(error.read())
+        return error.code, decode_response_body(error.read())
 
 
 def postgres_scalar(sql: str) -> str:
@@ -174,11 +181,21 @@ def main() -> None:
             "approved",
             approver_headers,
         )
-        assert approved_status == 202 and approved["status"] == "completed", (
-            object_type,
-            approved_status,
-            approved,
-        )
+        if approved_status != 202 or approved["status"] != "completed":
+            _, failed_detail = request(
+                "GET",
+                f"/api/v1/operations/{operation_id}",
+                headers=operator_headers,
+            )
+            raise AssertionError(
+                (
+                    object_type,
+                    approved_status,
+                    approved,
+                    failed_detail.get("error"),
+                    failed_detail.get("audit_events"),
+                )
+            )
         _, final = request(
             "GET",
             f"/api/v1/operations/{operation_id}",

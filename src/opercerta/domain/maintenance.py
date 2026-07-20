@@ -215,11 +215,15 @@ def assess_maintenance(
 
     facts: dict[str, JsonValue] = {
         "alert_code": alert_code,
+        "alert_allowed": alert_allowed,
         "equipment_id": bundle.equipment.equipment_id,
-        "heartbeat_age_seconds": heartbeat_age,
+        "heartbeat_stale": stale,
+        "last_heartbeat": bundle.equipment.last_heartbeat.isoformat(),
         "maintenance_required": maintenance_required,
         "priority": priority.value if priority is not None else None,
         "reason": reason,
+        "severity": bundle.equipment.severity.value,
+        "source_version": bundle.equipment.source_version,
         "state": bundle.equipment.state.value,
     }
     return MaintenanceAssessment(

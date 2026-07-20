@@ -96,6 +96,17 @@ def test_critical_alert_requires_urgent_repair() -> None:
     assert assessment.reason == "alert"
 
 
+def test_maintenance_hash_is_stable_while_source_facts_and_classification_are_unchanged() -> None:
+    evidence = bundle()
+
+    first = assess_maintenance(evidence, NOW)
+    one_second_later = assess_maintenance(evidence, NOW + timedelta(seconds=1))
+
+    assert first.heartbeat_age_seconds == 60
+    assert one_second_later.heartbeat_age_seconds == 61
+    assert first.decision_facts_hash == one_second_later.decision_facts_hash
+
+
 def test_stale_heartbeat_requires_repair_after_not_at_boundary() -> None:
     boundary = assess_maintenance(
         bundle(

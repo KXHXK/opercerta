@@ -1,0 +1,86 @@
+services:
+  postgres:
+    image: postgres:18
+    env_file: .env.compose
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:8.8.0-trixie
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  bootstrap:
+    build: .
+    env_file: .env.compose
+    command: ["python", "-m", "opercerta.runtime.bootstrap"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  mcp:
+    build: .
+    env_file: .env.compose
+    command: ["python", "-m", "opercerta.runtime.mcp"]
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8001/health/ready').read()"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: .
+    env_file: .env.compose
+    environment:
+      OPERCERTA_REDIS_URL: redis://redis:6379/0
+      OPERCERTA_CACHE_ENABLED: "true"
+      OPERCERTA_CACHE_TTL_SECONDS: "60"
+      OPERCERTA_TOOL_MODE: parallel
+      OPERCERTA_METRICS_ENABLED: "false"
+    command: ["python", "-m", "opercerta.runtime.api"]
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
+      mcp:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8080/health/ready').read()"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  caddy:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+    environment:
+      OPERCERTA_PUBLIC_ADDRESS: ${OPERCERTA_PUBLIC_ADDRESS:-http://localhost}
+    ports:
+      - "${OPERCERTA_HTTP_PORT:-80}:80"
+      - "${OPERCERTA_HTTPS_PORT:-443}:443"
+      - "${OPERCERTA_HTTPS_PORT:-443}:443/udp"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
