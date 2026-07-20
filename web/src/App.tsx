@@ -8,7 +8,9 @@ import { AuditTimeline } from "./components/AuditTimeline";
 import { OperationControls } from "./components/OperationControls";
 import { OperationDetail } from "./components/OperationDetail";
 import { ProjectBoundary } from "./components/ProjectBoundary";
+import { EngineeringWalkthrough } from "./engineering/EngineeringWalkthrough";
 import { resolveConsoleApiBaseUrl } from "./runtime/console-runtime";
+import { resolvePageKind } from "./runtime/page-runtime";
 import { DemoSession, type DemoRole } from "./session";
 import type { OperationAction, ScenarioDefinition } from "./scenarios";
 import { ConsoleUnavailable } from "./showcase/ConsoleUnavailable";
@@ -123,11 +125,26 @@ function ConsoleApp({ apiBaseUrl }: { apiBaseUrl: string }) {
   );
 }
 
-export default function App() {
-  if (window.location.pathname === "/") return <ShowcasePage />;
-  if (window.location.pathname === "/console") {
-    const apiBaseUrl = resolveConsoleApiBaseUrl(window.location.hostname);
+type AppProps = {
+  development?: boolean;
+  hostname?: string;
+};
+
+export default function App({
+  development = import.meta.env.DEV,
+  hostname = window.location.hostname,
+}: AppProps = {}) {
+  const page = resolvePageKind(window.location.pathname, hostname, development);
+  if (page === "showcase") return <ShowcasePage />;
+  if (page === "engineering") return <EngineeringWalkthrough />;
+  if (page === "console") {
+    const apiBaseUrl = resolveConsoleApiBaseUrl(hostname);
     return apiBaseUrl === null ? <ConsoleUnavailable /> : <ConsoleApp apiBaseUrl={apiBaseUrl} />;
   }
-  return <main className="console-unavailable"><h1>页面不存在</h1><a href="/">返回项目专题</a></main>;
+  return (
+    <main className="not-found">
+      <h1>页面不存在</h1>
+      <a href="/">返回项目专题</a>
+    </main>
+  );
 }

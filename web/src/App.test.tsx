@@ -20,6 +20,23 @@ it("renders the static showcase at the root without calling fetch", () => {
   expect(fetchMock).not.toHaveBeenCalled();
 });
 
+it("renders the engineering walkthrough only on local development", () => {
+  window.history.pushState({}, "", "/engineering");
+
+  render(<App development hostname="localhost" />);
+
+  expect(screen.getByRole("heading", { name: "OperCerta 工程拆解" })).toBeInTheDocument();
+});
+
+it("does not expose the engineering walkthrough on the public host", () => {
+  window.history.pushState({}, "", "/engineering");
+
+  render(<App development={false} hostname="opercerta-kxh.netlify.app" />);
+
+  expect(screen.getByRole("heading", { name: "页面不存在" })).toBeInTheDocument();
+  expect(screen.queryByText("掌握检查")).not.toBeInTheDocument();
+});
+
 it("renders the OperCerta console shell", () => {
   render(<App />);
 
