@@ -1,5 +1,6 @@
 from collections.abc import Sequence
-from uuid import UUID
+from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
 from pydantic import BaseModel
@@ -20,20 +21,31 @@ from opercerta.domain.agent import (
     VerificationDecision,
 )
 from opercerta.domain.contracts import OperationRequest
+from opercerta.tools.catalog import SyntheticCatalog
 from opercerta.workflow.agent_controlled_action_graph import (
     build_agent_investigation_graph,
     build_agent_investigation_initial_state,
 )
 
+ROOT = Path(__file__).resolve().parents[3]
+NOW = datetime(2026, 7, 16, 8, 0, tzinfo=UTC)
 
-class SyntheticEvidence(BaseModel):
-    evidence_id: UUID
-    kind: str
-    object_id: str
+
+@pytest.fixture(scope="module")
+def catalog() -> SyntheticCatalog:
+    return SyntheticCatalog.load(
+        ROOT / "data" / "synthetic" / "inventory.json",
+        ROOT / "data" / "synthetic" / "replenishment_policies.json",
+        equipment_path=ROOT / "data" / "synthetic" / "equipment.json",
+        maintenance_policy_path=ROOT / "data" / "synthetic" / "maintenance_policies.json",
+        task_path=ROOT / "data" / "synthetic" / "tasks.json",
+        task_recovery_policy_path=ROOT / "data" / "synthetic" / "task_recovery_policies.json",
+    )
 
 
 class FakeReadGateway:
-    def __init__(self) -> None:
+    def __init__(self, catalog: SyntheticCatalog) -> None:
+        self._catalog = catalog
         self.calls: list[tuple[ReadToolName, dict[str, object]]] = []
 
     async def read_agent_tool(
@@ -42,12 +54,18 @@ class FakeReadGateway:
         arguments: dict[str, object],
     ) -> BaseModel:
         self.calls.append((name, arguments))
-        object_id = next(value for key, value in arguments.items() if key != "action")
-        return SyntheticEvidence(
-            evidence_id=UUID(int=len(self.calls)),
-            kind=name.value,
-            object_id=str(object_id),
-        )
+        if name is ReadToolName.INVENTORY_SNAPSHOT:
+            return self._catalog.inventory_snapshot(str(arguments["sku"]), NOW)
+        if name is ReadToolName.EQUIPMENT_STATUS:
+            return self._catalog.equipment_status(str(arguments["equipment_id"]), NOW)
+        if name is ReadToolName.TASK_STATUS:
+            return self._catalog.task_status(str(arguments["task_id"]), NOW)
+        action = arguments["action"]
+        if action == "replenish_inventory":
+            return self._catalog.policy_constraints(str(arguments["sku"]), NOW)
+        if action == "repair_equipment":
+            return self._catalog.maintenance_policy_constraints(str(arguments["equipment_id"]), NOW)
+        return self._catalog.task_recovery_policy_constraints(str(arguments["task_id"]), NOW)
 
 
 class ScriptedAgentModel:
@@ -153,6 +171,7 @@ async def test_three_scenarios_share_agent_investigation_loop(
     subject_tool: str,
     subject_arguments: dict[str, object],
     policy_arguments: dict[str, object],
+    catalog: SyntheticCatalog,
 ) -> None:
     request = OperationRequest(
         message="执行有限业务查询",
@@ -170,8 +189,8 @@ async def test_three_scenarios_share_agent_investigation_loop(
             )
         ]
     )
-    gateway = FakeReadGateway()
-    graph = build_agent_investigation_graph(model, gateway)
+    gateway = FakeReadGateway(catalog)
+    graph = build_agent_investigation_graph(model, gateway, clock=lambda: NOW)
 
     result = await graph.ainvoke(build_agent_investigation_initial_state(request))
 
@@ -185,7 +204,9 @@ async def test_three_scenarios_share_agent_investigation_loop(
 
 
 @pytest.mark.asyncio
-async def test_missing_policy_evidence_causes_one_bounded_replan() -> None:
+async def test_missing_policy_evidence_causes_one_bounded_replan(
+    catalog: SyntheticCatalog,
+) -> None:
     request = OperationRequest(
         message="查询库存",
         requested_action="query",
@@ -209,8 +230,8 @@ async def test_missing_policy_evidence_causes_one_bounded_replan() -> None:
             ),
         ]
     )
-    gateway = FakeReadGateway()
-    graph = build_agent_investigation_graph(model, gateway)
+    gateway = FakeReadGateway(catalog)
+    graph = build_agent_investigation_graph(model, gateway, clock=lambda: NOW)
 
     result = await graph.ainvoke(build_agent_investigation_initial_state(request))
 
@@ -222,7 +243,7 @@ async def test_missing_policy_evidence_causes_one_bounded_replan() -> None:
 
 
 @pytest.mark.asyncio
-async def test_model_cannot_change_trusted_goal() -> None:
+async def test_model_cannot_change_trusted_goal(catalog: SyntheticCatalog) -> None:
     request = OperationRequest(
         message="查询库存",
         requested_action="query",
@@ -235,8 +256,8 @@ async def test_model_cannot_change_trusted_goal() -> None:
             candidate = await super().encode_goal(context)
             return candidate.model_copy(update={"object_id": "SKU-OTHER"})
 
-    gateway = FakeReadGateway()
-    graph = build_agent_investigation_graph(GoalDriftModel([]), gateway)
+    gateway = FakeReadGateway(catalog)
+    graph = build_agent_investigation_graph(GoalDriftModel([]), gateway, clock=lambda: NOW)
 
     result = await graph.ainvoke(build_agent_investigation_initial_state(request))
 
@@ -246,7 +267,9 @@ async def test_model_cannot_change_trusted_goal() -> None:
 
 
 @pytest.mark.asyncio
-async def test_planner_object_drift_fails_before_mcp_call() -> None:
+async def test_planner_object_drift_fails_before_mcp_call(
+    catalog: SyntheticCatalog,
+) -> None:
     request = OperationRequest(
         message="查询库存",
         requested_action="query",
@@ -266,8 +289,8 @@ async def test_planner_object_drift_fails_before_mcp_call() -> None:
             )
         ]
     )
-    gateway = FakeReadGateway()
-    graph = build_agent_investigation_graph(model, gateway)
+    gateway = FakeReadGateway(catalog)
+    graph = build_agent_investigation_graph(model, gateway, clock=lambda: NOW)
 
     result = await graph.ainvoke(build_agent_investigation_initial_state(request))
 

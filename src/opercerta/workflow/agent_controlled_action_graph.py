@@ -1,3 +1,5 @@
+from collections.abc import Callable
+from datetime import datetime
 from typing import Literal, TypedDict, cast
 
 from langgraph.graph import END, START, StateGraph
@@ -7,7 +9,12 @@ from pydantic import JsonValue
 from opercerta.agent.harness import AgentContractViolation, AgentHarness
 from opercerta.agent.tool_executor import ReadToolGateway, ToolExecutor
 from opercerta.agent.tool_policy import ToolPolicy
+from opercerta.application.scenario_registry import (
+    ScenarioRegistry,
+    build_default_scenario_registry,
+)
 from opercerta.domain.agent import (
+    AgentAnalysis,
     AgentBudget,
     AnalysisContext,
     GoalContext,
@@ -36,6 +43,9 @@ class AgentInvestigationState(TypedDict):
     authorized_calls: list[dict[str, JsonValue]]
     observations: list[dict[str, JsonValue]]
     analysis: dict[str, JsonValue] | None
+    evidence: dict[str, JsonValue] | None
+    assessment: dict[str, JsonValue] | None
+    decision_plan: dict[str, JsonValue] | None
     replan_count: int
     model_call_count: int
     status: Literal["running", "completed", "failed"]
@@ -106,6 +116,9 @@ def build_agent_investigation_initial_state(
         authorized_calls=[],
         observations=[],
         analysis=None,
+        evidence=None,
+        assessment=None,
+        decision_plan=None,
         replan_count=0,
         model_call_count=0,
         status="running",
@@ -119,6 +132,8 @@ def build_agent_investigation_graph(
     *,
     budget: AgentBudget | None = None,
     checkpointer: object | None = None,
+    registry: ScenarioRegistry | None = None,
+    clock: Callable[[], datetime] | None = None,
 ) -> AgentInvestigationGraph:
     active_budget = budget or AgentBudget(
         max_model_calls=4,
@@ -129,6 +144,9 @@ def build_agent_investigation_graph(
     )
     harness = AgentHarness(active_budget)
     executor = ToolExecutor(gateway)
+    scenario_registry = registry or build_default_scenario_registry()
+    if clock is None:
+        raise ValueError("agent investigation clock is required")
 
     def intent(state: AgentInvestigationState) -> IntentEnvelope:
         return IntentEnvelope.model_validate(state["intent"])
@@ -244,6 +262,28 @@ def build_agent_investigation_graph(
         return {
             "analysis": cast(dict[str, JsonValue], analyzed.model_dump(mode="json")),
             "model_call_count": state["model_call_count"] + 1,
+        }
+
+    def calculate_policy_facts(state: AgentInvestigationState) -> dict[str, object]:
+        analyzed = AgentAnalysis.model_validate(state["analysis"])
+        try:
+            result = scenario_registry.evaluate_agent_result(
+                goal(state),
+                tuple(observations(state)),
+                analyzed,
+                clock(),
+            )
+        except ValueError as error:
+            code = getattr(error, "code", "policy_guard_failed")
+            return {"status": "failed", "error_code": code}
+        return {
+            "evidence": cast(dict[str, JsonValue], result.evidence.model_dump(mode="json")),
+            "assessment": cast(dict[str, JsonValue], result.assessment.model_dump(mode="json")),
+            "decision_plan": (
+                cast(dict[str, JsonValue], result.plan.model_dump(mode="json"))
+                if result.plan is not None
+                else None
+            ),
             "status": "completed",
         }
 
@@ -262,6 +302,7 @@ def build_agent_investigation_graph(
     builder.add_node("execute_read_tools", execute_read_tools)
     builder.add_node("prepare_replan", prepare_replan)
     builder.add_node("analyze_observations", analyze_observations)
+    builder.add_node("calculate_policy_facts", calculate_policy_facts)
     builder.add_node("mark_failed", mark_failed)
     builder.add_edge(START, "encode_goal")
     builder.add_conditional_edges(
@@ -284,6 +325,7 @@ def build_agent_investigation_graph(
         },
     )
     builder.add_edge("prepare_replan", "plan_investigation")
-    builder.add_edge("analyze_observations", END)
+    builder.add_edge("analyze_observations", "calculate_policy_facts")
+    builder.add_edge("calculate_policy_facts", END)
     builder.add_edge("mark_failed", END)
     return builder.compile(checkpointer=checkpointer)  # type: ignore[arg-type]
