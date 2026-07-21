@@ -274,26 +274,29 @@ git commit -m "feat: enforce read-only agent tool loop"
 
 - Create: `src/opercerta/workflow/agent_controlled_action_graph.py`
 - Modify: `src/opercerta/workflow/controlled_action_graph.py`
-- Modify: `src/opercerta/domain/operation_state.py`
+- Modify: `src/opercerta/workflow/replenishment_graph.py`
+- Modify: `src/opercerta/workflow/equipment_maintenance_graph.py`
+- Modify: `src/opercerta/workflow/task_recovery_graph.py`
+- Modify: `src/opercerta/workflow/replenishment_recovery.py`
+- Modify: `src/opercerta/domain/model_gateway.py`
 - Modify: `src/opercerta/application/scenario_registry.py`
-- Modify: `src/opercerta/application/operation_runner.py`
-- Modify: `src/opercerta/infrastructure/db/operation_repository.py`
-- Modify: `src/opercerta/api/models.py`
+- Modify: `src/opercerta/api/app.py`
 - Test: `tests/integration/workflow/test_agent_controlled_action_graph.py`
-- Test: `tests/integration/api/test_agent_operation_detail.py`
+- Test: `tests/unit/application/test_scenario_registry_agent.py`
+- Test: `tests/integration/workflow/test_controlled_action_graph.py`
 - Preserve/regress: existing three scenario workflow/API suites
 
-- [ ] **Step 1: 写无 RAG 的真实 Agent 主链 RED 测试**
+- [x] **Step 1: 写无 RAG 的真实 Agent 主链 RED 测试**
 
 每个场景至少覆盖：有限请求 → GoalEncoder → Planner → 允许的 MCP 只读工具 → Observation → Analyst → Policy Guard。查询必须完成且零审批/零工单；创建必须生成由确定性代码计算的 DecisionPlan 并进入 `awaiting_approval`。模型提出不同对象、数量或风险时由 Harness/Guard 覆盖或拒绝。
 
-- [ ] **Step 2: 运行 RED**
+- [x] **Step 2: 运行 RED**
 
 ```bash
 uv run pytest tests/integration/workflow/test_agent_controlled_action_graph.py tests/integration/api/test_agent_operation_detail.py -q
 ```
 
-- [ ] **Step 3: 构建共享 LangGraph 有界循环**
+- [x] **Step 3: 构建共享 LangGraph 有界循环**
 
 节点顺序：
 
@@ -305,17 +308,19 @@ receive_intent → encode_goal → plan_investigation → validate_investigation
 
 证据不足且仍有预算时回到 `plan_investigation`，最多一次；其他非法状态进入显式安全终态。场景注册表负责把 Observation 转回现有三业务严格 evidence/assessment/plan，模型文本不能替代这些类型。
 
-- [ ] **Step 4: 运行 GREEN 和旧三业务回归**
+实现修订：Agent 子图用独立 checkpoint namespace 运行，完成后只把受限 `AgentAnalysis` 交给原三业务图；原图重新验证 evidence、重新计算 assessment/plan，并继续独占审批 interrupt、批准后复核、幂等写和恢复。Agent Trace/Observation 的持久化 API 与 SSE 展示统一留到 Task 7，避免在 Task 4 先造一套临时 operation detail 字段再迁移。
+
+- [x] **Step 4: 运行 GREEN 和旧三业务回归**
 
 ```bash
 uv run pytest tests/integration/workflow/test_agent_controlled_action_graph.py tests/integration/api/test_agent_operation_detail.py -q
 uv run pytest tests/integration/workflow tests/integration/api/test_operations_api.py -q
 ```
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
-git add src/opercerta/workflow/agent_controlled_action_graph.py src/opercerta/workflow/controlled_action_graph.py src/opercerta/domain/operation_state.py src/opercerta/application src/opercerta/infrastructure/db/operation_repository.py src/opercerta/api/models.py tests/integration/workflow/test_agent_controlled_action_graph.py tests/integration/api/test_agent_operation_detail.py
+git add src/opercerta/workflow src/opercerta/domain/model_gateway.py src/opercerta/application/scenario_registry.py src/opercerta/api/app.py tests/integration/workflow/test_agent_controlled_action_graph.py tests/integration/workflow/test_controlled_action_graph.py tests/unit/application/test_scenario_registry_agent.py docs/superpowers/plans/2026-07-21-opercerta-agent-core-architecture.md docs/development-log/daily/2026-07-21.md
 git commit -m "feat: run three scenarios through bounded agent graph"
 ```
 

@@ -193,6 +193,7 @@ class ReplenishmentRecoveryCoordinator:
                 detail.error.model_dump(mode="json") if detail.error is not None else None,
             ),
             replayed=False,
+            agent_analysis=None,
         )
 
     def _completed_node_for(self, detail: OperationDetail) -> str:

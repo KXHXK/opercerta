@@ -75,7 +75,12 @@ from opercerta.domain.errors import (
     DependencyUnavailable,
     OperationNotFound,
 )
-from opercerta.domain.model_gateway import MockModelGateway, ModelGateway
+from opercerta.domain.model_gateway import (
+    AgentModelGateway,
+    MockAgentModelGateway,
+    MockModelGateway,
+    ModelGateway,
+)
 from opercerta.infrastructure.cache import (
     EvidenceCache,
     NullEvidenceCache,
@@ -87,6 +92,9 @@ from opercerta.infrastructure.db.evidence_repository import EvidenceRepository
 from opercerta.infrastructure.db.operation_repository import OperationRepository
 from opercerta.infrastructure.db.replenishment_operation_repository import (
     OperationDetail,
+)
+from opercerta.infrastructure.langchain_model_gateway import (
+    LangChainOpenAIModelGateway,
 )
 from opercerta.infrastructure.mcp_gateway import McpToolGateway
 from opercerta.infrastructure.model_gateway import OpenAICompatibleModelGateway
@@ -392,8 +400,18 @@ async def _open_production_runtime(
                     timeout_seconds=float(settings.mcp_timeout_seconds),
                     disable_thinking=settings.model_thinking_mode == "disabled",
                 )
+                agent_model_gateway: AgentModelGateway = (
+                    LangChainOpenAIModelGateway.from_openai_compatible(
+                        base_url=str(settings.model_base_url),
+                        model_name=settings.model_name,
+                        api_key=settings.model_api_key,
+                        timeout_seconds=float(settings.mcp_timeout_seconds),
+                        disable_thinking=settings.model_thinking_mode == "disabled",
+                    )
+                )
             else:
                 model_gateway = MockModelGateway()
+                agent_model_gateway = MockAgentModelGateway()
             graph = build_controlled_action_graph(
                 saver,
                 operations,
@@ -411,6 +429,7 @@ async def _open_production_runtime(
                 tracing=tracing,
                 parallel_evidence_reads=settings.tool_mode == "parallel",
                 approval_ttl_seconds=int(settings.approval_ttl_seconds),
+                agent_model_gateway=agent_model_gateway,
             )
             recovery = ControlledActionRecoveryCoordinator(graph, operations)
             runner = OperationRunner(

@@ -9,6 +9,7 @@ from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import interrupt
 from pydantic import JsonValue, ValidationError
 
+from opercerta.domain.agent import AgentAnalysis
 from opercerta.domain.contracts import ActionType, ObjectType, OperationRequest
 from opercerta.domain.errors import (
     ApprovalSnapshotMismatch,
@@ -248,7 +249,14 @@ def build_equipment_maintenance_graph(
 
     async def explain_plan(state: ReplenishmentState) -> dict[str, object]:
         try:
-            explanation = await model_gateway.explain_plan(assessment(state))
+            if state.get("agent_analysis") is not None:
+                agent_analysis = AgentAnalysis.model_validate(state["agent_analysis"])
+                explanation = ModelPlanExplanation(
+                    summary=agent_analysis.summary,
+                    rationale=agent_analysis.recommendation,
+                )
+            else:
+                explanation = await model_gateway.explain_plan(assessment(state))
         except Exception:
             return error_update(DependencyUnavailable.code)
         return {"plan": explanation.model_dump(mode="json")}

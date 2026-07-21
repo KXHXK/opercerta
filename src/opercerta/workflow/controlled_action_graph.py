@@ -7,16 +7,24 @@ from uuid import UUID
 
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import Command
-from pydantic import BaseModel
+from pydantic import BaseModel, JsonValue
 
+from opercerta.agent.tool_executor import ReadToolGateway
 from opercerta.application.scenario_registry import ScenarioRegistry
+from opercerta.domain.agent import AgentAnalysis, ReadToolName
 from opercerta.domain.contracts import ObjectType, OperationRequest
-from opercerta.domain.model_gateway import ModelGateway
+from opercerta.domain.model_gateway import AgentModelGateway, ModelGateway
+from opercerta.domain.replenishment import OperationError
 from opercerta.domain.work_orders import WorkOrderCommand, WorkOrderRecord, WorkOrderWriteResult
 from opercerta.infrastructure.cache import EvidenceCache, NullEvidenceCache
 from opercerta.infrastructure.db.evidence_repository import EvidenceRepository
 from opercerta.infrastructure.db.operation_repository import OperationRepository
 from opercerta.observability.tracing import NOOP_TRACING, Tracing
+from opercerta.workflow.agent_controlled_action_graph import (
+    AgentInvestigationGraph,
+    build_agent_investigation_graph,
+    build_agent_investigation_initial_state,
+)
 from opercerta.workflow.equipment_maintenance_graph import (
     EquipmentMaintenanceGraph,
     MaintenanceGateway,
@@ -38,7 +46,13 @@ from opercerta.workflow.task_recovery_graph import (
 ControlledActionState = ReplenishmentState
 
 
-class ControlledEvidenceGateway(EvidenceGateway, MaintenanceGateway, TaskGateway, Protocol):
+class ControlledEvidenceGateway(
+    EvidenceGateway,
+    MaintenanceGateway,
+    TaskGateway,
+    ReadToolGateway,
+    Protocol,
+):
     pass
 
 
@@ -71,6 +85,14 @@ class TracedControlledEvidenceGateway:
 
     async def get_task_recovery_policy(self, task_id: str) -> object:
         return await self._read(lambda: self._delegate.get_task_recovery_policy(task_id))
+
+    async def read_agent_tool(
+        self,
+        name: ReadToolName,
+        arguments: dict[str, JsonValue],
+    ) -> BaseModel:
+        result = await self._read(lambda: self._delegate.read_agent_tool(name, arguments))
+        return cast(BaseModel, result)
 
     async def create_work_order(
         self, command: WorkOrderCommand, *, plan_hash: str
@@ -183,18 +205,45 @@ class ControlledActionGraph:
         task: TaskRecoveryGraph,
         operations: OperationRepository,
         tracing: Tracing,
+        agent: AgentInvestigationGraph | None = None,
     ) -> None:
         self._inventory = inventory
         self._equipment = equipment
         self._task = task
         self._operations = operations
         self._tracing = tracing
+        self._agent = agent
 
     async def ainvoke(
         self,
         value: ControlledActionState | Command[Any] | None,
         config: RunnableConfig,
     ) -> dict[str, Any]:
+        if self._agent is not None and isinstance(value, dict) and "request" in value:
+            request = OperationRequest.model_validate(value["request"])
+            agent_config: RunnableConfig = {
+                "configurable": {
+                    **config.get("configurable", {}),
+                    "checkpoint_ns": "agent",
+                }
+            }
+            agent_result = await self._agent.ainvoke(
+                build_agent_investigation_initial_state(request),
+                config=agent_config,
+            )
+            if agent_result["status"] != "completed":
+                error = OperationError(
+                    code=agent_result["error_code"] or "agent_investigation_failed",
+                    message="Agent investigation failed before deterministic execution.",
+                )
+                operation_id = UUID(str(value["operation_id"]))
+                await self._operations.mark_failed(operation_id, error)
+                return {**value, "error": error.model_dump(mode="json")}
+            analysis = AgentAnalysis.model_validate(agent_result["analysis"])
+            value = cast(
+                ControlledActionState,
+                {**value, "agent_analysis": analysis.model_dump(mode="json")},
+            )
         graph = await self._graph(value, config)
         scenario = (
             "inventory"
@@ -274,6 +323,7 @@ def build_controlled_action_graph(
     tracing: Tracing = NOOP_TRACING,
     parallel_evidence_reads: bool = True,
     approval_ttl_seconds: int = 300,
+    agent_model_gateway: AgentModelGateway | None = None,
 ) -> ControlledActionGraph:
     traced_gateway = TracedControlledEvidenceGateway(gateway, tracing)
     initial_gateway = CachedControlledEvidenceGateway(
@@ -318,5 +368,22 @@ def build_controlled_action_graph(
         parallel_evidence_reads=parallel_evidence_reads,
         approval_ttl_seconds=approval_ttl_seconds,
     )
-    del registry
-    return ControlledActionGraph(inventory, equipment, task, operations, tracing)
+    agent = (
+        build_agent_investigation_graph(
+            agent_model_gateway,
+            traced_gateway,
+            checkpointer=checkpointer,
+            registry=registry,
+            clock=clock,
+        )
+        if agent_model_gateway is not None
+        else None
+    )
+    return ControlledActionGraph(
+        inventory,
+        equipment,
+        task,
+        operations,
+        tracing,
+        agent,
+    )
