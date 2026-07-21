@@ -169,6 +169,7 @@ class PlanningContext(StrictAgentModel):
     goal: GoalEncoding
     tools: Annotated[tuple[ToolDefinition, ...], Field(min_length=1, max_length=4)]
     replan_count: Literal[0, 1]
+    prior_observations: tuple[ToolObservation, ...] = ()
 
 
 class AnalysisContext(StrictAgentModel):
