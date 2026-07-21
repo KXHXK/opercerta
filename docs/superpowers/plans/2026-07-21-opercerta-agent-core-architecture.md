@@ -104,7 +104,7 @@ uv sync --frozen --all-groups
 - Test: `tests/unit/agent/test_harness.py`
 - Test: `tests/unit/runtime/test_agent_dependencies.py`
 
-- [ ] **Step 1: 写非法契约和依赖边界 RED 测试**
+- [x] **Step 1: 写非法契约和依赖边界 RED 测试**
 
 ```python
 def test_planner_cannot_propose_write_tool() -> None:
@@ -126,7 +126,7 @@ def test_verifier_rejects_changed_action() -> None:
 
 同时断言：未知字段、对象漂移、超过一次 replan、空 Prompt、Prompt hash 不一致、Token/工具/超时预算为零全部失败；`pyproject.toml` 有直接 `langchain-core==1.4.9`，没有顶层 `langchain`。
 
-- [ ] **Step 2: 运行 RED**
+- [x] **Step 2: 运行 RED**
 
 ```bash
 uv run pytest tests/unit/domain/test_agent_contracts.py tests/unit/agent tests/unit/runtime/test_agent_dependencies.py -q
@@ -134,13 +134,13 @@ uv run pytest tests/unit/domain/test_agent_contracts.py tests/unit/agent tests/u
 
 Expected: collection succeeds but fails because Agent contracts/registry/harness do not exist。
 
-- [ ] **Step 3: 加入最小严格契约和 Prompt Registry**
+- [x] **Step 3: 加入最小严格契约和 Prompt Registry**
 
 核心类型至少包括 `IntentEnvelope`、`GoalEncoding`、`InvestigationStep`、`InvestigationPlan`、`ToolCallProposal`、`ToolObservation`、`KnowledgeCitation`、`AgentAnalysis`、`DecisionPlan`、`VerificationDecision`、`FinalReport`、`AgentBudget`。全部 `extra="forbid"`、类型严格、JSON 可序列化；可信 `scenario/object/action` 从请求覆盖，不能接受模型改写。
 
 Prompt Registry 返回 `(prompt_id, version, sha256, content)`，但 Trace 只保存 ID/version/hash，不保存完整内容。
 
-- [ ] **Step 4: 固定直接依赖并运行 GREEN**
+- [x] **Step 4: 固定直接依赖并运行 GREEN**
 
 ```bash
 uv add langchain-core==1.4.9
@@ -149,7 +149,7 @@ uv run ruff check src tests
 uv run mypy src
 ```
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add pyproject.toml uv.lock src/opercerta/agent src/opercerta/domain/agent.py src/opercerta/prompts tests/unit/agent tests/unit/domain/test_agent_contracts.py tests/unit/runtime/test_agent_dependencies.py
