@@ -10,12 +10,14 @@ from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 from mcp.types import CallToolResult, TextContent
 from opentelemetry.propagate import inject
-from pydantic import ValidationError
+from pydantic import BaseModel, JsonValue, ValidationError
 
+from opercerta.domain.agent import ReadToolName
 from opercerta.domain.errors import (
     EquipmentNotFound,
     EvidenceUnavailable,
     IdempotencyConflict,
+    InvalidAgentToolArguments,
     InvalidEquipmentEvidence,
     InvalidInventoryEvidence,
     InvalidMaintenancePolicyEvidence,
@@ -176,6 +178,46 @@ class McpToolGateway:
             return TaskRecoveryPolicyEvidence.model_validate(result.structuredContent)
         except ValidationError:
             raise InvalidTaskRecoveryPolicyEvidence from None
+
+    async def read_agent_tool(
+        self,
+        name: ReadToolName,
+        arguments: dict[str, JsonValue],
+    ) -> BaseModel:
+        if name is ReadToolName.INVENTORY_SNAPSHOT:
+            return await self.get_inventory(self._only_string(arguments, "sku"))
+        if name is ReadToolName.EQUIPMENT_STATUS:
+            return await self.get_equipment(self._only_string(arguments, "equipment_id"))
+        if name is ReadToolName.TASK_STATUS:
+            return await self.get_task(self._only_string(arguments, "task_id"))
+        if name is ReadToolName.POLICY_CONSTRAINTS:
+            action = arguments.get("action")
+            if action == "replenish_inventory":
+                return await self.get_policy(
+                    self._only_string(arguments, "sku", extra_key="action")
+                )
+            if action == "repair_equipment":
+                return await self.get_maintenance_policy(
+                    self._only_string(arguments, "equipment_id", extra_key="action")
+                )
+            if action == "recover_task":
+                return await self.get_task_recovery_policy(
+                    self._only_string(arguments, "task_id", extra_key="action")
+                )
+        raise InvalidAgentToolArguments
+
+    @staticmethod
+    def _only_string(
+        arguments: dict[str, JsonValue],
+        key: str,
+        *,
+        extra_key: str | None = None,
+    ) -> str:
+        expected_keys = {key} if extra_key is None else {key, extra_key}
+        value = arguments.get(key)
+        if set(arguments) != expected_keys or not isinstance(value, str):
+            raise InvalidAgentToolArguments
+        return value
 
     async def create_work_order(
         self,

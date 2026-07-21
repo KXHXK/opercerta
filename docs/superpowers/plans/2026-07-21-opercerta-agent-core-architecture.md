@@ -222,13 +222,12 @@ git commit -m "feat: add bounded Kimi tool calling adapter"
 - Create: `src/opercerta/agent/tool_executor.py`
 - Modify: `src/opercerta/infrastructure/mcp_gateway.py`
 - Modify: `src/opercerta/domain/errors.py`
-- Modify: `src/opercerta/tools/server.py`
 - Test: `tests/unit/agent/test_tool_policy.py`
 - Test: `tests/unit/agent/test_tool_executor.py`
 - Test: `tests/integration/mcp/test_gateway.py`
-- Test: `tests/integration/mcp/test_tool_server.py`
+- Preserve/regress: `tests/integration/mcp/test_tool_server.py`
 
-- [ ] **Step 1: 写越权、对象漂移和预算 RED 测试**
+- [x] **Step 1: 写越权、对象漂移和预算 RED 测试**
 
 ```python
 @pytest.mark.parametrize("tool", ["work_order.create", "shell.exec", "sql.query"])
@@ -243,27 +242,29 @@ def test_tool_policy_rejects_another_object_id() -> None:
 
 还要验证按场景动态暴露工具、重复无效调用、超出工具次数、超时和一次 replan 上限。
 
-- [ ] **Step 2: 运行 RED**
+- [x] **Step 2: 运行 RED**
 
 ```bash
 uv run pytest tests/unit/agent/test_tool_policy.py tests/unit/agent/test_tool_executor.py tests/integration/mcp/test_gateway.py tests/integration/mcp/test_tool_server.py -q
 ```
 
-- [ ] **Step 3: 实现受控执行器**
+- [x] **Step 3: 实现受控执行器**
 
 Planner 每个场景只看到该场景事实工具和 `policy.list_constraints`。`ToolExecutor` 接受经验证的 `ToolCallProposal`，调用现有类型化 `McpToolGateway`，返回带 `tool_call_id/tool_name/arguments_hash/evidence_ref/status/safe_summary` 的 Observation。此任务不接入 RAG，也不开放写工具。
 
-- [ ] **Step 4: 运行 GREEN 与安全回归**
+实现修订：现有 FastMCP server 已完整注册三业务事实工具、规则工具和审批后写工具，不重复修改 server；新增边界位于 Planner 的动态工具目录、纯 `ToolPolicy` 和 `McpToolGateway.read_agent_tool` 只读分派。写工具继续存在于执行侧，但不进入 Planner definitions 或 Agent read dispatcher。
+
+- [x] **Step 4: 运行 GREEN 与安全回归**
 
 ```bash
 uv run pytest tests/unit/agent tests/integration/mcp -q
 uv run pytest tests/integration/db/test_approval_race.py tests/integration/db/test_work_order_idempotency.py -q
 ```
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
-git add src/opercerta/agent/tool_policy.py src/opercerta/agent/tool_executor.py src/opercerta/infrastructure/mcp_gateway.py src/opercerta/domain/errors.py src/opercerta/tools/server.py tests/unit/agent tests/integration/mcp
+git add src/opercerta/agent/tool_policy.py src/opercerta/agent/tool_executor.py src/opercerta/infrastructure/mcp_gateway.py src/opercerta/domain/errors.py tests/unit/agent/test_tool_policy.py tests/unit/agent/test_tool_executor.py tests/integration/mcp/test_gateway.py docs/superpowers/plans/2026-07-21-opercerta-agent-core-architecture.md docs/development-log/daily/2026-07-21.md
 git commit -m "feat: enforce read-only agent tool loop"
 ```
 
