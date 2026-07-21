@@ -38,7 +38,7 @@ Agent = Model + Instructions/Prompt + Typed Tools + Guardrails/Harness
 OperCerta 不复制这些仓库的代码、品牌、云资源或业务数据，只采用通用架构模式。具体选择如下：
 
 1. **保留 LangGraph 作为唯一编排运行时。** OperCerta 需要低层状态控制、持久执行、HITL、条件路由和重启恢复，纯 LangChain Agent Loop 无法替代现有可靠性语义。
-2. **选择性使用 LangChain 组件。** 模型消息、OpenAI-compatible Tool Calling、结构化输出、Tool Schema 和 Retriever 可使用 LangChain/`langchain-core` 组件；不得再创建一套与现有 `StateGraph` 嵌套的通用 `create_agent` 状态机。
+2. **选择性使用 LangChain 生态组件。** `langchain-core` 提供消息、Tool Schema 和结构化输出契约；Kimi OpenAI-compatible 契约探针通过后，`langchain-openai` 可作为模型适配器。不得引入 `langchain.create_agent`，不得在现有 `StateGraph` 内嵌第二套 Agent Loop，也不得为了简历关键词安装没有实际调用的顶层 `langchain` 包。LangGraph 仍是唯一状态、循环和恢复语义的所有者。
 3. **实现 OperCerta 自有 Agent Harness。** 不新增 PydanticAI、OpenAI Agents SDK、CrewAI 或 Deep Agents 作为第二框架；它们只作为完整性参考。
 4. **采用单 Agent Plan-and-Execute。** 不增加库存 Agent、设备 Agent、规则 Agent 等自由讨论角色；业务复杂度来自工具、状态、权限和恢复，不来自人格协作。
 5. **使用 PostgreSQL + pgvector 作为语义记忆。** 不新增独立 Milvus/Qdrant 服务；准确库存、审批、工单和规则仍走 SQL/MCP 精确契约。
@@ -62,25 +62,37 @@ OperCerta 不复制这些仓库的代码、品牌、云资源或业务数据，�
 ### 3.2 完整 Agent 闭环
 
 ```mermaid
-flowchart LR
-    P["有限表单与运营数据\nPerception"] --> U["Core LLM\n目标编码"]
-    U --> PL["Planner\n调查计划"]
-    PL --> H["Agent Harness\n校验与预算"]
-    H --> T["MCP Read Tools"]
-    H --> M["Memory / RAG"]
-    T --> O["Observations"]
+flowchart TD
+    P["有限业务表单与运营事实<br/>Perception"] --> U["Core LLM<br/>目标编码"]
+    U --> PL["Planner<br/>调查计划"]
+    PL --> H["Agent Harness<br/>工具、参数与预算校验"]
+    H --> T["MCP 只读业务工具<br/>库存 / 设备 / 作业 / 规则"]
+    H --> M["RAG 检索工具<br/>合成 SOP 与确认案例"]
+    T --> O["类型化 Observation"]
     M --> O
-    O --> A["Analyst LLM\n证据综合"]
-    A --> G["Deterministic Policy Guard"]
-    G --> HITL["Human Approval"]
-    HITL --> F["Fresh MCP Evidence"]
-    F --> V["Verifier LLM\nproceed / abort / escalate"]
-    V --> B["Deterministic Binding Check"]
-    B --> E["MCP Idempotent Write"]
-    E --> R["Readback Verification"]
-    R --> RP["Reporter + Feedback"]
-    RP --> EM["Episodic Memory"]
+    O --> A["Analyst LLM<br/>综合事实、知识与引用"]
+    A --> G["Deterministic Policy Guard<br/>重算风险与执行参数"]
+    G --> Q{"证据是否充分？"}
+    Q -->|"不足且仍有预算<br/>最多重新规划一次"| PL
+    Q -->|"预算耗尽或输出非法"| X["安全终止<br/>零工单"]
+    Q -->|"仅查询"| RP["Reporter<br/>最终报告"]
+    Q -->|"申请处置"| HITL["Human Approval<br/>审批绑定"]
+    HITL -->|"驳回"| X
+    HITL -->|"批准"| F["绕过缓存重新取证"]
+    F --> V["Verifier LLM<br/>proceed / abort / escalate"]
+    V -->|"abort"| X
+    V -->|"escalate 或参数变化"| RA["needs_reapproval<br/>新计划与新审批绑定"]
+    RA --> PL
+    V -->|"proceed"| B["Deterministic Binding Check"]
+    B -->|"不一致"| RA
+    B -->|"一致"| E["MCP 幂等写入工单"]
+    E --> R["工单回读与结果验证"]
+    R --> RP
+    RP --> EM["人工确认的 Episodic Memory"]
+    EM -. "后续 operation 的受控反馈" .-> P
 ```
+
+图中的循环都是显式有界循环，而不是无限 ReAct：批准前最多重新规划一次；批准后任何动作、参数或对象变化都进入 `needs_reapproval` 并生成新计划、新 binding 和新审批；跨 operation 的虚线反馈只允许读取人工确认、脱敏和版本化的记忆。
 
 ### 3.3 安全不变量
 
@@ -92,6 +104,7 @@ flowchart LR
 - Verifier 提出新动作、不同参数或不同对象时必须重新审批；
 - RAG 内容不能覆盖结构化规则或业务事实；
 - 任何依赖失败、输出非法、预算耗尽或事实不一致都失败关闭；
+- 单个 operation 不允许无限模型/工具循环；批准前重新规划上限为一次；
 - 不保存或展示模型隐藏 Chain-of-Thought。
 
 ## 4. 六层 Agent 架构
@@ -160,7 +173,7 @@ PostgreSQL `pgvector` 保存从零编写的合成 SOP 和经人工确认的合�
 
 Embedding 通过 `EmbeddingGateway` 端口提供。CI 使用固定、可解释的测试向量夹具验证检索契约，不把它包装成真实语义质量；真实代表性验证必须选择有明确许可和官方版本的中文/多语言 embedding provider/model，并记录模型、维度、chunk 策略和实测结果。
 
-准确库存、设备状态、作业状态、规则、审批和工单严禁从向量检索取得。RAG 只提供 SOP/案例上下文和可点击引用。
+准确库存、设备状态、作业状态、规则、审批和工单严禁从向量检索取得。RAG 只提供 SOP/案例上下文和可点击引用，不是 Agent 闭环成立的前提，也不掌握最终决策权。普通场景检索不可用时记录 `knowledge_unavailable`，由确定性 Policy Guard 判断是否仍有充分结构化事实继续；只有版本化业务规则明确要求 SOP 证据时才失败关闭，禁止静默伪造引用。
 
 #### Procedural Memory
 
@@ -288,7 +301,7 @@ receive_intent
 
 ### 8.1 数据迁移
 
-使用向前 Alembic 迁移新增 pgvector 扩展/知识表、Agent run/trace 数据和必要索引；不重写历史迁移。若运行环境不能安全启用 vector extension，readiness 必须报告原因，RAG 写路径失败关闭，而不是静默退化为伪检索。
+使用向前 Alembic 迁移新增 pgvector 扩展/知识表、Agent run/trace 数据和必要索引；不重写历史迁移。若运行环境不能安全启用 vector extension，readiness 必须报告原因，知识入库失败关闭，检索结果明确返回 `knowledge_unavailable`，不得静默退化为伪检索。是否阻止当前业务 operation 由版本化 Policy Guard 根据该场景是否强制要求 SOP 证据决定。
 
 建议的产品级 Trace 契约：
 
@@ -381,7 +394,7 @@ UI 不显示隐藏思维链、不伪造逐字“思考”、不使用不可拖�
 - query 零审批/零工单；
 - create 进入审批，批准后重新取证；
 - `proceed`、`abort`、`escalate` 三路径；
-- 重复审批、事实变化、模型故障、RAG 故障和 MCP 故障；
+- 重复审批、事实变化、模型故障、MCP 故障，以及 RAG 可选降级/强制证据失败两种路径；
 - Agent 节点各关键点的 checkpoint/restart；
 - 工单有效一次和 Trace 不重复业务事实。
 
@@ -423,8 +436,8 @@ UI 不显示隐藏思维链、不伪造逐字“思考”、不使用不可拖�
 
 1. 领域契约、Prompt Registry 和 Harness 骨架；
 2. Kimi Tool Calling 探针与 Model Gateway；
-3. Planner/Tool Loop/Analyst 与三业务只读路径；
-4. pgvector、知识入库、RAG MCP 工具与引用；
+3. Planner/Tool Loop/Analyst 与三业务只读路径，先证明无 RAG 时 Agent 闭环成立；
+4. pgvector、知识入库、RAG MCP 工具与引用，再把知识上下文接入既有 Tool Loop；
 5. Policy Guard、审批绑定和批准前 DecisionPlan；
 6. 批准后 Verifier、重新审批、执行和恢复；
 7. Agent Trace 持久化、API/SSE 与三角色权限；
@@ -466,4 +479,4 @@ UI 不显示隐藏思维链、不伪造逐字“思考”、不使用不可拖�
 
 本文保持 OperCerta 的业务定位：在传统仓储/运营工单上增加 AI Agent 能力，而不是把系统改成通用聊天机器人。它恢复原详细设计中意图、计划、工具、Trace 的目标，补上 Prompt、Harness、RAG、Memory 和批准后模型复核，并继续让确定性规则、RBAC、HITL、审批绑定、PostgreSQL 事务和幂等写入掌握最终执行权。
 
-六层架构全部落地，但深度与业务匹配：感知采用有限表单和运营事实，Core LLM 负责目标/计划/分析/复核，Planning 使用单 Agent Plan-and-Execute，Memory 使用 checkpoint + SQL episodic + pgvector semantic，Tools 使用受控 MCP，Execution 使用人审、绑定复核、幂等写入和反馈闭环。该边界既能形成可展示、可测试、可讨论的 Agent 技术链路，也避免为简历关键词堆入无业务意义的多模态、多 Agent 和任意执行能力。
+六层架构全部落地，但深度与业务匹配：感知采用有限表单和运营事实，Core LLM 负责目标/计划/分析/复核，Planning 使用 LangGraph 管理的单 Agent Plan-and-Execute 有界循环，LangChain 只提供真实使用的模型/消息/Tool Calling 组件，Memory 使用 checkpoint + SQL episodic + pgvector semantic，Tools 使用受控 MCP，Execution 使用人审、绑定复核、幂等写入和反馈闭环。RAG 为 SOP/案例提供可引用的辅助知识，但不替代精确业务事实和确定性规则。该边界既能形成可展示、可测试、可讨论的 Agent 技术链路，也避免为简历关键词堆入无业务意义的多模态、多 Agent、重复 Agent Loop 和任意执行能力。
