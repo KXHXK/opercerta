@@ -9,4 +9,5 @@ def test_langchain_core_is_direct_and_top_level_agent_package_is_absent() -> Non
     dependencies = project["dependencies"]
 
     assert "langchain-core==1.4.9" in dependencies
+    assert "langchain-openai==1.3.5" in dependencies
     assert not any(dependency.startswith("langchain==") for dependency in dependencies)

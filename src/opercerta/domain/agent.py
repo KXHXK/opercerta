@@ -56,12 +56,23 @@ class ReadToolName(StrEnum):
     KNOWLEDGE_SEARCH = "knowledge.search_sop"
 
 
+class PlanningMode(StrEnum):
+    NATIVE_TOOL_CALL = "native_tool_call"
+    STRUCTURED_PLAN = "structured_plan"
+
+
 class IntentEnvelope(StrictAgentModel):
     goal: ActionType
     scenario: ScenarioKind
     object_id: SafeIdentifier
     trigger_reason: SafeSlug
     expected_action: SafeSlug
+
+
+class ToolDefinition(StrictAgentModel):
+    name: ReadToolName
+    description: SafeText
+    input_schema: dict[str, JsonValue]
 
 
 class GoalEncoding(StrictAgentModel):
@@ -83,6 +94,11 @@ class InvestigationPlan(StrictAgentModel):
     goal: GoalEncoding
     steps: Annotated[tuple[InvestigationStep, ...], Field(min_length=1, max_length=4)]
     replan_count: Literal[0, 1]
+
+
+class PlanningResult(StrictAgentModel):
+    mode: PlanningMode
+    plan: InvestigationPlan
 
 
 class ToolCallProposal(StrictAgentModel):
@@ -143,3 +159,32 @@ class AgentBudget(StrictAgentModel):
     max_input_tokens: StrictPositiveInt
     timeout_seconds: StrictPositiveInt
     max_replans: Literal[1] = 1
+
+
+class GoalContext(StrictAgentModel):
+    intent: IntentEnvelope
+
+
+class PlanningContext(StrictAgentModel):
+    goal: GoalEncoding
+    tools: Annotated[tuple[ToolDefinition, ...], Field(min_length=1, max_length=4)]
+    replan_count: Literal[0, 1]
+
+
+class AnalysisContext(StrictAgentModel):
+    goal: GoalEncoding
+    observations: Annotated[tuple[ToolObservation, ...], Field(min_length=1)]
+    citations: tuple[KnowledgeCitation, ...] = ()
+
+
+class VerificationContext(StrictAgentModel):
+    approved_plan: DecisionPlan
+    original_observations: Annotated[tuple[ToolObservation, ...], Field(min_length=1)]
+    refreshed_observations: Annotated[tuple[ToolObservation, ...], Field(min_length=1)]
+
+
+class ReportingContext(StrictAgentModel):
+    outcome: SafeSlug
+    trusted_facts: dict[str, JsonValue]
+    evidence_refs: tuple[UUID, ...] = ()
+    citations: tuple[KnowledgeCitation, ...] = ()

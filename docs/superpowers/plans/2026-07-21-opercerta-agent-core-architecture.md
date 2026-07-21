@@ -160,28 +160,27 @@ git commit -m "feat: add strict agent contracts and harness"
 
 **Files:**
 
+- Modify: `src/opercerta/domain/agent.py`
 - Modify: `src/opercerta/domain/model_gateway.py`
 - Create: `src/opercerta/infrastructure/langchain_model_gateway.py`
-- Modify: `src/opercerta/infrastructure/model_gateway.py`
 - Create: `scripts/probe_kimi_tool_call.py`
-- Modify: `src/opercerta/runtime/bootstrap.py`
 - Modify: `pyproject.toml`
 - Modify: `uv.lock`
 - Test: `tests/unit/infrastructure/test_langchain_model_gateway.py`
 - Test: `tests/unit/runtime/test_kimi_tool_probe.py`
-- Test: `tests/unit/infrastructure/test_model_gateway.py`
+- Test: `tests/unit/runtime/test_agent_dependencies.py`
 
-- [ ] **Step 1: 写 Tool Call、结构化输出和故障 RED 测试**
+- [x] **Step 1: 写 Tool Call、结构化输出和故障 RED 测试**
 
-覆盖：合法只读 `tool_calls`、未知函数、非 JSON arguments、多轮 tool result、空 choices、thinking content 不落库、429/5xx 有限重试、401/403 不重试、Real 失败绝不切换 Mock、原生 Tool Calling 不兼容时显式返回 `structured_plan` 模式。
+覆盖：合法只读 `tool_calls`、未知函数、非法/空模型响应、provider-safe wire name、结构化 Goal/Analysis/Verifier/Report、Real 失败绝不切换 Mock、原生 Tool Calling 不兼容时显式返回 `structured_plan` 模式，以及 CLI 错误脱敏。多轮 tool result 由固定真实只读探针验证；429/5xx 有限重试与 401/403 不重试由 Task 4 的 Harness/Graph runtime 统一负责，adapter 自身固定 `max_retries=0`，避免形成两套不可审计重试预算。
 
-- [ ] **Step 2: 运行 RED**
+- [x] **Step 2: 运行 RED**
 
 ```bash
 uv run pytest tests/unit/infrastructure/test_langchain_model_gateway.py tests/unit/runtime/test_kimi_tool_probe.py tests/unit/infrastructure/test_model_gateway.py -q
 ```
 
-- [ ] **Step 3: 实现 Gateway port 和 LangChain adapter**
+- [x] **Step 3: 实现 Gateway port 和 LangChain adapter**
 
 `AgentModelGateway` 暴露：
 
@@ -196,7 +195,9 @@ class AgentModelGateway(Protocol):
 
 使用 `ChatOpenAI(base_url=..., model=..., api_key=...)` 的 LangChain adapter；工具和结构化输出经 Pydantic 二次验证。保留现有 gateway 作为迁移兼容层，直到新图完全接管。
 
-- [ ] **Step 4: 固定依赖、运行 GREEN 和真实只读探针**
+实现修订：领域工具 ID 保留 `inventory.get_snapshot` 等点号命名，模型 wire protocol 使用 Moonshot 可接受的 `inventory_get_snapshot` 等下划线名，并在 Gateway 边界双向映射；数据库 bootstrap 仍只负责数据库依赖，模型运行时装配延后到 Task 4，避免把无关职责塞入 bootstrap。
+
+- [x] **Step 4: 固定依赖、运行 GREEN 和真实只读探针**
 
 ```bash
 uv add langchain-openai==1.3.5
@@ -206,10 +207,10 @@ uv run python scripts/probe_kimi_tool_call.py --dry-run
 
 在已授权且密钥只存在环境变量时，另运行一次真实固定只读 probe；输出只保留 provider/model、模式、函数名、Schema 状态、耗时和错误分类，不输出密钥、Prompt、原始响应或虚构 Token。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
-git add pyproject.toml uv.lock src/opercerta/domain/model_gateway.py src/opercerta/infrastructure/model_gateway.py src/opercerta/infrastructure/langchain_model_gateway.py src/opercerta/runtime/bootstrap.py scripts/probe_kimi_tool_call.py tests/unit/infrastructure tests/unit/runtime/test_kimi_tool_probe.py
+git add pyproject.toml uv.lock src/opercerta/domain/agent.py src/opercerta/domain/model_gateway.py src/opercerta/infrastructure/langchain_model_gateway.py scripts/probe_kimi_tool_call.py tests/unit/infrastructure/test_langchain_model_gateway.py tests/unit/runtime/test_kimi_tool_probe.py tests/unit/runtime/test_agent_dependencies.py docs/superpowers/plans/2026-07-21-opercerta-agent-core-architecture.md docs/development-log/daily/2026-07-21.md
 git commit -m "feat: add bounded Kimi tool calling adapter"
 ```
 

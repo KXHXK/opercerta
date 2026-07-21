@@ -1,5 +1,17 @@
 from typing import Protocol
 
+from opercerta.domain.agent import (
+    AgentAnalysis,
+    AnalysisContext,
+    FinalReport,
+    GoalContext,
+    GoalEncoding,
+    PlanningContext,
+    PlanningResult,
+    ReportingContext,
+    VerificationContext,
+    VerificationDecision,
+)
 from opercerta.domain.maintenance import MaintenanceAssessment
 from opercerta.domain.replenishment import (
     ModelPlanExplanation,
@@ -15,6 +27,23 @@ class ModelGateway(Protocol):
         self,
         assessment: ScenarioAssessment,
     ) -> ModelPlanExplanation:
+        raise NotImplementedError
+
+
+class AgentModelGateway(Protocol):
+    async def encode_goal(self, context: GoalContext) -> GoalEncoding:
+        raise NotImplementedError
+
+    async def plan(self, context: PlanningContext) -> PlanningResult:
+        raise NotImplementedError
+
+    async def analyze(self, context: AnalysisContext) -> AgentAnalysis:
+        raise NotImplementedError
+
+    async def verify(self, context: VerificationContext) -> VerificationDecision:
+        raise NotImplementedError
+
+    async def report(self, context: ReportingContext) -> FinalReport:
         raise NotImplementedError
 
 
