@@ -1,6 +1,6 @@
 # OperCerta 文档索引
 
-新增已批准、尚未实施规格：`docs/superpowers/specs/2026-07-21-opercerta-agent-core-architecture-design.md`（将现有可靠工单工作流增强为受控 Plan-and-Execute Agent，补齐 Perception、Core LLM、Planning、Memory/pgvector、MCP Tools、Execution/Feedback、Prompt、Harness、RAG、Agent Trace 与角色控制台；保留审批、幂等、恢复和发布门禁）。
+新增已批准、尚未实施规格：`docs/superpowers/specs/2026-07-21-opercerta-agent-core-architecture-design.md`（将现有可靠工单工作流增强为受控 Plan-and-Execute Agent，补齐 Perception、Core LLM、Planning、Memory/pgvector、MCP Tools、Execution/Feedback、Prompt、Harness、RAG、Agent Trace 与角色控制台；保留审批、幂等、恢复和发布门禁）。对应十项 Inline TDD 计划：`docs/superpowers/plans/2026-07-21-opercerta-agent-core-architecture.md`。
 
 新增零成本求职展示证据：`docs/release-evidence/zero-cost-showcase-engineering-walkthrough.md`（公开静态专题、本地 `/engineering` 工程详解和 `/console` 控制台；前端 40 条、后端 430 条、Mock Compose 重启恢复与三档浏览器复核通过；PR #6 已合并，`main` 五个门禁及两个 Netlify 生产站已验证）。对应规格和计划为 `docs/superpowers/specs/2026-07-20-opercerta-zero-cost-showcase-engineering-walkthrough-design.md`、`docs/superpowers/plans/2026-07-20-opercerta-zero-cost-showcase-engineering-walkthrough.md`。
 
@@ -85,7 +85,8 @@
 | `docs/superpowers/specs/2026-07-18-github-actions-ci-security-gate-design.md` | Private GitHub Actions 分层 CI 安全门禁设计 | 已实施并完成远程门禁 | 本次提交 | 1 |
 | `docs/superpowers/specs/2026-07-19-portfolio-netlify-static-mirror-design.md` | 作品集 Netlify 独立静态镜像设计 | 已实施并完成公网验证 | 本次提交 | 1 |
 | `docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md` | 三业务闭环、技术栈补齐、求职发布与学习交付修订 | 已确认；实施计划已创建 | `632f0a1` | 1 |
-| `docs/superpowers/specs/2026-07-21-opercerta-agent-core-architecture-design.md` | 六层 Agent 核心架构、Plan-and-Execute、Harness、pgvector Memory、RAG 与 Agent Trace 纠偏 | 已确认；尚未实施，待创建 TDD 计划 | 本次提交 | 1 |
+| `docs/superpowers/specs/2026-07-21-opercerta-agent-core-architecture-design.md` | 六层 Agent 核心架构、Plan-and-Execute、Harness、pgvector Memory、RAG 与 Agent Trace 纠偏 | 已确认；已按有界循环、最小 LangChain 和 RAG 边界修订 | `bf3b6da` + 本次提交 | 1 |
+| `docs/superpowers/plans/2026-07-21-opercerta-agent-core-architecture.md` | Agent 核心架构十项 Inline TDD 实施计划 | 已创建；尚未执行 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-20-opercerta-three-business-release.md` | 三业务求职发布八项 Inline TDD 主计划 | 真实模型代表性验证已执行；公网和远程门禁待完成 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-14-opercerta-reliability-kernel.md` | 可靠性内核 TDD 总计划 | Task 1–6 已执行 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-16-langgraph-restart-recovery.md` | Task 5 四点重启恢复可执行 TDD 计划 | 已执行；证据已归档 | 本次提交 | 1 |

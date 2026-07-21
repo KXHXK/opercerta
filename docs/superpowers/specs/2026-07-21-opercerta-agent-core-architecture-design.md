@@ -437,9 +437,9 @@ UI 不显示隐藏思维链、不伪造逐字“思考”、不使用不可拖�
 1. 领域契约、Prompt Registry 和 Harness 骨架；
 2. Kimi Tool Calling 探针与 Model Gateway；
 3. Planner/Tool Loop/Analyst 与三业务只读路径，先证明无 RAG 时 Agent 闭环成立；
-4. pgvector、知识入库、RAG MCP 工具与引用，再把知识上下文接入既有 Tool Loop；
-5. Policy Guard、审批绑定和批准前 DecisionPlan；
-6. 批准后 Verifier、重新审批、执行和恢复；
+4. Policy Guard、审批绑定和批准前 DecisionPlan；
+5. 批准后 Verifier、重新审批、执行和恢复，先证明不依赖 RAG 的端到端 Agent 主闭环；
+6. pgvector、知识入库、RAG MCP 工具与引用，再把知识上下文接入已通过的主闭环；
 7. Agent Trace 持久化、API/SSE 与三角色权限；
 8. React Agent 工作台和完整业务引导；
 9. 轨迹评测、Compose、真实模型代表性验证和安全门禁；
