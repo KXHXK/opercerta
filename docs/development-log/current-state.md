@@ -1,5 +1,9 @@
 # OperCerta 当前状态
 
+## 最新核验：Agent Task 5 审批后 Verifier 与多轮复审已完成本地代码门禁
+
+2026-07-22，三业务已接入批准后 Verifier：重新取证绕过缓存，`proceed` 仅在 binding 一致时幂等写入，`abort` 零工单安全终止，`escalate` 或模型参数漂移进入新审批周期。PostgreSQL 迁移 `0004_approval_cycles` 保留历史审批并按当前周期授权写入；缺失检查点恢复和“数据库已提交、检查点未保存”重放均有自动化证据。定向门禁 `48 passed`，完整 workflow `62 passed`，后端产品测试 `502 passed`，WSL 原生 Git 安全脚本 `4 passed`，Ruff/mypy 通过。Task 6 的 pgvector/RAG、Task 7 的 Agent Trace/API/SSE/前端展示仍未实施，旧 Compose 应用镜像尚未重建，因此生产发布门禁保持 `CLOSED`。详见 `docs/release-evidence/agent-verifier-reapproval.md`。
+
 ## 最新核验：零成本公开专题、主线门禁与作品集同步已完成
 
 2026-07-20 功能分支 `feat/zero-cost-showcase-walkthrough` 已完成公开根路径、本地 `/engineering` 与本地 `/console` 三种页面职责：公开专题零 API、零写入、只陈述三业务和已验证证据；工程详解仅在开发模式的 localhost/127.0.0.1 渲染，包含 10 步请求链路、三业务差异、10 项技术职责、10 个真实事故复盘和 4 项 localStorage 掌握检查；控制台保持真实本地交互。完整前端为 16 个测试文件/40 条测试，后端为 `430 passed in 106.25s`；Ruff、138 文件格式、mypy 62 个源码文件和仓库安全扫描通过。PR #6 已以 `e483665` 合并，`main` run `29738863357` 五个 job 全绿，包含 Compose 三业务和 API/MCP 重启恢复。OperCerta production deploy `6a5e0bb5563acf4706a09c0d` 与作品集 production deploy `6a5e1b8824ba2290cf63c897` 已通过 HTTP/浏览器核验；作品集移动端无横向溢出、坏图或 fixed/sticky 元素。公开页面仍不连接可写后端，生产门禁继续为 `CLOSED`。证据见 `docs/release-evidence/zero-cost-showcase-engineering-walkthrough.md`。

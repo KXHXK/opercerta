@@ -47,6 +47,7 @@ async def seed_operation(engine: AsyncEngine, status: str = "awaiting_approval")
                 thread_id=f"thread-{operation_id}",
                 request_payload={"message": "synthetic approval race"},
                 status=status,
+                approval_cycle=1,
             )
         )
     return operation_id
@@ -123,6 +124,7 @@ async def test_ten_concurrent_decisions_commit_exactly_one(engine: AsyncEngine) 
         assert [row["event_type"] for row in audit_rows] == ["approval_recorded"]
         assert audit_rows[0]["payload"] == {
             "approval_id": str(winner.id),
+            "approval_cycle": 1,
             "decision": winner.decision.value,
         }
     finally:

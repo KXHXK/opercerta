@@ -35,6 +35,7 @@ async def seed_operation(
                 thread_id=f"thread-{operation_id}",
                 request_payload={"message": "synthetic work-order test"},
                 status=status,
+                approval_cycle=1,
                 next_audit_sequence=0,
             )
         )
@@ -43,6 +44,7 @@ async def seed_operation(
                 insert(approvals).values(
                     id=uuid4(),
                     operation_id=operation_id,
+                    approval_cycle=1,
                     approver_id="synthetic-approver",
                     decision=decision,
                     reason="synthetic work-order authorization",

@@ -77,8 +77,8 @@ uv sync --frozen --all-groups
 | `src/opercerta/infrastructure/db/knowledge_repository.py` | pgvector 入库、过滤、检索和版本失效 |
 | `src/opercerta/domain/agent_trace.py` | 安全产品 Trace 契约 |
 | `src/opercerta/infrastructure/db/agent_trace_repository.py` | run/event 原子序列和恢复去重 |
-| `migrations/versions/0004_agent_knowledge.py` | vector extension、knowledge document/chunk |
-| `migrations/versions/0005_agent_trace.py` | Agent run/trace/citation 表 |
+| `migrations/versions/0005_agent_knowledge.py` | vector extension、knowledge document/chunk |
+| `migrations/versions/0006_agent_trace.py` | Agent run/trace/citation 表 |
 | `data/knowledge/*.md`、`manifest.json` | 三业务合成 SOP 与版本清单 |
 | `data/evals/opercerta-agent-v1.json` | 透明的预期 Agent 轨迹与负例 |
 | `web/src/agent/*` | 意图、Trace、证据引用、决策对比、下一角色 UI |
@@ -333,13 +333,16 @@ git commit -m "feat: run three scenarios through bounded agent graph"
 - Modify: `src/opercerta/workflow/controlled_action_recovery.py`
 - Modify: `src/opercerta/domain/recovery.py`
 - Modify: `src/opercerta/domain/operation_state.py`
-- Modify: `src/opercerta/infrastructure/db/operation_repository.py`
+- Modify: `src/opercerta/infrastructure/db/replenishment_operation_repository.py`
+- Modify: `src/opercerta/infrastructure/db/operation_state_repository.py`
 - Modify: `src/opercerta/infrastructure/db/approval_repository.py`
+- Modify: `src/opercerta/infrastructure/db/work_order_repository.py`
+- Create: `migrations/versions/0004_approval_cycles.py`
 - Test: `tests/integration/workflow/test_agent_verification.py`
 - Test: `tests/integration/workflow/test_agent_restart_recovery.py`
 - Test: existing approval race, binding and idempotency suites
 
-- [ ] **Step 1: 写 `proceed/abort/escalate` 与恢复 RED 测试**
+- [x] **Step 1: 写 `proceed/abort/escalate` 与恢复 RED 测试**
 
 必须覆盖：
 
@@ -349,16 +352,16 @@ git commit -m "feat: run three scenarios through bounded agent graph"
 - `escalate` → `needs_reapproval`、新 binding、零工单；
 - Verifier 返回新参数即使标为 proceed 也强制 reapproval；
 - 重复审批仍 409；并发审批只有一条决策；
-- 在 Verifier 前、工单写后回读前、Trace 持久化前重启；
+- 在 Verifier 前、工单写后回读前重启；Trace 持久化前重启随 Task 7 的真实 Trace 表统一实现；
 - 恢复后工单业务效果有效一次。
 
-- [ ] **Step 2: 运行 RED**
+- [x] **Step 2: 运行 RED**
 
 ```bash
 uv run pytest tests/integration/workflow/test_agent_verification.py tests/integration/workflow/test_agent_restart_recovery.py tests/integration/db/test_approval_race.py tests/integration/db/test_bound_approval.py tests/integration/db/test_work_order_idempotency.py -q
 ```
 
-- [ ] **Step 3: 实现审批后图节点与恢复协调**
+- [x] **Step 3: 实现审批后图节点与恢复协调**
 
 ```text
 interrupt → resume_decision → refresh_evidence → verify_after_approval
@@ -366,20 +369,22 @@ interrupt → resume_decision → refresh_evidence → verify_after_approval
 → build_final_report → terminal
 ```
 
-`needs_reapproval` 必须创建新计划 hash/binding，旧批准不能复用。`work_order.create` 仍仅由确定性执行节点调用，idempotency key 继续由 operation 生成，写后用 `work_order.get` 回读。
+`needs_reapproval` 必须创建新审批周期和新 binding，计划 hash 必须按新事实重新计算并在事实或参数变化时改变，旧批准不能复用。`work_order.create` 仍仅由确定性执行节点调用，idempotency key 继续由 operation 生成，写后用 `work_order.get` 回读。
 
-- [ ] **Step 4: 运行 GREEN、竞态和恢复回归**
+- [x] **Step 4: 运行 GREEN、竞态和恢复回归**
 
 ```bash
 uv run pytest tests/integration/workflow tests/integration/db/test_approval_race.py tests/integration/db/test_bound_approval.py tests/integration/db/test_work_order_idempotency.py -q
 ```
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
-git add src/opercerta/workflow src/opercerta/domain/recovery.py src/opercerta/domain/operation_state.py src/opercerta/infrastructure/db/operation_repository.py src/opercerta/infrastructure/db/approval_repository.py tests/integration/workflow tests/integration/db
+git add src/opercerta/workflow src/opercerta/domain src/opercerta/infrastructure/db migrations/versions/0004_approval_cycles.py tests docs
 git commit -m "feat: verify approvals before idempotent execution"
 ```
+
+实施证据：三业务 `proceed/abort/escalate`、Verifier 参数漂移、两轮绑定审批、缺失检查点恢复、复审迁移重放、10 路审批竞态和幂等写入的定向门禁为 `48 passed`；完整 workflow 为 `62 passed`；后端产品测试为 `502 passed`，另有依赖 WSL 原生 Git 的仓库安全脚本 `4 passed`。发布门禁继续为 `CLOSED`。
 
 ## Task 6: PostgreSQL pgvector、中文 SOP RAG 与 Memory 边界
 
@@ -388,7 +393,7 @@ git commit -m "feat: verify approvals before idempotent execution"
 - Create: `src/opercerta/domain/knowledge.py`
 - Create: `src/opercerta/infrastructure/embedding_gateway.py`
 - Create: `src/opercerta/infrastructure/db/knowledge_repository.py`
-- Create: `migrations/versions/0004_agent_knowledge.py`
+- Create: `migrations/versions/0005_agent_knowledge.py`
 - Create: `data/knowledge/manifest.json`
 - Create: `data/knowledge/inventory-replenishment-v1.md`
 - Create: `data/knowledge/equipment-maintenance-v1.md`
@@ -443,7 +448,7 @@ docker compose config
 - [ ] **Step 6: 提交**
 
 ```bash
-git add pyproject.toml uv.lock compose.yaml compose.release.yaml migrations/versions/0004_agent_knowledge.py src/opercerta/domain/knowledge.py src/opercerta/infrastructure/embedding_gateway.py src/opercerta/infrastructure/db/knowledge_repository.py src/opercerta/tools src/opercerta/infrastructure/mcp_gateway.py src/opercerta/workflow/agent_controlled_action_graph.py data/knowledge scripts/ingest_knowledge.py tests
+git add pyproject.toml uv.lock compose.yaml compose.release.yaml migrations/versions/0005_agent_knowledge.py src/opercerta/domain/knowledge.py src/opercerta/infrastructure/embedding_gateway.py src/opercerta/infrastructure/db/knowledge_repository.py src/opercerta/tools src/opercerta/infrastructure/mcp_gateway.py src/opercerta/workflow/agent_controlled_action_graph.py data/knowledge scripts/ingest_knowledge.py tests
 git commit -m "feat: add cited pgvector SOP retrieval"
 ```
 
@@ -454,7 +459,7 @@ git commit -m "feat: add cited pgvector SOP retrieval"
 - Create: `src/opercerta/domain/agent_trace.py`
 - Create: `src/opercerta/agent/trace_recorder.py`
 - Create: `src/opercerta/infrastructure/db/agent_trace_repository.py`
-- Create: `migrations/versions/0005_agent_trace.py`
+- Create: `migrations/versions/0006_agent_trace.py`
 - Modify: `src/opercerta/api/models.py`
 - Modify: `src/opercerta/api/app.py`
 - Modify: `src/opercerta/api/auth.py`
@@ -488,7 +493,7 @@ uv run python scripts/verify_repository_safety.py
 - [ ] **Step 5: 提交**
 
 ```bash
-git add migrations/versions/0005_agent_trace.py src/opercerta/domain/agent_trace.py src/opercerta/agent/trace_recorder.py src/opercerta/infrastructure/db/agent_trace_repository.py src/opercerta/api src/opercerta/workflow/agent_controlled_action_graph.py tests
+git add migrations/versions/0006_agent_trace.py src/opercerta/domain/agent_trace.py src/opercerta/agent/trace_recorder.py src/opercerta/infrastructure/db/agent_trace_repository.py src/opercerta/api src/opercerta/workflow/agent_controlled_action_graph.py tests
 git commit -m "feat: expose redacted agent trace"
 ```
 

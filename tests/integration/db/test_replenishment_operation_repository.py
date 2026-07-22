@@ -248,6 +248,7 @@ def test_operation_detail_snapshot_properties_hide_validation_errors(
         operation_id=operation_id,
         thread_id=str(operation_id),
         status=OperationStatus.RECEIVED,
+        approval_cycle=0,
         snapshot=snapshot,
         result=None,
         error=None,
@@ -818,6 +819,48 @@ async def test_approval_locators_must_match_operation_and_decision_before_transi
     finally:
         for operation_id in operation_ids:
             await cleanup_operation(engine, operation_id)
+
+
+@pytest.mark.asyncio
+async def test_reapproval_transition_replays_after_commit_without_incrementing_again(
+    engine: AsyncEngine,
+) -> None:
+    repository = ReplenishmentOperationRepository(engine)
+    operation_id = await repository.create(operation_request())
+
+    try:
+        await advance_to_awaiting_approval(
+            repository,
+            operation_id,
+            approval_expires_at=NOW + timedelta(minutes=5),
+        )
+        approval = await ApprovalRepository(engine).submit_once(
+            ApprovalCommand(
+                operation_id=operation_id,
+                approver_id="reapproval-replay-approver",
+                decision=ApprovalDecision.APPROVED,
+                reason="Approved cycle one",
+            )
+        )
+
+        for _ in range(2):
+            await repository.mark_needs_reapproval(
+                operation_id,
+                approval.id,
+                bundle(),
+                assessment(),
+                plan(),
+                scenario_binding(),
+                NOW + timedelta(minutes=10),
+                "Verifier requested another approval",
+            )
+
+        detail = await repository.load_detail(operation_id)
+        assert detail.status is OperationStatus.NEEDS_REAPPROVAL
+        assert detail.approval_cycle == 2
+        assert detail.event_types.count("reapproval_requested") == 1
+    finally:
+        await cleanup_operation(engine, operation_id)
 
 
 @pytest.mark.asyncio

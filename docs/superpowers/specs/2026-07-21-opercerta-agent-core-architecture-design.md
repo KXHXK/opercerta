@@ -211,11 +211,11 @@ Planner 只能看到与当前场景相关的 2–3 个只读业务工具和 `kno
 审批后流程固定为：
 
 1. 使用原对象和审批绑定直连 MCP 重新取证，绕过 Redis；
-2. Verifier 读取批准计划、原证据摘要、新证据摘要和相关 SOP，输出 `VerificationDecision`；
+2. Verifier 读取批准计划、原证据摘要、新证据摘要和相关 SOP，输出 `VerificationDecision`；除决策和安全理由外，可携带一个非权威 `proposed_plan` 用于显式暴露模型建议；
 3. 确定性服务重算 binding/hash/参数并比较；
 4. `abort` 进入安全终态，零工单；
 5. `escalate` 进入 `needs_reapproval` 或等价显式状态，零工单；
-6. 只有模型 `proceed` 且确定性绑定完全一致时才进入执行；
+6. 只有模型 `proceed`、确定性绑定完全一致，且可选 `proposed_plan` 未改变动作、对象或参数时才进入执行；任何模型提议都不能直接成为写入参数；
 7. `work_order.create` 使用确定性 idempotency key；
 8. `work_order.get` 回读比较 ID、operation、payload 和 hash；
 9. Reporter 生成带证据和引用的用户报告；
@@ -247,7 +247,7 @@ Prompt 至少分为四个版本化角色：
 
 - `planner-v1`：根据目标和工具目录生成调查计划/只读 Tool Call；
 - `analyst-v1`：综合 Observation 与 SOP 引用生成建议和不确定性；
-- `verifier-v1`：批准后只输出 `proceed|abort|escalate` 与安全理由；
+- `verifier-v1`：批准后输出 `proceed|abort|escalate`、安全理由，以及可选但不具执行权的结构化计划提议；提议与批准计划不一致时强制重新审批；
 - `reporter-v1`：把可信终态事实生成用户可读报告。
 
 Prompt 文件不包含秘密或真实公司材料。每次模型调用记录 `prompt_id`、版本/hash、provider、model、开始/结束、状态、重试、输入/输出 Token（provider 提供时）和错误类型；不保存完整原始 Prompt、隐藏 reasoning content 或未经脱敏的模型原文。

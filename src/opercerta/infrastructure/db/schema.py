@@ -14,6 +14,12 @@ operations = sa.Table(
     sa.Column("error_code", sa.String(length=64)),
     sa.Column("approval_expires_at", sa.DateTime(timezone=True)),
     sa.Column(
+        "approval_cycle",
+        sa.Integer(),
+        server_default=sa.text("0"),
+        nullable=False,
+    ),
+    sa.Column(
         "next_audit_sequence",
         sa.BigInteger(),
         server_default=sa.text("0"),
@@ -32,6 +38,10 @@ operations = sa.Table(
         nullable=False,
     ),
     sa.UniqueConstraint("thread_id", name="uq_operations_thread_id"),
+    sa.CheckConstraint(
+        "approval_cycle >= 0",
+        name="ck_operations_approval_cycle_non_negative",
+    ),
 )
 
 approvals = sa.Table(
@@ -47,6 +57,12 @@ approvals = sa.Table(
     sa.Column("approver_id", sa.String(length=128), nullable=False),
     sa.Column("decision", sa.String(length=16), nullable=False),
     sa.Column("reason", sa.String(length=1_000), nullable=False),
+    sa.Column(
+        "approval_cycle",
+        sa.Integer(),
+        server_default=sa.text("1"),
+        nullable=False,
+    ),
     sa.Column("inventory_evidence_id", postgresql.UUID(as_uuid=True)),
     sa.Column("policy_evidence_id", postgresql.UUID(as_uuid=True)),
     sa.Column("rule_version", sa.String(length=128)),
@@ -61,7 +77,15 @@ approvals = sa.Table(
         server_default=sa.text("CURRENT_TIMESTAMP"),
         nullable=False,
     ),
-    sa.UniqueConstraint("operation_id", name="uq_approvals_operation_id"),
+    sa.UniqueConstraint(
+        "operation_id",
+        "approval_cycle",
+        name="uq_approvals_operation_cycle",
+    ),
+    sa.CheckConstraint(
+        "approval_cycle >= 1",
+        name="ck_approvals_approval_cycle_positive",
+    ),
 )
 
 evidence = sa.Table(

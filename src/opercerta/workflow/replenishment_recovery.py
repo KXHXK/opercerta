@@ -6,7 +6,7 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.types import Command, StateSnapshot
 from pydantic import JsonValue
 
-from opercerta.domain.contracts import OperationRequest
+from opercerta.domain.contracts import ObjectType, OperationRequest
 from opercerta.domain.errors import RecoveryStateConflict
 from opercerta.domain.operation_state import ApprovalResume
 from opercerta.domain.recovery import (
@@ -18,10 +18,18 @@ from opercerta.domain.recovery import (
     choose_recovery_action,
 )
 from opercerta.domain.replenishment import (
-    ApprovalBinding,
+    ApprovalBinding as ReplenishmentApprovalBinding,
+)
+from opercerta.domain.replenishment import (
     EvidenceBundle,
     ReplenishmentPlan,
     build_approval_binding,
+)
+from opercerta.domain.scenarios import (
+    ApprovalBinding as ScenarioApprovalBinding,
+)
+from opercerta.domain.scenarios import (
+    ReplenishmentParameters,
 )
 from opercerta.infrastructure.db.replenishment_operation_repository import (
     OperationDetail,
@@ -165,7 +173,19 @@ class ReplenishmentRecoveryCoordinator:
                 detail.plan,
             ).model_dump(mode="json")
         elif binding_value is not None:
-            binding_value = ApprovalBinding.model_validate(binding_value).model_dump(mode="json")
+            scenario_binding = ScenarioApprovalBinding.model_validate(binding_value)
+            if self._request(detail).object_type is ObjectType.INVENTORY:
+                parameters = ReplenishmentParameters.model_validate(scenario_binding.parameters)
+                binding_value = ReplenishmentApprovalBinding(
+                    inventory_evidence_id=scenario_binding.subject_evidence_id,
+                    policy_evidence_id=scenario_binding.policy_evidence_id,
+                    rule_version=scenario_binding.rule_version,
+                    decision_facts_hash=scenario_binding.decision_facts_hash,
+                    plan_hash=scenario_binding.plan_hash,
+                    recommended_quantity=parameters.recommended_quantity,
+                ).model_dump(mode="json")
+            else:
+                binding_value = scenario_binding.model_dump(mode="json")
 
         return ReplenishmentState(
             operation_id=detail.thread_id,
@@ -194,6 +214,8 @@ class ReplenishmentRecoveryCoordinator:
             ),
             replayed=False,
             agent_analysis=None,
+            verification=None,
+            verification_route=None,
         )
 
     def _completed_node_for(self, detail: OperationDetail) -> str:
@@ -210,6 +232,8 @@ class ReplenishmentRecoveryCoordinator:
             OperationStatus.RESUMING,
         }:
             return "prepare_approval"
+        if detail.status is OperationStatus.NEEDS_REAPPROVAL:
+            return "mark_needs_reapproval"
         if detail.status is OperationStatus.EXECUTING:
             return "mark_executing"
         if detail.status is OperationStatus.VERIFYING:

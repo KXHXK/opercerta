@@ -111,6 +111,7 @@ class WorkOrderRepository:
                 await connection.execute(
                     select(approvals.c.id).where(
                         approvals.c.operation_id == operation_id,
+                        approvals.c.approval_cycle == int(operation["approval_cycle"]),
                         approvals.c.decision == "approved",
                     )
                 )

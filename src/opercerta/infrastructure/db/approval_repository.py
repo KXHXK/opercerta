@@ -65,16 +65,23 @@ class ApprovalRepository:
             if operation is None:
                 raise OperationNotFound(command.operation_id)
 
+            approval_cycle = int(operation["approval_cycle"])
             existing = (
                 (
                     await connection.execute(
-                        select(approvals).where(approvals.c.operation_id == command.operation_id)
+                        select(approvals).where(
+                            approvals.c.operation_id == command.operation_id,
+                            approvals.c.approval_cycle == approval_cycle,
+                        )
                     )
                 )
                 .mappings()
                 .one_or_none()
             )
-            if existing is not None or operation["status"] != "awaiting_approval":
+            if existing is not None or operation["status"] not in {
+                "awaiting_approval",
+                "needs_reapproval",
+            }:
                 raise ApprovalAlreadyDecided(command.operation_id)
 
             sequence = operation["next_audit_sequence"] + 1
@@ -85,6 +92,7 @@ class ApprovalRepository:
                     approver_id=command.approver_id,
                     decision=command.decision.value,
                     reason=command.reason,
+                    approval_cycle=approval_cycle,
                     created_at=created_at,
                 )
             )
@@ -106,6 +114,7 @@ class ApprovalRepository:
                     payload={
                         "approval_id": str(approval_id),
                         "decision": command.decision.value,
+                        "approval_cycle": approval_cycle,
                     },
                     created_at=created_at,
                 )
@@ -118,6 +127,7 @@ class ApprovalRepository:
             decision=command.decision,
             reason=command.reason,
             created_at=created_at,
+            approval_cycle=approval_cycle,
         )
 
     async def submit_bound_once(
@@ -145,16 +155,23 @@ class ApprovalRepository:
             if operation is None:
                 raise OperationNotFound(command.operation_id)
 
+            approval_cycle = int(operation["approval_cycle"])
             existing = (
                 (
                     await connection.execute(
-                        select(approvals).where(approvals.c.operation_id == command.operation_id)
+                        select(approvals).where(
+                            approvals.c.operation_id == command.operation_id,
+                            approvals.c.approval_cycle == approval_cycle,
+                        )
                     )
                 )
                 .mappings()
                 .one_or_none()
             )
-            if existing is not None or operation["status"] != "awaiting_approval":
+            if existing is not None or operation["status"] not in {
+                "awaiting_approval",
+                "needs_reapproval",
+            }:
                 raise ApprovalAlreadyDecided(command.operation_id)
 
             expires_at = cast(datetime | None, operation["approval_expires_at"])
@@ -198,6 +215,7 @@ class ApprovalRepository:
                         approver_id=command.approver_id,
                         decision=command.decision.value,
                         reason=command.reason,
+                        approval_cycle=approval_cycle,
                         subject_evidence_id=current_binding.subject_evidence_id,
                         binding_payload=current_binding.model_dump(mode="json"),
                         **self._legacy_inventory_values(current_binding),
@@ -222,6 +240,7 @@ class ApprovalRepository:
                         payload={
                             "approval_id": str(approval_id),
                             "decision": command.decision.value,
+                            "approval_cycle": approval_cycle,
                         },
                         created_at=now,
                     )
@@ -233,6 +252,7 @@ class ApprovalRepository:
                     decision=command.decision,
                     reason=command.reason,
                     created_at=now,
+                    approval_cycle=approval_cycle,
                 )
 
         if expired:

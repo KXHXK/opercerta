@@ -14,6 +14,8 @@
 
 新增阶段证据：`docs/release-evidence/three-business-evaluation-compose.md`（42 条三业务固定评测、Compose 三业务/重启恢复，以及 12 格真实缓存矩阵；明确本机小样本边界）。三业务主计划 Task 7 已执行，Task 8 本地阶段随后完成。
 
+Agent 核心架构最新证据：`docs/release-evidence/agent-verifier-reapproval.md`（批准后 Verifier、审批周期、复审恢复、竞态和幂等执行；Task 6 RAG 与 Task 7 Trace 尚未实施，发布门禁保持关闭）。
+
 新增已确认规格：`docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md`（将 OperCerta 收口范围固定为库存补货、设备维修、作业异常恢复三个真实闭环；共享 LangGraph 可靠性内核，并把六个 MCP 工具、Redis、OpenTelemetry、真实模型代表性验证、交互部署和中文学习包纳入门禁）。
 新增执行中计划：`docs/superpowers/plans/2026-07-20-opercerta-three-business-release.md`（Task 1–7、Task 8 本地发布/学习和真实模型代表性验证已完成；公网交互、用户掌握与最终远程门禁待完成；采用 Inline Execution）。
 
@@ -124,6 +126,7 @@
 | `docs/release-evidence/observability-security-regression.md` | request_id、安全日志、低基数指标与安全回归证据 | 本地门禁通过；发布门禁仍关闭 | 本次提交 | 1 |
 | `docs/release-evidence/cache-tracing-model-adapter.md` | Redis 只读缓存、OpenTelemetry 与 Real model adapter 阶段证据 | adapter 阶段证据；真实模型运行随后由独立证据补齐 | 本次提交 | 1 |
 | `docs/release-evidence/three-business-evaluation-compose.md` | 42 条三业务评测、Compose 重启恢复与 2×2 缓存矩阵证据 | 本地 Task 7 通过；不代表生产发布 | 本次提交 | 1 |
+| `docs/release-evidence/agent-verifier-reapproval.md` | 三业务批准后 Verifier、复审周期、恢复、竞态和幂等写证据 | Agent Task 5 本地通过；不代表生产发布 | 本次提交 | 1 |
 | `docs/release-evidence/performance-cache-matrix.md` | 12 格缓存/工具模式的 MCP、hit 和本机延迟证据 | 60 次 query 已测；不作生产性能承诺 | 本次提交 | 1 |
 | `docs/release-evidence/three-business-release.md` | Caddy/release Compose、本地总门禁与一键发布候选 smoke | 本地候选通过；真实模型已另证，公网交互待完成 | 本次提交 | 1 |
 | `docs/release-evidence/real-model-representative-validation.md` | 三业务真实模型代表性验证、兼容调试与安全边界 | 本地 6 次代表操作通过；公网/生产仍关闭 | 本次提交 | 1 |

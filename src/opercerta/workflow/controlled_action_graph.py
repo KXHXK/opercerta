@@ -343,6 +343,7 @@ def build_controlled_action_graph(
         tracing=tracing,
         parallel_evidence_reads=parallel_evidence_reads,
         approval_ttl_seconds=approval_ttl_seconds,
+        agent_model_gateway=agent_model_gateway,
     )
     equipment = build_equipment_maintenance_graph(
         checkpointer,  # type: ignore[arg-type]
@@ -355,6 +356,7 @@ def build_controlled_action_graph(
         tracing=tracing,
         parallel_evidence_reads=parallel_evidence_reads,
         approval_ttl_seconds=approval_ttl_seconds,
+        agent_model_gateway=agent_model_gateway,
     )
     task = build_task_recovery_graph(
         checkpointer,  # type: ignore[arg-type]
@@ -367,6 +369,7 @@ def build_controlled_action_graph(
         tracing=tracing,
         parallel_evidence_reads=parallel_evidence_reads,
         approval_ttl_seconds=approval_ttl_seconds,
+        agent_model_gateway=agent_model_gateway,
     )
     agent = (
         build_agent_investigation_graph(

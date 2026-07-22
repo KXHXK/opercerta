@@ -144,6 +144,7 @@ class DecisionPlan(StrictAgentModel):
 class VerificationDecision(StrictAgentModel):
     decision: Literal["proceed", "abort", "escalate"]
     reason: SafeText
+    proposed_plan: DecisionPlan | None = None
 
 
 class FinalReport(StrictAgentModel):

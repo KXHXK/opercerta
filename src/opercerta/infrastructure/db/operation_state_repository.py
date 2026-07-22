@@ -3,7 +3,7 @@ from typing import cast
 from uuid import UUID, uuid4
 
 from pydantic import ValidationError
-from sqlalchemy import insert, select, update
+from sqlalchemy import and_, insert, select, update
 from sqlalchemy.engine import RowMapping
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
@@ -45,7 +45,10 @@ class OperationStateRepository:
                         .select_from(
                             operations.outerjoin(
                                 approvals,
-                                approvals.c.operation_id == operations.c.id,
+                                and_(
+                                    approvals.c.operation_id == operations.c.id,
+                                    approvals.c.approval_cycle == operations.c.approval_cycle,
+                                ),
                             ).outerjoin(
                                 work_orders,
                                 work_orders.c.operation_id == operations.c.id,
@@ -168,14 +171,16 @@ class OperationStateRepository:
 
             sequence = int(operation["next_audit_sequence"]) + 1
             changed_at = datetime.now(UTC)
+            operation_values: dict[str, object] = {
+                "status": target.value,
+                "next_audit_sequence": sequence,
+                "updated_at": changed_at,
+            }
+            if target is OperationStatus.AWAITING_APPROVAL:
+                operation_values["approval_cycle"] = 1
+
             await connection.execute(
-                update(operations)
-                .where(operations.c.id == operation_id)
-                .values(
-                    status=target.value,
-                    next_audit_sequence=sequence,
-                    updated_at=changed_at,
-                )
+                update(operations).where(operations.c.id == operation_id).values(**operation_values)
             )
             await connection.execute(
                 insert(audit_events).values(

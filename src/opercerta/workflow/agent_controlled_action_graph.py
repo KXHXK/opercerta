@@ -1,10 +1,12 @@
 from collections.abc import Callable
 from datetime import datetime
+from hashlib import sha256
 from typing import Literal, TypedDict, cast
+from uuid import UUID
 
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
-from pydantic import JsonValue
+from pydantic import BaseModel, JsonValue
 
 from opercerta.agent.harness import AgentContractViolation, AgentHarness
 from opercerta.agent.tool_executor import ReadToolGateway, ToolExecutor
@@ -17,6 +19,7 @@ from opercerta.domain.agent import (
     AgentAnalysis,
     AgentBudget,
     AnalysisContext,
+    DecisionPlan,
     GoalContext,
     GoalEncoding,
     IntentEnvelope,
@@ -24,6 +27,8 @@ from opercerta.domain.agent import (
     ReadToolName,
     ToolCallProposal,
     ToolObservation,
+    VerificationContext,
+    VerificationDecision,
 )
 from opercerta.domain.contracts import ActionType, OperationRequest
 from opercerta.domain.errors import (
@@ -32,8 +37,12 @@ from opercerta.domain.errors import (
     ToolBudgetExceeded,
     ToolPolicyViolation,
 )
+from opercerta.domain.maintenance import MaintenanceEvidenceBundle, MaintenancePlan
 from opercerta.domain.model_gateway import AgentModelGateway
+from opercerta.domain.replenishment import EvidenceBundle, ReplenishmentPlan
 from opercerta.domain.scenarios import ScenarioKind
+from opercerta.domain.task_recovery import TaskRecoveryEvidenceBundle, TaskRecoveryPlan
+from opercerta.domain.work_orders import canonical_payload_json
 
 
 class AgentInvestigationState(TypedDict):
@@ -58,6 +67,160 @@ AgentInvestigationGraph = CompiledStateGraph[
     AgentInvestigationState,
     AgentInvestigationState,
 ]
+
+ScenarioPlan = ReplenishmentPlan | MaintenancePlan | TaskRecoveryPlan
+ScenarioEvidence = EvidenceBundle | MaintenanceEvidenceBundle | TaskRecoveryEvidenceBundle
+VerificationRoute = Literal["proceed", "abort", "reapproval"]
+
+
+def decision_plan_from_scenario(plan: ScenarioPlan) -> DecisionPlan:
+    if isinstance(plan, ReplenishmentPlan):
+        return DecisionPlan(
+            scenario=ScenarioKind.INVENTORY,
+            action=plan.action,
+            object_id=plan.sku,
+            parameters={
+                "kind": "replenishment",
+                "recommended_quantity": plan.recommended_quantity,
+            },
+            decision_facts_hash=plan.decision_facts_hash,
+            plan_hash=plan.plan_hash,
+        )
+    if isinstance(plan, MaintenancePlan):
+        return DecisionPlan(
+            scenario=ScenarioKind.EQUIPMENT,
+            action=plan.action,
+            object_id=plan.equipment_id,
+            parameters={
+                "kind": "repair",
+                "alert_code": plan.alert_code,
+                "priority": plan.priority.value,
+            },
+            decision_facts_hash=plan.decision_facts_hash,
+            plan_hash=plan.plan_hash,
+        )
+    return DecisionPlan(
+        scenario=ScenarioKind.TASK,
+        action=plan.action,
+        object_id=plan.task_id,
+        parameters={
+            "kind": "task_recovery",
+            "recovery_action": plan.recovery_action,
+        },
+        decision_facts_hash=plan.decision_facts_hash,
+        plan_hash=plan.plan_hash,
+    )
+
+
+def _verification_observation(
+    *,
+    call_id: str,
+    tool_name: ReadToolName,
+    arguments: dict[str, JsonValue],
+    evidence: BaseModel,
+) -> ToolObservation:
+    evidence_ref = getattr(evidence, "evidence_id", None)
+    if not isinstance(evidence_ref, UUID):
+        raise TypeError("verification_evidence_invalid")
+    arguments_hash = sha256(canonical_payload_json(arguments).encode("utf-8")).hexdigest()
+    return ToolObservation(
+        tool_call_id=call_id,
+        tool_name=tool_name,
+        arguments_hash=arguments_hash,
+        status="ok",
+        evidence_ref=evidence_ref,
+        safe_summary="已取得并验证审批复核证据。",
+        structured_payload=cast(dict[str, JsonValue], evidence.model_dump(mode="json")),
+    )
+
+
+def build_verification_context(
+    approved_plan: ScenarioPlan,
+    original: ScenarioEvidence,
+    refreshed: ScenarioEvidence,
+) -> VerificationContext:
+    if (
+        isinstance(approved_plan, ReplenishmentPlan)
+        and isinstance(original, EvidenceBundle)
+        and isinstance(refreshed, EvidenceBundle)
+    ):
+        subject_tool = ReadToolName.INVENTORY_SNAPSHOT
+        subject_arguments: dict[str, JsonValue] = {"sku": approved_plan.sku}
+        policy_arguments: dict[str, JsonValue] = {
+            "action": "replenish_inventory",
+            "sku": approved_plan.sku,
+        }
+        original_pair: tuple[BaseModel, BaseModel] = (original.inventory, original.policy)
+        refreshed_pair: tuple[BaseModel, BaseModel] = (refreshed.inventory, refreshed.policy)
+    elif (
+        isinstance(approved_plan, MaintenancePlan)
+        and isinstance(original, MaintenanceEvidenceBundle)
+        and isinstance(refreshed, MaintenanceEvidenceBundle)
+    ):
+        subject_tool = ReadToolName.EQUIPMENT_STATUS
+        subject_arguments = {"equipment_id": approved_plan.equipment_id}
+        policy_arguments = {
+            "action": "repair_equipment",
+            "equipment_id": approved_plan.equipment_id,
+        }
+        original_pair = (original.equipment, original.policy)
+        refreshed_pair = (refreshed.equipment, refreshed.policy)
+    elif (
+        isinstance(approved_plan, TaskRecoveryPlan)
+        and isinstance(original, TaskRecoveryEvidenceBundle)
+        and isinstance(refreshed, TaskRecoveryEvidenceBundle)
+    ):
+        subject_tool = ReadToolName.TASK_STATUS
+        subject_arguments = {"task_id": approved_plan.task_id}
+        policy_arguments = {
+            "action": "recover_task",
+            "task_id": approved_plan.task_id,
+        }
+        original_pair = (original.task, original.policy)
+        refreshed_pair = (refreshed.task, refreshed.policy)
+    else:
+        raise TypeError("verification_scenario_mismatch")
+
+    def observations(prefix: str, pair: tuple[BaseModel, BaseModel]) -> tuple[ToolObservation, ...]:
+        return (
+            _verification_observation(
+                call_id=f"verify-{prefix}-subject",
+                tool_name=subject_tool,
+                arguments=subject_arguments,
+                evidence=pair[0],
+            ),
+            _verification_observation(
+                call_id=f"verify-{prefix}-policy",
+                tool_name=ReadToolName.POLICY_CONSTRAINTS,
+                arguments=policy_arguments,
+                evidence=pair[1],
+            ),
+        )
+
+    return VerificationContext(
+        approved_plan=decision_plan_from_scenario(approved_plan),
+        original_observations=observations("original", original_pair),
+        refreshed_observations=observations("refreshed", refreshed_pair),
+    )
+
+
+def choose_verification_route(
+    decision: VerificationDecision,
+    approved_plan: ScenarioPlan,
+    *,
+    binding_matches: bool,
+) -> VerificationRoute:
+    if decision.decision == "abort":
+        return "abort"
+    approved = decision_plan_from_scenario(approved_plan)
+    if (
+        decision.decision == "escalate"
+        or not binding_matches
+        or (decision.proposed_plan is not None and decision.proposed_plan != approved)
+    ):
+        return "reapproval"
+    return "proceed"
+
 
 _SUBJECT_TOOL = {
     ScenarioKind.INVENTORY: ReadToolName.INVENTORY_SNAPSHOT,

@@ -42,6 +42,7 @@ async def seed_operation(
                 thread_id=str(operation_id),
                 request_payload={"message": "synthetic MCP tool test"},
                 status="executing" if approved else "awaiting_approval",
+                approval_cycle=1,
                 next_audit_sequence=0,
             )
         )
@@ -50,6 +51,7 @@ async def seed_operation(
                 insert(approvals).values(
                     id=uuid4(),
                     operation_id=operation_id,
+                    approval_cycle=1,
                     approver_id="synthetic-tool-approver",
                     decision="approved",
                     reason="synthetic MCP transport approval",
