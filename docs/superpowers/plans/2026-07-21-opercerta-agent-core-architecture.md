@@ -605,7 +605,7 @@ git add data/evals/opercerta-agent-v1.json scripts .github/workflows/ci.yml test
 git commit -m "test: gate OperCerta agent trajectories"
 ```
 
-实施证据：提交 `642d3ba`；后端 566 条、前端 46 条、Agent 冻结评测 9/9、真实 FastEmbed/pgvector RAG、三业务 Compose 与 API/MCP 重启恢复通过。Real Kimi 新 Agent 代表 query 为 failed，未回退 Mock；详见 `docs/release-evidence/agent-core-architecture.md`。
+实施证据：提交 `642d3ba`；后端 566 条、前端 46 条、Agent 冻结评测 9/9、真实 FastEmbed/pgvector RAG、三业务 Compose 与 API/MCP 重启恢复通过。2026-07-23 后续按 TDD 修复 Kimi replan 重复工具和 provider 异常 operation 原子收口，新鲜 unit 352 条、关键图集成 7 条；Real Kimi 完整 Compose 代表 query 仍为 failed，未回退 Mock；本轮远程 CI 与凭据轮换待完成。详见 `docs/release-evidence/agent-core-architecture.md`。
 
 ## Task 10: 中文技术手册、人工实验、面试材料与交付证据
 
@@ -646,7 +646,7 @@ cd web && npm test -- --run && npm run build && cd ..
 
 推送 feature branch，创建 PR，等待 GitHub Actions 全绿并完成 review；未合并/未验证前不改 `main` 结论、不启动 ForenTrail。
 
-本地部分已完成：仓库安全、Ruff、187 文件格式、Mypy 76 个源文件、后端 567 条、前端 46 条和生产构建均通过。远程分支与 Draft PR #8 已创建；修复 CI pgvector 漂移的提交 `ba53e70` 后，run `29936753836` 的四个 PR 快速 job 全绿。review、合并与 main-only Compose smoke 尚未完成，因此本 Step 保持未勾选。
+本地部分已完成：仓库安全、Ruff、187 文件格式、Mypy 76 个源文件、后端 567 条、前端 46 条和生产构建均通过。远程分支与 Draft PR #8 已创建；修复 CI pgvector 漂移的提交 `ba53e70` 后，最新基线 run `29937375023` 的四个 PR 快速 job 全绿。review、合并与 main-only Compose smoke 尚未完成，因此本 Step 保持未勾选。
 
 - [x] **Step 5: 提交文档**
 

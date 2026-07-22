@@ -312,5 +312,29 @@
 - **问题：** Agent 核心 Draft PR 首次 Actions 中，三个快速 job 通过，backend-tests 在 Alembic 的 `CREATE EXTENSION vector` 处失败。
 - **根因：** 本地 Compose 已迁移到 pgvector 镜像，CI backend service 仍是普通 PostgreSQL 18，导致运行环境和数据库迁移合同漂移。
 - **修复：** 先新增 CI 资产 RED，要求固定 `pgvector/pgvector:0.8.2-pg18-trixie` 且禁止 `postgres:18`；再修改工作流，未跳过迁移或 RAG 测试。
-- **验证：** 定向 CI/容器资产测试 12 条通过；修复提交 `ba53e70` 后，Actions run `29936753836` 的仓库安全、Python 质量、后端和前端全部通过。
+- **验证：** 定向 CI/容器资产测试 12 条通过；修复提交 `ba53e70` 后，最新基线 Actions run `29937375023` 的仓库安全、Python 质量、后端和前端全部通过。
 - **面试表达：** “数据库 extension 是部署依赖，不只是 Python 包。我用可执行资产测试约束 CI 镜像与 Compose 一致，避免本地绿、远端红的基础设施漂移。”
+
+## 34. Agent replan 应缩小行动空间，而不是重复展示全部工具
+
+- **问题：** Kimi 在第一轮已完成 inventory 与 knowledge 工具后，第二轮仍重复选择已完成工具，Harness 正确拒绝重复调用，但 policy 证据因此缺失。
+- **根因：** Graph 已计算缺失证据，却仍把完整工具集交给模型；Prompt 提醒不能消除概率性重复。
+- **修复：** 从持久化 observation 计算已完成工具，replan 只暴露 missing tools；同时保留 Harness 的未知工具、重复调用和对象漂移硬拒绝。
+- **验证：** RED 证明第二轮错误暴露 inventory + policy；GREEN 后 16 条定向测试通过，真实 Kimi + RAG 图 probe 依次完成 inventory、knowledge、policy。
+- **面试表达：** “我把 LLM 当受约束决策器。Graph 用状态收窄可选集合，Harness 守住最终边界；这样既不依赖 Prompt 运气，也不会因为安全拦截直接失去任务进度。”
+
+## 35. provider 异常必须让 operation 进入可解释终态
+
+- **问题：** operation 已创建后，模型或图抛异常会留下 `received`，重启恢复只能把它改成 `recovery_state_conflict`，丢失原始失败语义。
+- **根因：** API 创建记录与图执行之间存在异常窗口，旧 runner 没有业务终态补偿。
+- **修复：** runner 捕获异常并调用 operation state repository 写入固定 `dependency_unavailable`；若收口写入自身失败，记录固定安全日志并重新抛出原始异常。
+- **验证：** 测试覆盖终态写入、provider 文本不持久化、二次失败仍保留原始异常；本地 unit 352 条与关键图集成 7 条通过。
+- **面试表达：** “可恢复系统不能只依赖重启扫描兜底。异常发生当下就应把业务记录收口为安全终态，恢复协调器处理的是进程中断，不应替代正常异常处理。”
+
+## 36. 真实模型验证失败也要产生安全、可行动证据
+
+- **问题：** 完整 Compose 代表调用失败时，报告只有 `AssertionError`，既不能定位边界，也存在把响应正文写入异常的泄露风险。
+- **设计：** 验证器只允许 stage、HTTP 状态、固定错误码和 operation 状态进入报告；模型原文、Prompt、响应正文、凭据、token 和未返回的成本全部禁止记录。
+- **验证：** 单元测试证明敏感异常文本不进入报告；最终 Kimi 代表调用被定位为 `create_operation / 503 / dependency_unavailable`，没有回退 Mock。
+- **限制：** 该证据只说明失败被正确分类和收口，不等于真实模型端到端通过；一次约 21 秒完成和一次约 30 秒超时也不能被包装为 SLA。
+- **面试表达：** “失败报告的价值是回答‘在哪一层、以什么安全类别失败’，而不是倾倒完整上下文。我用 allowlist 证据定位外部依赖超时，同时避免诊断系统成为新的泄露面。”

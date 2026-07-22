@@ -2,7 +2,9 @@
 
 ## 最新核验：Agent 核心 Draft PR 快速门禁已通过
 
-2026-07-23，`feat/agent-core-implementation` 已推送并创建 [Draft PR #8](https://github.com/KXHXK/opercerta/pull/8)。首次 Actions 暴露 CI 普通 PostgreSQL 镜像不含迁移要求的 vector extension；提交 `ba53e70` 用资产契约统一为 pgvector 镜像后，run `29936753836` 的 repository-safety、python-quality、backend-tests、frontend 全部通过。PR 事件按设计跳过 `compose-smoke`；PR 尚未 review/合并，main 新鲜 Compose、Real Kimi 兼容、provider 异常原子收口和生产治理仍未完成，生产发布门禁保持 `CLOSED`。
+2026-07-23，`feat/agent-core-implementation` 的 Kimi + RAG replan 已改为只暴露尚缺工具，provider/图异常 operation 已能原子收口为固定 `dependency_unavailable`；真实图 probe 完成 inventory → knowledge → policy。新鲜本地回归为 unit 352 条、关键 Agent 图集成 7 条、Ruff/188 文件格式/Mypy 76 个源文件。完整 Compose Real Kimi 仍未稳定通过，最终安全证据为 create operation 503 `dependency_unavailable`；未回退 Mock。测试 traceback 曾展开本地 PostgreSQL 测试凭据，用户必须轮换密码并同步 ignored `.env.local`。本轮修复尚待推送和远程 backend-tests，生产发布门禁保持 `CLOSED`。
+
+同日此前已创建 [Draft PR #8](https://github.com/KXHXK/opercerta/pull/8)。首次 Actions 暴露 CI 普通 PostgreSQL 镜像不含迁移要求的 vector extension；提交 `ba53e70` 用资产契约统一为 pgvector 镜像后，最新基线 run `29937375023` 的 repository-safety、python-quality、backend-tests、frontend 全部通过。PR 事件按设计跳过 `compose-smoke`；PR 尚未 review/合并，main 新鲜 Compose 和生产治理仍未完成。
 
 ## 最新核验：Agent Task 8 React 工作台已完成前端与响应式门禁
 
@@ -151,8 +153,8 @@
 
 ## 下一步
 
-继续只实施 OperCerta。Draft PR 快速 Actions 已全绿；下一步先修复 Real Kimi Tool Calling 与 provider 异常 operation 原子收口，再完成 review、用户手动演示/口述掌握检查和合并后的 main Compose。生产 IAM/限流/备份、自动部署和 Release Tag 尚未完成。
+继续只实施 OperCerta。Real Kimi replan 与 provider 异常 operation 原子收口已完成本地修复；下一步提交并推送本轮变更，用 Draft PR Actions 补齐完整数据库回归，并由用户轮换 Windows PostgreSQL 测试角色密码、同步 ignored `.env.local`。之后再完成 review、用户手动演示/口述掌握检查和合并后的 main Compose。生产 IAM/限流/备份、自动部署和 Release Tag 尚未完成。
 
 ## 发布门禁
 
-`OperCerta production release gate: CLOSED`。当前证据证明三业务本地 Mock Agent、真实 FastEmbed/pgvector RAG、Agent Trace、审批/幂等/恢复、单页控制台、历史静态展示和 Draft PR 快速 CI 通过对应门禁；新 Agent 核心的 Real Kimi Tool Calling、provider 异常原子收口、review/main Compose、生产身份、公网 HTTPS 后端、限流/备份、自动部署、用户掌握和 Release Tag 仍待完成。求职演示发布门禁不能与生产门禁混用。
+`OperCerta production release gate: CLOSED`。当前证据证明三业务本地 Mock Agent、真实 FastEmbed/pgvector RAG、Agent Trace、审批/幂等/恢复、单页控制台、历史静态展示，以及 replan/异常原子收口的本地修复；新 Agent 核心的 Real Kimi 完整 Compose 稳定通过、本轮远程 CI、凭据轮换、review/main Compose、生产身份、公网 HTTPS 后端、限流/备份、自动部署、用户掌握和 Release Tag 仍待完成。求职演示发布门禁不能与生产门禁混用。

@@ -1,6 +1,6 @@
 # OperCerta 文档索引
 
-新增 Agent Task 9 总证据：`docs/release-evidence/agent-core-architecture.md`（后端 566 条、前端 46 条、Agent 评测 9/9、真实 FastEmbed/pgvector RAG、Compose 三业务与重启恢复通过；Real Kimi 新 Agent query failed，未回退 Mock）。实现提交 `642d3ba`；Draft PR #8 的快速 Actions run `29936753836` 已全绿，review/main Compose 仍待完成，发布门禁保持 `CLOSED`。CI 问题与修复见 `docs/development-log/daily/2026-07-23.md`。
+新增 Agent Task 9 总证据：`docs/release-evidence/agent-core-architecture.md`（后端 566 条、前端 46 条、Agent 评测 9/9、真实 FastEmbed/pgvector RAG、Compose 三业务与重启恢复通过；后续已本地修复 Kimi replan 重复工具与 provider 异常 operation 原子收口，新鲜 unit 352 条/关键图集成 7 条；Real Kimi 完整 Compose 仍 failed，未回退 Mock）。实现提交 `642d3ba`；Draft PR #8 上一轮快速 Actions run `29937375023` 已全绿，本轮 CI、review/main Compose 仍待完成，发布门禁保持 `CLOSED`。问题与修复见 `docs/development-log/daily/2026-07-23.md`。
 
 Agent Task 8 证据：`docs/release-evidence/agent-workspace.md`（有限表单、Goal、真实 Agent Trace、MCP/RAG 引用、模型建议/确定性计划、审批/Verifier、工单与角色接力；前端 46 条、生产构建和 1440/1024/390 响应式检查通过）。
 
@@ -96,7 +96,7 @@ Agent 核心架构阶段证据：`docs/release-evidence/agent-verifier-reapprova
 | `docs/superpowers/specs/2026-07-19-portfolio-netlify-static-mirror-design.md` | 作品集 Netlify 独立静态镜像设计 | 已实施并完成公网验证 | 本次提交 | 1 |
 | `docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md` | 三业务闭环、技术栈补齐、求职发布与学习交付修订 | 已确认；实施计划已创建 | `632f0a1` | 1 |
 | `docs/superpowers/specs/2026-07-21-opercerta-agent-core-architecture-design.md` | 六层 Agent 核心架构、Plan-and-Execute、Harness、pgvector Memory、RAG 与 Agent Trace 纠偏 | 已确认；已按有界循环、最小 LangChain 和 RAG 边界修订 | `bf3b6da` + 本次提交 | 1 |
-| `docs/superpowers/plans/2026-07-21-opercerta-agent-core-architecture.md` | Agent 核心架构十项 Inline TDD 实施计划 | Task 1--9 与 Task 10 本地/PR 快速门禁已执行；review/main Compose 待完成 | `ba53e70` + 本次提交 | 1 |
+| `docs/superpowers/plans/2026-07-21-opercerta-agent-core-architecture.md` | Agent 核心架构十项 Inline TDD 实施计划 | Task 1--10 已执行；replan/异常原子收口已本地修复，本轮 CI、凭据轮换、review/main Compose 待完成 | `ba53e70` + 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-20-opercerta-three-business-release.md` | 三业务求职发布八项 Inline TDD 主计划 | 真实模型代表性验证已执行；公网和远程门禁待完成 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-14-opercerta-reliability-kernel.md` | 可靠性内核 TDD 总计划 | Task 1–6 已执行 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-16-langgraph-restart-recovery.md` | Task 5 四点重启恢复可执行 TDD 计划 | 已执行；证据已归档 | 本次提交 | 1 |
@@ -111,12 +111,12 @@ Agent 核心架构阶段证据：`docs/release-evidence/agent-verifier-reapprova
 | `docs/development-log/README.md` | 日志机制说明 | 已初始化 | `f70411f` | 1 |
 | `docs/development-log/current-state.md` | 当前已验证状态 | 已同步真实模型代表性验证与剩余外部门禁 | 本次提交 | 1 |
 | `docs/development-log/interview-casebook.md` | 实施问题、诊断、修复与面试复盘案例 | 已补充 Agent、RAG、Trace 与 CI pgvector 漂移案例 | 本次提交 | 1 |
-| `docs/development-log/daily/2026-07-23.md` | Agent 核心 Draft PR、CI 失败根因、RED/GREEN 修复与远程复验 | run `29936753836` 四个 PR 快速 job 全绿；review/main Compose 待完成 | 本次提交 | 1 |
+| `docs/development-log/daily/2026-07-23.md` | Agent 核心 Draft PR、CI/replan/异常收口根因、RED/GREEN 修复与 Real 诊断 | 上一轮 PR 快速 job 全绿；本轮修复 CI、凭据轮换、review/main Compose 待完成 | 本次提交 | 1 |
 | `docs/development-log/learning-method.md` | 学习掌握、单变量实验与面试训练方法 | 已加入三业务学习包和手动闭环建议 | `a3994ef` | 1 |
 | `docs/learning/OperCerta核心技术手册.md` | 一次请求的全技术链路、可靠性设计与技术边界 | 本地学习交付已完成；需用户实践 | `a3994ef` | 1 |
 | `docs/learning/OperCerta手动实验手册.md` | WSL2/Compose/业务/规则/MCP 故障的手动实验 | 命令已记录；用户掌握检查待执行 | `a3994ef` | 1 |
 | `docs/learning/OperCerta面试讲解.md` | 30 秒、3 分钟、10 分钟表达和常见追问 | 材料已完成；需用户口述训练 | `a3994ef` | 1 |
-| `docs/release-evidence/agent-core-architecture.md` | Agent 核心 Task 9 新鲜本地门禁、Mock/Real/RAG 边界与 blocker | 本地与 Draft PR 快速 CI 已通过；Real Kimi、review/main Compose 未完成 | `ba53e70` + 本次提交 | 1 |
+| `docs/release-evidence/agent-core-architecture.md` | Agent 核心 Task 9 新鲜本地门禁、Mock/Real/RAG 边界与 blocker | replan/异常收口本地通过；Real Kimi 完整 Compose、本轮 CI、review/main Compose 未完成 | `ba53e70` + 本次提交 | 1 |
 | `docs/development-log/daily/2026-07-15.md` | 当日过程记录 | 已初始化 | `f70411f` | 2 |
 | `docs/development-log/daily/2026-07-16.md` | 当日过程记录 | 已记录库存补货 Task 1–9 实施、调试与验证 | 本次提交 | 2 |
 | `docs/development-log/daily/2026-07-18.md` | 当日过程记录 | 已记录前端、可观测性与 GitHub Actions 实施证据 | 本次提交 | 2 |
