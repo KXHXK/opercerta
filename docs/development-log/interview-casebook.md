@@ -299,3 +299,10 @@
 - **设计：** Agent Trace 保存脱敏业务解释；审计日志保存状态变更事实；OTel 保存低基数调用链和耗时。Trace 不记录隐藏思维链，只记录模型输出合同、真实 observation 和 citation reference。
 - **验证：** 禁止字段、边界截断、RAG 正文隔离、恢复去重、RBAC 与 SSE snapshot 均有自动化测试；证据见 `docs/release-evidence/agent-trace-rbac.md`。
 - **面试表达：** “三套记录的受众和保留策略不同。我单独建模 Agent Trace，是为了让业务可解释性、合规审计和系统可观测性互不污染。”
+
+## 32. 角色权限变化不能让前端丢失业务结果
+
+- **问题：** approver 在等待审批时可读 Trace，但提交审批后 operation 进入 completed，按 RBAC 不再允许 approver 读取终态 Trace。如果页面把详情、Trace、audit 当成一个全成全败请求，审批成功后反而会显示“读取失败”。
+- **设计：** 业务详情是主结果，Trace 作为独立权限资源加载；同一 operation 的 Trace 读取被拒绝时保留已加载安全快照，并提示切换 auditor 完成终态核验。读取另一个无权 operation 时不沿用旧 Trace。
+- **验证：** API 权限测试证明 approver 只读待审批状态；前端角色引导和 App 编排测试通过。
+- **面试表达：** “RBAC 不只是隐藏按钮，还会改变请求组合方式。我让核心业务结果与可解释轨迹独立失败，并用角色接力完成最小授权下的完整演示。”

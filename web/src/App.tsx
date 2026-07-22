@@ -1,7 +1,15 @@
 import { useMemo, useState } from "react";
 
 import { ApiClient } from "./api/client";
-import type { OperationDetail as OperationDetailData } from "./api/contracts";
+import type {
+  AgentTraceSnapshot,
+  OperationDetail as OperationDetailData
+} from "./api/contracts";
+import { AgentTrace } from "./agent/AgentTrace";
+import { DecisionComparison } from "./agent/DecisionComparison";
+import { EvidenceAndCitations } from "./agent/EvidenceAndCitations";
+import { IntentCard } from "./agent/IntentCard";
+import { NextRoleGuide } from "./agent/NextRoleGuide";
 import { readAuditSnapshot, type AuditEvent } from "./audit-stream";
 import { ApprovalPanel } from "./components/ApprovalPanel";
 import { AuditTimeline } from "./components/AuditTimeline";
@@ -26,6 +34,7 @@ function ConsoleApp({ apiBaseUrl }: { apiBaseUrl: string }) {
   const [role, setRole] = useState<DemoRole>("operator");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [detail, setDetail] = useState<OperationDetailData | null>(null);
+  const [trace, setTrace] = useState<AgentTraceSnapshot | null>(null);
   const [events, setEvents] = useState<AuditEvent[]>([]);
   const [isBusy, setIsBusy] = useState(false);
   const [message, setMessage] = useState("请选择演示角色以获取内存 JWT。");
@@ -33,6 +42,11 @@ function ConsoleApp({ apiBaseUrl }: { apiBaseUrl: string }) {
   async function loadOperation(operationId: string) {
     const nextDetail = await client.getOperation(operationId);
     setDetail(nextDetail);
+    try {
+      setTrace(await client.getAgentTrace(operationId));
+    } catch {
+      setTrace((current) => current?.run.operation_id === operationId ? current : null);
+    }
     const snapshot = await readAuditSnapshot(operationId, 0, session.authorizationHeader());
     setEvents(snapshot);
   }
@@ -45,6 +59,13 @@ function ConsoleApp({ apiBaseUrl }: { apiBaseUrl: string }) {
       await session.selectRole(nextRole);
       setIsAuthenticated(true);
       setMessage(`已切换为 ${nextRole}；令牌仅保存在当前页面内存。`);
+      if (detail !== null) {
+        try {
+          setTrace(await client.getAgentTrace(detail.operation_id));
+        } catch {
+          setTrace((current) => current?.run.operation_id === detail.operation_id ? current : null);
+        }
+      }
     } catch {
       setMessage("演示身份获取失败，请确认本地 API 已启动后重试。");
     }
@@ -88,37 +109,75 @@ function ConsoleApp({ apiBaseUrl }: { apiBaseUrl: string }) {
     <main className="console-shell">
       <header className="console-header">
         <div>
-          <p className="eyebrow">本地合成数据演示</p>
+          <p className="eyebrow">CONTROLLED AGENT WORKSPACE · 本地合成数据</p>
           <h1>OperCerta｜智能运营处置 Agent</h1>
+          <p className="console-subtitle">有限业务表单进入真实 LangGraph 调查链路，人工审批后再验证并幂等写入。</p>
         </div>
-        <p className="gate">发布门禁：CLOSED</p>
+        <div className="console-runtime-state">
+          <span>{trace === null ? "MODEL PENDING" : `${trace.run.model_mode.toUpperCase()} MODEL`}</span>
+          <p className="gate">发布门禁：CLOSED</p>
+        </div>
       </header>
       <p className="console-message" role="status">{isBusy ? "处理中：" : ""}{message}</p>
-      <section className="console-grid" aria-label="运营控制台">
-        <article className="panel" aria-label="操作控制区">
-          <h2>操作控制区</h2>
-          <OperationControls
+      <ol className="agent-flow-strip" aria-label="Agent 业务链路">
+        {["表单", "Goal", "Tool / RAG", "规则", "审批", "Verifier", "工单"].map((step, index) => (
+          <li key={step} className={trace !== null && index < 4 ? "is-active" : undefined}>
+            <span>{String(index + 1).padStart(2, "0")}</span>{step}
+          </li>
+        ))}
+      </ol>
+      <section className="agent-workspace" aria-label="运营控制台">
+        <aside className="workspace-sidebar">
+          <article className="panel control-panel" aria-label="操作控制区">
+            <div className="panel-heading"><span>CONTROL</span><h2>操作控制区</h2></div>
+            <OperationControls
+              role={role}
+              isAuthenticated={isAuthenticated && !isBusy}
+              onRoleChange={(nextRole) => void selectRole(nextRole)}
+              onCreate={(scenario, action) => void createOperation(scenario, action)}
+              onLoad={(operationId) => void readOperation(operationId)}
+            />
+          </article>
+          <NextRoleGuide
             role={role}
-            isAuthenticated={isAuthenticated && !isBusy}
-            onRoleChange={(nextRole) => void selectRole(nextRole)}
-            onCreate={(scenario, action) => void createOperation(scenario, action)}
-            onLoad={(operationId) => void readOperation(operationId)}
+            status={detail?.status ?? null}
+            hasWorkOrder={detail?.work_order !== null && detail?.work_order !== undefined}
           />
-        </article>
-        <article className="panel" aria-label="业务事实区">
-          <h2>业务事实区</h2>
-          <OperationDetail detail={detail} />
-          <h2>审批与绑定</h2>
-          <ApprovalPanel
-            role={role}
-            binding={detail?.approval_binding ?? null}
-            onDecision={submitDecision}
-          />
-        </article>
-        <article className="panel" aria-label="审计时间线">
-          <h2>审计时间线</h2>
-          <AuditTimeline events={events} />
-        </article>
+        </aside>
+        <div className="workspace-main">
+          <div className="workspace-summary-grid">
+            <IntentCard detail={detail} trace={trace} />
+            <article className="panel fact-panel" aria-label="业务事实区">
+              <div className="panel-heading"><span>BUSINESS STATE</span><h2>业务事实区</h2></div>
+              <OperationDetail detail={detail} />
+            </article>
+          </div>
+          <AgentTrace trace={trace} />
+          <div className="workspace-analysis-grid">
+            <section className="panel" aria-label="工具事实与引用面板">
+              <div className="panel-heading"><span>OBSERVATIONS</span><h2>工具事实与 SOP 引用</h2></div>
+              <EvidenceAndCitations trace={trace} />
+            </section>
+            <section className="panel" aria-label="决策对照面板">
+              <div className="panel-heading"><span>DECISION</span><h2>建议与确定性边界</h2></div>
+              <DecisionComparison detail={detail} trace={trace} />
+            </section>
+          </div>
+          <div className="workspace-outcome-grid">
+            <article className="panel approval-panel" aria-label="审批与绑定">
+              <div className="panel-heading"><span>HUMAN IN THE LOOP</span><h2>审批与绑定</h2></div>
+              <ApprovalPanel
+                role={role}
+                binding={detail?.approval_binding ?? null}
+                onDecision={submitDecision}
+              />
+            </article>
+            <article className="panel audit-panel" aria-label="审计时间线">
+              <div className="panel-heading"><span>AUDIT</span><h2>业务审计时间线</h2></div>
+              <AuditTimeline events={events} />
+            </article>
+          </div>
+        </div>
       </section>
       <ProjectBoundary />
     </main>

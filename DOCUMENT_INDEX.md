@@ -1,5 +1,7 @@
 # OperCerta 文档索引
 
+新增 Agent Task 8 证据：`docs/release-evidence/agent-workspace.md`（有限表单、Goal、真实 Agent Trace、MCP/RAG 引用、模型建议/确定性计划、审批/Verifier、工单与角色接力；前端 46 条、生产构建和 1440/1024/390 响应式检查通过）。Agent 核心 Task 1--8 已执行，Task 9--10 待执行，发布门禁保持 `CLOSED`。
+
 新增 Agent Task 7 证据：`docs/release-evidence/agent-trace-rbac.md`（Agent run/event/citation 持久化、序列与语义去重、脱敏、RAG 引用、恢复不重复、Trace snapshot/SSE 与 operation 级 RBAC；产品 545 条、最新定向 8 条与 Git 安全 4 条通过，Task 8--9 和生产门禁仍未完成）。Agent 核心计划 Task 1--7 已执行，Task 8--10 待执行。
 
 新增 Agent Task 6 证据：`docs/release-evidence/agent-pgvector-rag.md`（pgvector 迁移、三份合成中文 SOP、FastEmbed、MCP RAG、LangGraph citation、降级/失败关闭、535+4 条回归与真实三场景检索；完整 Compose restart smoke 仍待 Task 9 在稳定 WSL 终端重跑，发布门禁保持 `CLOSED`）。对应过程日志：`docs/development-log/daily/2026-07-22.md`。

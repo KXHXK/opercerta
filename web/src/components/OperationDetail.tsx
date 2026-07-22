@@ -2,6 +2,7 @@ import type { OperationDetail as OperationDetailData } from "../api/contracts";
 
 const statusLabels: Record<string, string> = {
   awaiting_approval: "等待审批",
+  needs_reapproval: "等待复审",
   completed: "处置完成",
   failed: "处置失败",
   running: "执行中"
@@ -27,7 +28,8 @@ export function OperationDetail({ detail }: OperationDetailProps) {
         {detail.approval !== null ? <div><dt>审批结果</dt><dd>{detail.approval.decision}</dd></div> : null}
         {detail.work_order !== null ? <div><dt>工单编号</dt><dd className="mono-value">{detail.work_order.id}</dd></div> : null}
         {detail.work_order !== null ? <div><dt>工单状态</dt><dd>{detail.work_order.status}</dd></div> : null}
-        {detail.assessment !== null ? <div><dt>规则评估</dt><dd><code>{JSON.stringify(detail.assessment)}</code></dd></div> : null}
+        {detail.result !== null ? <div><dt>Verifier 结果</dt><dd>{detail.result.outcome}</dd></div> : null}
+        {detail.assessment !== null ? <div><dt>规则评估</dt><dd className="fact-json">{JSON.stringify(detail.assessment)}</dd></div> : null}
       </dl>
       {detail.error !== null ? <p role="alert">后端返回：{detail.error.message}</p> : null}
     </section>

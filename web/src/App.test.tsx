@@ -50,7 +50,10 @@ it("renders the controls, facts, approval, and audit areas", () => {
   expect(screen.getByRole("article", { name: "操作控制区" })).toBeInTheDocument();
   expect(screen.getByRole("article", { name: "业务事实区" })).toBeInTheDocument();
   expect(screen.getByText("审批与绑定")).toBeInTheDocument();
+  expect(screen.getByRole("region", { name: "Agent Trace" })).toBeInTheDocument();
+  expect(screen.getByRole("complementary", { name: "下一角色引导" })).toBeInTheDocument();
   expect(screen.getByText("发布门禁保持 CLOSED")).toBeInTheDocument();
+  expect(screen.queryByPlaceholderText(/自由输入|聊天/)).not.toBeInTheDocument();
 });
 
 it("loads a created operation after acquiring an in-memory demo token", async () => {
@@ -66,11 +69,26 @@ it("loads a created operation after acquiring an in-memory demo token", async ()
     evidence: [], assessment: null, plan: null, approval_binding: binding, approval: null,
     work_order: null, result: null, error: null, last_audit_sequence: 2
   };
+  const trace = {
+    run: {
+      id: "run-1", operation_id: "operation-1", run_key: "primary", scenario: "inventory",
+      status: "awaiting_human", model_mode: "mock", initiated_by: "demo.operator",
+      next_sequence: 1, started_at: "2026-07-22T09:00:00Z", ended_at: null
+    },
+    events: [{
+      id: "event-1", run_id: "run-1", sequence: 1, semantic_key: "model:analysis",
+      event_type: "model", actor_type: "model", node: "analyze_observations", status: "completed",
+      safe_input: {}, safe_output: { recommendation: "建议补货并提交人工审批" },
+      prompt_ref: "observation_analyst:v1", tool_ref: null, error_code: null, citations: [],
+      started_at: "2026-07-22T09:00:00Z", ended_at: "2026-07-22T09:00:00Z"
+    }]
+  };
   const fetchMock = vi
     .fn()
     .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: "memory-token" }), { status: 200 }))
     .mockResolvedValueOnce(new Response(JSON.stringify({ operation_id: "operation-1" }), { status: 202 }))
     .mockResolvedValueOnce(new Response(JSON.stringify(detail), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify(trace), { status: 200 }))
     .mockResolvedValueOnce(new Response("id: 2\nevent: approval_requested\ndata: {}\n\n", { status: 200 }));
   vi.stubGlobal("fetch", fetchMock);
 
@@ -81,5 +99,6 @@ it("loads a created operation after acquiring an in-memory demo token", async ()
 
   expect(await screen.findByText("operation-1")).toBeInTheDocument();
   expect(screen.getAllByText("等待审批")).not.toHaveLength(0);
-  expect(fetchMock).toHaveBeenCalledTimes(4);
+  expect(screen.getAllByText("建议补货并提交人工审批").length).toBeGreaterThan(0);
+  expect(fetchMock).toHaveBeenCalledTimes(5);
 });

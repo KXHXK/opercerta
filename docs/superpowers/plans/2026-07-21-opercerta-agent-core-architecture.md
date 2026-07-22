@@ -520,22 +520,22 @@ git commit -m "feat: expose redacted agent trace"
 - Test: corresponding `web/src/agent/*.test.tsx`
 - Test: existing `App`/components/API client tests
 
-- [ ] **Step 1: 写用户无法走通完整业务的 RED 测试**
+- [x] **Step 1: 写用户无法走通完整业务的 RED 测试**
 
 测试 operator 有限表单、结构化 Goal、真实 Trace 分类、MCP 事实、SOP 引用、模型建议与确定性计划差异、审批 binding、批准后 Verifier、幂等工单回读和下一角色提示。禁止聊天输入、伪造逐字思考、fixed 浮层和用 audit event 冒充 Agent Trace。
 
-- [ ] **Step 2: 运行 RED**
+- [x] **Step 2: 运行 RED**
 
 ```bash
 cd web
 npm test -- --run
 ```
 
-- [ ] **Step 3: 实现单页工作台**
+- [x] **Step 3: 实现单页工作台**
 
 单页按“表单 → Goal → 调查计划 → Tool/RAG → Observation → 建议/规则 → 审批 → Verifier → 工单/报告”渐进展示；角色切换保留 operation，明确下一步由谁操作。Mock/Real、合成数据、发布门禁和错误状态始终可见。动画只使用轻量 CSS transition，尊重 `prefers-reduced-motion`。
 
-- [ ] **Step 4: 运行 GREEN、构建和响应式复核**
+- [x] **Step 4: 运行 GREEN、构建和响应式复核**
 
 ```bash
 cd web
@@ -545,7 +545,9 @@ npm run build
 
 在 1440px、1024px、390px 浏览器宽度手动检查，无固定遮挡、横向溢出、不可点击控件和状态丢失。
 
-- [ ] **Step 5: 提交**
+实施证据：前端 17 个测试文件/46 条测试通过，TypeScript/Vite production build 通过；1440/1024/390 本地浏览器检查无横向溢出，`main` 内 fixed/sticky 为 0。页面使用有限表单和真实后端 Trace，不显示隐藏思维链；真实 Compose 浏览器 E2E 保留到 Task 9，发布门禁继续 `CLOSED`。
+
+- [x] **Step 5: 提交**
 
 ```bash
 git add web/src

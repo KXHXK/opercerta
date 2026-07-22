@@ -1,5 +1,9 @@
 # OperCerta 当前状态
 
+## 最新核验：Agent Task 8 React 工作台已完成前端与响应式门禁
+
+2026-07-22，本地 `/console` 已从简易工单三栏升级为受控 Agent 工作台：固定表单、结构化 Goal、真实后端 Agent Trace、MCP/RAG 证据、模型建议与确定性计划对照、审批 binding、Verifier 说明、工单回读和 operator→approver→auditor 引导均已接入，且 audit 不再冒充 Trace。完整前端为 17 个测试文件/46 条测试，TypeScript/Vite 生产构建通过；1440/1024/390 浏览器检查无横向溢出，应用内无 fixed/sticky。Task 9 真实 Compose 浏览器闭环、重启和 Kimi Trace 仍未完成，生产发布门禁保持 `CLOSED`。详见 `docs/release-evidence/agent-workspace.md`。
+
 ## 最新核验：Agent Task 7 脱敏 Trace、API/SSE 与 RBAC 已完成本地门禁
 
 2026-07-22，迁移 `0006_agent_trace`、run/event/citation 数据模型、稳定 sequence/semantic key、递归脱敏、LangGraph 调查/审批/执行/反馈投影、RAG citation reference、Trace snapshot/SSE API 与 operation 级 RBAC 已实现。产品代码全量测试为 545 条通过；最新 operator owner/非 owner 权限补强后 Task 7 定向 8 条通过，WSL Git 安全 4 条通过。Trace 不保存 prompt、reasoning content、原始工具正文、SOP 正文、秘密或 stack trace；也不以 Trace 替代业务审计或 OTel。Windows 本地测试密码在失败 traceback 展开后已立即轮换。Task 8 React Agent 工作台、Task 9 完整 Compose/真实 Kimi Trace 和 Task 10 总交付尚未完成，生产发布门禁保持 `CLOSED`。详见 `docs/release-evidence/agent-trace-rbac.md`。

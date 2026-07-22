@@ -133,3 +133,20 @@ it("creates and reads an operation from the selected scenario contract", async (
     headers: { Authorization: "Bearer memory-only" }
   });
 });
+
+it("loads the redacted Agent Trace snapshot with the current role token", async () => {
+  const trace = { run: { id: "run-1" }, events: [] };
+  const fetchMock = vi.fn().mockResolvedValue(
+    new Response(JSON.stringify(trace), {
+      status: 200,
+      headers: { "content-type": "application/json" }
+    })
+  );
+  vi.stubGlobal("fetch", fetchMock);
+  const client = new ApiClient(() => "Bearer memory-only");
+
+  await expect(client.getAgentTrace("operation-1")).resolves.toEqual(trace);
+  expect(fetchMock).toHaveBeenCalledWith("/api/v1/operations/operation-1/agent-trace", {
+    headers: { Authorization: "Bearer memory-only" }
+  });
+});

@@ -1,4 +1,9 @@
-import type { ApprovalBinding, OperationAccepted, OperationDetail } from "./contracts";
+import type {
+  AgentTraceSnapshot,
+  ApprovalBinding,
+  OperationAccepted,
+  OperationDetail
+} from "./contracts";
 import type { OperationAction, ScenarioDefinition } from "../scenarios";
 
 export type { ApprovalBinding } from "./contracts";
@@ -53,6 +58,14 @@ export class ApiClient {
     });
     if (!response.ok) throw new Error(`api_status_${response.status}`);
     return (await response.json()) as OperationDetail;
+  }
+
+  async getAgentTrace(operationId: string): Promise<AgentTraceSnapshot> {
+    const response = await fetch(this.endpoint(`/api/v1/operations/${operationId}/agent-trace`), {
+      headers: { Authorization: this.authorizationHeader() }
+    });
+    if (!response.ok) throw new Error(`api_status_${response.status}`);
+    return (await response.json()) as AgentTraceSnapshot;
   }
 
   async submitApproval(
