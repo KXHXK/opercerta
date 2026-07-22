@@ -2,6 +2,8 @@
 
 ## 当前检查点
 
+- 2026-07-22 Agent 核心 Task 7 已完成：`0006_agent_trace`、run/event/citation 持久化、稳定序列与语义去重、递归脱敏、真实 LangGraph 调查/审批/执行/反馈投影、RAG citation reference、Trace snapshot/SSE API 和 operation 级 RBAC 均已接入。产品代码全量测试 `545 passed`；最新 RBAC 补强后 Task 7 定向 `8 passed`，WSL Git 安全 `4 passed`。失败 traceback 展开的 Windows 本地测试凭据已轮换；Windows 原生 PostgreSQL 无 pgvector，因此 Task 6 之后的完整集成门禁使用 Compose pgvector。Task 8 Agent 工作台与 Task 9 完整 Compose/真实模型 Trace 尚未完成，发布门禁保持 `CLOSED`。证据见 `docs/release-evidence/agent-trace-rbac.md`。
+
 - 2026-07-22 Agent 核心 Task 6 已完成本地代码与真实检索证据：`0005_agent_knowledge`、pgvector 512 维/HNSW、三份合成中文 SOP、FastEmbed、MCP `knowledge.search_sop`、场景/版本过滤、0.5 最小分数、LangGraph citations、可选降级与强制失败关闭均已接入。新建空卷容器网络聚焦 `75 passed`、产品 `535 passed`、WSL Git 安全 `4 passed`，Ruff/173 文件格式/mypy 73 个源文件/114 包锁定依赖/安全扫描通过；真实三场景入库、幂等 replay 与代表查询已完成。空卷门禁修复了迁移测试依赖预迁移数据库的隐式前置条件。新镜像构建和启动健康已观察；额外完整 Compose smoke 因 Codex 自动化 WSL 会话外层在约 43--49 秒停止 Docker service 未完成，留待 Task 9 在稳定交互式终端重跑。Task 7 Agent Trace/API/SSE/RBAC 未实施，生产门禁保持 `CLOSED`。证据见 `docs/release-evidence/agent-pgvector-rag.md`。
 
 - 2026-07-20 零成本求职展示与本地工程详解 Task 1--8 已完成：PR #6 以 merge commit `e483665` 合并，`main` run `29738863357` 的 repository-safety、python-quality、frontend、backend-tests、compose-smoke 全部通过。OperCerta production deploy `6a5e0bb5563acf4706a09c0d` 与作品集 production deploy `6a5e1b8824ba2290cf63c897` 均已完成 HTTP/浏览器核验；作品集四项目顺序、三业务文案、技术栈、联系方式和专题入口正确，桌面/移动端无横向溢出或 fixed/sticky 元素。公开页面仍为只读静态展示，公网可写后端未部署，生产门禁保持 `CLOSED`。证据见 `docs/release-evidence/zero-cost-showcase-engineering-walkthrough.md`。

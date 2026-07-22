@@ -5,6 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, JsonValue, StrictInt, StringConstraints, model_validator
 
 from opercerta.api.auth import DemoAccount
+from opercerta.domain.agent_trace import AgentRunRecord, AgentTraceEventRecord
 from opercerta.domain.approvals import (
     ApprovalDecision,
     ApprovalReason,
@@ -123,6 +124,13 @@ class OperationDetailResponse(BaseModel):
     result: OperationResult | None
     error: OperationError | None
     last_audit_sequence: int
+
+
+class AgentTraceSnapshotResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    run: AgentRunRecord
+    events: tuple[AgentTraceEventRecord, ...]
 
 
 class ErrorResponse(BaseModel):

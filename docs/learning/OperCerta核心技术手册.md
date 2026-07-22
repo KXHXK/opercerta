@@ -88,7 +88,15 @@ LangGraph checkpoint 回答“图执行到哪个节点、恢复时带什么状�
 - 重启：从业务表和 checkpoint 恢复；终态不重复写。
 - 事实变化：批准后复核失败，零工单。
 
-## 9. 当前诚实边界
+## 9. Agent Trace 为什么不是“思维链展示”
+
+OperCerta 的 Agent Trace 是业务可解释轨迹，不是模型隐藏思维链。它按真实执行记录九类事件：感知、模型建议、工具、RAG、规则、人工审批、执行、反馈和护栏。每条事件绑定 operation、run、递增 sequence 与 semantic key；LangGraph 因重启而重放节点时，数据库唯一约束会返回原事件，避免页面出现重复轨迹。
+
+Trace、审计日志和 OpenTelemetry 解决不同问题：Trace 回答“Agent 为什么建议并执行这一步”；审计日志回答“谁在何时改变了业务状态”；OpenTelemetry 回答“请求在哪个组件耗时或失败”。三者不能互相冒充。Trace API 只返回脱敏摘要和 citation reference，不返回完整 prompt、reasoning content、原始工具/SOP 正文、JWT、API key、密码或 stack trace。
+
+角色权限也在服务端执行：operator 只能读取本人 operation，approver 只读取当前需要其处理的 operation，auditor 可跨场景只读脱敏轨迹，demo-admin 只允许在显式本地模式开启。当前 SSE 是持久化快照回放，不应夸大成实时消息总线。
+
+## 10. 当前诚实边界
 
 三业务、固定评测、WSL2 Compose、React 控制台、Redis、OpenTelemetry 适配器、CI 和 Moonshot AI `kimi-k2.6` 三业务代表性运行已有本地证据。模型只生成严格解释字段，动作、参数、审批和写入仍由确定性代码与数据库控制。公开交互 HTTPS 后端、生产 IAM/SSO、限流/防滥用、高可用和 Release Tag 尚未完成。静态 Netlify 页面不是公开业务后端。
 

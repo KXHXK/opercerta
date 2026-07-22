@@ -27,6 +27,9 @@ def test_schema_mapping_matches_reliability_migration() -> None:
         "evidence",
         "knowledge_documents",
         "knowledge_chunks",
+        "agent_runs",
+        "agent_trace_events",
+        "agent_trace_citations",
     }
     assert {
         constraint.name

@@ -418,6 +418,10 @@ def build_agent_investigation_graph(
             _SUBJECT_TOOL[trusted_goal.scenario],
             ReadToolName.POLICY_CONSTRAINTS,
         }
+        if any(
+            item.tool_name in required and item.status == "error" for item in observations(state)
+        ):
+            return "failed"
         if knowledge_required:
             required.add(ReadToolName.KNOWLEDGE_SEARCH)
         if required <= successful:
@@ -471,12 +475,11 @@ def build_agent_investigation_graph(
         }
 
     def mark_failed(state: AgentInvestigationState) -> dict[str, object]:
-        knowledge_error = next(
+        observation_error = next(
             (
                 item.structured_payload.get("error_code")
                 for item in observations(state)
-                if item.tool_name is ReadToolName.KNOWLEDGE_SEARCH
-                and item.status == "error"
+                if item.status == "error"
                 and isinstance(item.structured_payload.get("error_code"), str)
             ),
             None,
@@ -484,7 +487,7 @@ def build_agent_investigation_graph(
         return {
             "status": "failed",
             "error_code": (
-                state["error_code"] or knowledge_error or "required_evidence_incomplete"
+                state["error_code"] or observation_error or "required_evidence_incomplete"
             ),
         }
 

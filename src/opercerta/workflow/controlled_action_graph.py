@@ -10,6 +10,7 @@ from langgraph.types import Command
 from pydantic import BaseModel, JsonValue
 
 from opercerta.agent.tool_executor import ReadToolGateway
+from opercerta.agent.trace_recorder import TraceRecorder
 from opercerta.application.scenario_registry import ScenarioRegistry
 from opercerta.domain.agent import AgentAnalysis, ReadToolName
 from opercerta.domain.contracts import ObjectType, OperationRequest
@@ -206,6 +207,7 @@ class ControlledActionGraph:
         operations: OperationRepository,
         tracing: Tracing,
         agent: AgentInvestigationGraph | None = None,
+        trace_recorder: TraceRecorder | None = None,
     ) -> None:
         self._inventory = inventory
         self._equipment = equipment
@@ -213,6 +215,7 @@ class ControlledActionGraph:
         self._operations = operations
         self._tracing = tracing
         self._agent = agent
+        self._trace_recorder = trace_recorder
 
     async def ainvoke(
         self,
@@ -231,12 +234,18 @@ class ControlledActionGraph:
                 build_agent_investigation_initial_state(request),
                 config=agent_config,
             )
+            operation_id = UUID(str(value["operation_id"]))
+            if self._trace_recorder is not None:
+                await self._trace_recorder.capture_investigation(
+                    operation_id,
+                    request,
+                    agent_result,
+                )
             if agent_result["status"] != "completed":
                 error = OperationError(
                     code=agent_result["error_code"] or "agent_investigation_failed",
                     message="Agent investigation failed before deterministic execution.",
                 )
-                operation_id = UUID(str(value["operation_id"]))
                 await self._operations.mark_failed(operation_id, error)
                 return {**value, "error": error.model_dump(mode="json")}
             analysis = AgentAnalysis.model_validate(agent_result["analysis"])
@@ -262,7 +271,35 @@ class ControlledActionGraph:
                 "operation_id": thread_id,
             },
         ):
-            return cast(dict[str, Any], await graph.ainvoke(value, config=config))
+            result = cast(dict[str, Any], await graph.ainvoke(value, config=config))
+        if self._trace_recorder is not None and thread_id:
+            operation_id = UUID(thread_id)
+            detail = await self._operations.load_detail(operation_id)
+            approval_payload = (
+                {
+                    "id": str(detail.approval.id),
+                    "approver_id": detail.approval.approver_id,
+                    "decision": detail.approval.decision.value,
+                }
+                if detail.approval is not None
+                else None
+            )
+            await self._trace_recorder.capture_operation_outcome(
+                operation_id,
+                status=detail.status.value,
+                approval_cycle=detail.approval_cycle,
+                approval=approval_payload,
+                work_order=(
+                    detail.work_order.model_dump(mode="json")
+                    if detail.work_order is not None
+                    else None
+                ),
+                result=(
+                    detail.result.model_dump(mode="json") if detail.result is not None else None
+                ),
+                error_code=detail.error.code if detail.error is not None else None,
+            )
+        return result
 
     async def aget_state(self, config: RunnableConfig) -> Any:
         graph = await self._graph(None, config)
@@ -326,6 +363,7 @@ def build_controlled_action_graph(
     agent_model_gateway: AgentModelGateway | None = None,
     knowledge_enabled: bool = False,
     knowledge_required: bool = False,
+    trace_recorder: TraceRecorder | None = None,
 ) -> ControlledActionGraph:
     traced_gateway = TracedControlledEvidenceGateway(gateway, tracing)
     initial_gateway = CachedControlledEvidenceGateway(
@@ -393,4 +431,5 @@ def build_controlled_action_graph(
         operations,
         tracing,
         agent,
+        trace_recorder,
     )

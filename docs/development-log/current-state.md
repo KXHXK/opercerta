@@ -1,5 +1,9 @@
 # OperCerta 当前状态
 
+## 最新核验：Agent Task 7 脱敏 Trace、API/SSE 与 RBAC 已完成本地门禁
+
+2026-07-22，迁移 `0006_agent_trace`、run/event/citation 数据模型、稳定 sequence/semantic key、递归脱敏、LangGraph 调查/审批/执行/反馈投影、RAG citation reference、Trace snapshot/SSE API 与 operation 级 RBAC 已实现。产品代码全量测试为 545 条通过；最新 operator owner/非 owner 权限补强后 Task 7 定向 8 条通过，WSL Git 安全 4 条通过。Trace 不保存 prompt、reasoning content、原始工具正文、SOP 正文、秘密或 stack trace；也不以 Trace 替代业务审计或 OTel。Windows 本地测试密码在失败 traceback 展开后已立即轮换。Task 8 React Agent 工作台、Task 9 完整 Compose/真实 Kimi Trace 和 Task 10 总交付尚未完成，生产发布门禁保持 `CLOSED`。详见 `docs/release-evidence/agent-trace-rbac.md`。
+
 ## 最新核验：Agent Task 6 pgvector 中文 SOP RAG 已完成本地代码与真实检索门禁
 
 2026-07-22，PostgreSQL `0005_agent_knowledge`、`vector(512)`/HNSW、三份从零编写的合成中文 SOP、固定 `BAAI/bge-small-zh-v1.5` FastEmbed、MCP `knowledge.search_sop`、LangGraph citation、普通场景降级和强制 SOP 失败关闭均已实现。新鲜门禁为新建空卷容器网络聚焦 75 条、产品 535 条、Git 安全 4 条，Ruff/173 文件格式/mypy 73 个源文件/114 包锁文件/安全扫描通过；真实模型完成 3 文档 12 chunk 入库、幂等 replay 与三场景隔离检索。空卷门禁还修复了迁移测试依赖预迁移数据库的隐式前置条件。新镜像构建成功并观察到 PostgreSQL/MCP healthy、API started；完整 Compose smoke 在 Codex 自动化 WSL 会话中因外层 Docker service 约 43--49 秒停止而未完成，须在 Task 9 稳定终端重跑。Task 7 Agent Trace/API/SSE/RBAC 与前端展示尚未实施，生产发布门禁保持 `CLOSED`。详见 `docs/release-evidence/agent-pgvector-rag.md`。

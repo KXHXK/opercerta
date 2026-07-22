@@ -133,6 +133,134 @@ operations = sa.Table(
     ),
 )
 
+agent_runs = sa.Table(
+    "agent_runs",
+    metadata,
+    sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+    sa.Column(
+        "operation_id",
+        postgresql.UUID(as_uuid=True),
+        sa.ForeignKey("operations.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    sa.Column("run_key", sa.String(length=160), nullable=False),
+    sa.Column("scenario", sa.String(length=16), nullable=False),
+    sa.Column("status", sa.String(length=32), nullable=False),
+    sa.Column("model_mode", sa.String(length=16), nullable=False),
+    sa.Column("initiated_by", sa.String(length=128)),
+    sa.Column("next_sequence", sa.BigInteger(), server_default="0", nullable=False),
+    sa.Column("started_at", sa.DateTime(timezone=True), nullable=False),
+    sa.Column("ended_at", sa.DateTime(timezone=True)),
+    sa.UniqueConstraint(
+        "operation_id",
+        "run_key",
+        name="uq_agent_runs_operation_run_key",
+    ),
+    sa.CheckConstraint(
+        "scenario IN ('inventory', 'equipment', 'task')",
+        name="ck_agent_runs_scenario",
+    ),
+    sa.CheckConstraint(
+        "status IN ('running', 'awaiting_human', 'completed', 'failed')",
+        name="ck_agent_runs_status",
+    ),
+    sa.CheckConstraint(
+        "model_mode IN ('mock', 'real')",
+        name="ck_agent_runs_model_mode",
+    ),
+    sa.CheckConstraint(
+        "next_sequence >= 0",
+        name="ck_agent_runs_next_sequence_non_negative",
+    ),
+)
+
+agent_trace_events = sa.Table(
+    "agent_trace_events",
+    metadata,
+    sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+    sa.Column(
+        "run_id",
+        postgresql.UUID(as_uuid=True),
+        sa.ForeignKey("agent_runs.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    sa.Column("sequence", sa.BigInteger(), nullable=False),
+    sa.Column("semantic_key", sa.String(length=160), nullable=False),
+    sa.Column("event_type", sa.String(length=32), nullable=False),
+    sa.Column("actor_type", sa.String(length=32), nullable=False),
+    sa.Column("node", sa.String(length=128), nullable=False),
+    sa.Column("status", sa.String(length=32), nullable=False),
+    sa.Column("safe_input", postgresql.JSONB(), server_default="{}", nullable=False),
+    sa.Column("safe_output", postgresql.JSONB(), server_default="{}", nullable=False),
+    sa.Column("prompt_ref", sa.String(length=256)),
+    sa.Column("tool_ref", sa.String(length=256)),
+    sa.Column("error_code", sa.String(length=256)),
+    sa.Column("started_at", sa.DateTime(timezone=True), nullable=False),
+    sa.Column("ended_at", sa.DateTime(timezone=True)),
+    sa.UniqueConstraint(
+        "run_id",
+        "sequence",
+        name="uq_agent_trace_events_run_sequence",
+    ),
+    sa.UniqueConstraint(
+        "run_id",
+        "semantic_key",
+        name="uq_agent_trace_events_run_semantic_key",
+    ),
+    sa.CheckConstraint(
+        "event_type IN ('perception', 'model', 'tool', 'rag', 'rule', 'human', "
+        "'execution', 'feedback', 'guardrail')",
+        name="ck_agent_trace_events_type",
+    ),
+    sa.CheckConstraint(
+        "actor_type IN ('user', 'agent', 'model', 'tool', 'policy', 'human', 'system')",
+        name="ck_agent_trace_events_actor",
+    ),
+    sa.CheckConstraint(
+        "status IN ('started', 'completed', 'failed', 'blocked', 'waiting')",
+        name="ck_agent_trace_events_status",
+    ),
+    sa.CheckConstraint(
+        "sequence >= 1",
+        name="ck_agent_trace_events_sequence_positive",
+    ),
+)
+
+agent_trace_citations = sa.Table(
+    "agent_trace_citations",
+    metadata,
+    sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+    sa.Column(
+        "event_id",
+        postgresql.UUID(as_uuid=True),
+        sa.ForeignKey("agent_trace_events.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    sa.Column("document_id", postgresql.UUID(as_uuid=True), nullable=False),
+    sa.Column("chunk_id", postgresql.UUID(as_uuid=True), nullable=False),
+    sa.Column("version", sa.String(length=64), nullable=False),
+    sa.Column("rank", sa.Integer(), nullable=False),
+    sa.Column("score", sa.Float(), nullable=False),
+    sa.UniqueConstraint(
+        "event_id",
+        "rank",
+        name="uq_agent_trace_citations_event_rank",
+    ),
+    sa.UniqueConstraint(
+        "event_id",
+        "chunk_id",
+        name="uq_agent_trace_citations_event_chunk",
+    ),
+    sa.CheckConstraint(
+        "rank >= 1",
+        name="ck_agent_trace_citations_rank_positive",
+    ),
+    sa.CheckConstraint(
+        "score >= 0.0 AND score <= 1.0",
+        name="ck_agent_trace_citations_score_range",
+    ),
+)
+
 approvals = sa.Table(
     "approvals",
     metadata,

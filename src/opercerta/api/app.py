@@ -34,6 +34,7 @@ from starlette.datastructures import MutableHeaders
 from starlette.requests import Request
 from starlette.types import ASGIApp, Lifespan, Message, Receive, Scope, Send
 
+from opercerta.agent.trace_recorder import TraceRecorder
 from opercerta.api.auth import (
     AuthenticatedActor,
     AuthenticationRequired,
@@ -51,6 +52,7 @@ from opercerta.api.health import (
     not_ready_report,
 )
 from opercerta.api.models import (
+    AgentTraceSnapshotResponse,
     ApprovalRequest,
     ApprovalResponse,
     DemoTokenRequest,
@@ -87,6 +89,7 @@ from opercerta.infrastructure.cache import (
     RedisEvidenceCache,
 )
 from opercerta.infrastructure.checkpoints import open_checkpointer
+from opercerta.infrastructure.db.agent_trace_repository import AgentTraceRepository
 from opercerta.infrastructure.db.approval_repository import ApprovalRepository
 from opercerta.infrastructure.db.evidence_repository import EvidenceRepository
 from opercerta.infrastructure.db.operation_repository import OperationRepository
@@ -125,6 +128,8 @@ class AppRuntime:
     operations: OperationRepository
     authenticator: JwtAuthenticator | None = None
     readiness: ReadinessProbe = field(default_factory=UnavailableReadinessProbe)
+    traces: AgentTraceRepository | None = None
+    demo_admin_enabled: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -384,6 +389,12 @@ async def _open_production_runtime(
         instrument_sqlalchemy_engine(engine.sync_engine, tracing)
         async with open_checkpointer(settings.database_url) as saver:
             operations = OperationRepository(engine)
+            trace_repository = AgentTraceRepository(engine)
+            trace_recorder = TraceRecorder(
+                trace_repository,
+                clock=clock,
+                model_mode=settings.model_mode,
+            )
             registry = build_default_scenario_registry()
             active_cache: EvidenceCache = NullEvidenceCache()
             if settings.cache_enabled and settings.redis_url is not None:
@@ -440,6 +451,7 @@ async def _open_production_runtime(
                 agent_model_gateway=agent_model_gateway,
                 knowledge_enabled=settings.knowledge_enabled,
                 knowledge_required=settings.knowledge_required,
+                trace_recorder=trace_recorder,
             )
             recovery = ControlledActionRecoveryCoordinator(graph, operations)
             runner = OperationRunner(
@@ -469,6 +481,8 @@ async def _open_production_runtime(
                     mcp_health_url=mcp_health_url(settings.mcp_url),
                     timeout_seconds=float(settings.mcp_timeout_seconds),
                 ),
+                traces=trace_repository,
+                demo_admin_enabled=settings.demo_token_enabled,
             )
     finally:
         if model_client is not None:
@@ -702,7 +716,6 @@ def _build_app(
         operation_request: OperationRequest,
         actor: Annotated[AuthenticatedActor, Depends(require_roles(Role.OPERATOR))],
     ) -> OperationAccepted:
-        del actor
         if (
             operation_request.requested_action
             not in {ActionType.QUERY, ActionType.CREATE_WORK_ORDER}
@@ -713,8 +726,91 @@ def _build_app(
             raise ApiRequestValidationFailed
         runtime = runtime_provider()
         operation_id = await runtime.runner.start(operation_request)
+        if runtime.traces is not None:
+            claimed = await runtime.traces.claim_owner(operation_id, actor.subject)
+            if not claimed:
+                raise PermissionDenied
         detail = await runtime.operations.load_detail(operation_id)
         return accepted_response(detail)
+
+    async def authorize_trace_read(
+        operation_id: UUID,
+        actor: AuthenticatedActor,
+    ) -> AgentTraceRepository:
+        runtime = runtime_provider()
+        traces = runtime.traces
+        if traces is None:
+            raise DependencyUnavailable
+        if actor.role is Role.AUDITOR:
+            return traces
+        if actor.role is Role.DEMO_ADMIN:
+            if runtime.demo_admin_enabled:
+                return traces
+            raise PermissionDenied
+        if actor.role is Role.OPERATOR:
+            if await traces.owner_for(operation_id) == actor.subject:
+                return traces
+            raise PermissionDenied
+        if actor.role is Role.APPROVER:
+            if await traces.operation_status(operation_id) in {
+                "awaiting_approval",
+                "needs_reapproval",
+            }:
+                return traces
+            raise PermissionDenied
+        raise PermissionDenied
+
+    @app.get(
+        "/api/v1/operations/{operation_id}/agent-trace",
+        response_model=AgentTraceSnapshotResponse,
+        responses={
+            status.HTTP_403_FORBIDDEN: {"model": ErrorResponse},
+            status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
+            status.HTTP_503_SERVICE_UNAVAILABLE: {"model": ErrorResponse},
+        },
+    )
+    async def get_agent_trace(
+        operation_id: UUID,
+        actor: Annotated[
+            AuthenticatedActor,
+            Depends(require_roles(Role.OPERATOR, Role.APPROVER, Role.AUDITOR, Role.DEMO_ADMIN)),
+        ],
+    ) -> AgentTraceSnapshotResponse:
+        traces = await authorize_trace_read(operation_id, actor)
+        snapshot = await traces.load_snapshot(operation_id)
+        return AgentTraceSnapshotResponse(run=snapshot.run, events=snapshot.events)
+
+    @app.get(
+        "/api/v1/operations/{operation_id}/agent-trace/events",
+        responses={
+            status.HTTP_403_FORBIDDEN: {"model": ErrorResponse},
+            status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
+            status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ErrorResponse},
+            status.HTTP_503_SERVICE_UNAVAILABLE: {"model": ErrorResponse},
+        },
+    )
+    async def replay_agent_trace_events(
+        operation_id: UUID,
+        actor: Annotated[
+            AuthenticatedActor,
+            Depends(require_roles(Role.OPERATOR, Role.APPROVER, Role.AUDITOR, Role.DEMO_ADMIN)),
+        ],
+        last_event_id: Annotated[str | None, Header()] = None,
+    ) -> EventSourceResponse:
+        after_sequence = parse_last_event_id(last_event_id)
+        traces = await authorize_trace_read(operation_id, actor)
+        snapshot = await traces.load_snapshot(operation_id)
+
+        async def event_stream() -> AsyncIterator[dict[str, str]]:
+            for trace_event in snapshot.events:
+                if trace_event.sequence > after_sequence:
+                    yield {
+                        "id": str(trace_event.sequence),
+                        "event": "agent_trace",
+                        "data": trace_event.model_dump_json(),
+                    }
+
+        return EventSourceResponse(event_stream())
 
     @app.get(
         "/api/v1/operations/{operation_id}",

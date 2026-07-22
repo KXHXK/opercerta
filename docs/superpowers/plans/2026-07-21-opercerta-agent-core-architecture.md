@@ -471,28 +471,30 @@ git commit -m "feat: add cited pgvector SOP retrieval"
 - Test: `tests/integration/api/test_agent_trace_api.py`
 - Test: `tests/integration/workflow/test_agent_trace_recovery.py`
 
-- [ ] **Step 1: 写序列、去重、权限和泄露 RED 测试**
+- [x] **Step 1: 写序列、去重、权限和泄露 RED 测试**
 
 Trace 类型限定为 `perception/model/tool/rag/rule/human/execution/feedback/guardrail`。禁止字段测试至少包括 authorization、api_key、完整 prompt、reasoning_content、stack trace 和原始工具正文。operator 只能读授权 operation，approver 读待审批证据，auditor 只读跨场景脱敏 Trace，demo-admin 仅本地模式。
 
-- [ ] **Step 2: 运行 RED**
+- [x] **Step 2: 运行 RED**
 
 ```bash
 uv run pytest tests/unit/agent/test_trace_redaction.py tests/integration/db/test_agent_trace_repository.py tests/integration/api/test_agent_trace_api.py tests/integration/workflow/test_agent_trace_recovery.py -q
 ```
 
-- [ ] **Step 3: 实现 run/event/citation 与 SSE snapshot**
+- [x] **Step 3: 实现 run/event/citation 与 SSE snapshot**
 
 每个 event 使用 operation/run/sequence/semantic key 唯一约束，恢复重放不能产生重复业务 Trace。API 返回安全摘要、状态、时间、prompt/tool/citation refs，不返回 OTel span 或隐藏推理。
 
-- [ ] **Step 4: 运行 GREEN 与安全扫描**
+- [x] **Step 4: 运行 GREEN 与安全扫描**
 
 ```bash
 uv run pytest tests/unit/agent/test_trace_redaction.py tests/integration/db/test_agent_trace_repository.py tests/integration/api/test_agent_trace_api.py tests/integration/workflow/test_agent_trace_recovery.py -q
 uv run python scripts/verify_repository_safety.py
 ```
 
-- [ ] **Step 5: 提交**
+实施证据：产品代码全量 `545 passed in 187.62s`；最新 operator owner/非 owner RBAC 补强后 Task 7 定向 `8 passed in 27.39s`；WSL Git 安全 `4 passed in 0.30s`。Trace 使用稳定 sequence/semantic key、递归脱敏和 citation reference，真实 LangGraph 缺失 checkpoint 重建不会生成重复事件。完整 Compose restart、真实 Kimi Trace 与浏览器工作台仍保留到 Task 8--9，发布门禁继续 `CLOSED`。
+
+- [x] **Step 5: 提交**
 
 ```bash
 git add migrations/versions/0006_agent_trace.py src/opercerta/domain/agent_trace.py src/opercerta/agent/trace_recorder.py src/opercerta/infrastructure/db/agent_trace_repository.py src/opercerta/api src/opercerta/workflow/agent_controlled_action_graph.py tests

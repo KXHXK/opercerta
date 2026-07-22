@@ -15,6 +15,7 @@ from sqlalchemy import delete
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from opercerta.agent.trace_recorder import TraceRecorder
 from opercerta.api.app import (
     AppRuntime,
     ProductionSettings,
@@ -30,8 +31,9 @@ from opercerta.domain.contracts import (
     ObjectType,
     OperationRequest,
 )
-from opercerta.domain.model_gateway import MockModelGateway
+from opercerta.domain.model_gateway import MockAgentModelGateway, MockModelGateway
 from opercerta.infrastructure.checkpoints import open_checkpointer
+from opercerta.infrastructure.db.agent_trace_repository import AgentTraceRepository
 from opercerta.infrastructure.db.approval_repository import ApprovalRepository
 from opercerta.infrastructure.db.evidence_repository import EvidenceRepository
 from opercerta.infrastructure.db.operation_repository import OperationRepository
@@ -60,6 +62,7 @@ class ApiHarness:
     runner: OperationRunner
     approvals: ApprovalRepository
     gateway: McpToolGateway
+    traces: AgentTraceRepository
     tool_calls: list[str] = field(default_factory=list)
     operation_ids: list[UUID] = field(default_factory=list)
 
@@ -161,9 +164,16 @@ async def open_api_harness(
     graph_clock: Callable[[], datetime] = lambda: NOW,
     runner_clock: Callable[[], datetime] = lambda: NOW,
     approval_ttl_seconds: int = 300,
+    agent_trace_enabled: bool = False,
 ) -> AsyncIterator[ApiHarness]:
     operation_ids: list[UUID] = []
     operations_repository = TrackingOperationRepository(engine, operation_ids)
+    trace_repository = AgentTraceRepository(engine)
+    trace_recorder = TraceRecorder(
+        trace_repository,
+        clock=graph_clock,
+        model_mode="mock",
+    )
     tool_calls: list[str] = []
     authenticator = JwtAuthenticator(
         JwtSettings(
@@ -189,6 +199,8 @@ async def open_api_harness(
             graph_clock,
             registry,
             approval_ttl_seconds=approval_ttl_seconds,
+            agent_model_gateway=(MockAgentModelGateway() if agent_trace_enabled else None),
+            trace_recorder=(trace_recorder if agent_trace_enabled else None),
         )
         runner = OperationRunner(
             graph,
@@ -204,6 +216,8 @@ async def open_api_harness(
                 runner=runner,
                 operations=operations_repository,
                 authenticator=authenticator,
+                traces=(trace_repository if agent_trace_enabled else None),
+                demo_admin_enabled=agent_trace_enabled,
             )
         )
         transport = ASGITransport(app=app, raise_app_exceptions=False)
@@ -224,6 +238,7 @@ async def open_api_harness(
                 runner=runner,
                 approvals=ApprovalRepository(engine),
                 gateway=McpToolGateway(mcp_server.url, timeout_seconds=2),
+                traces=trace_repository,
                 tool_calls=tool_calls,
                 operation_ids=operation_ids,
             )
@@ -310,7 +325,11 @@ async def test_create_approve_and_query_task_recovery_operation(
     checkpoint_database_url: SecretStr,
     mcp_server: McpServerHarness,
 ) -> None:
-    async with open_api_harness(engine, checkpoint_database_url, mcp_server) as harness:
+    async with open_api_harness(
+        engine,
+        checkpoint_database_url,
+        mcp_server,
+    ) as harness:
         accepted = await harness.create_task_operation()
         assert accepted.pop("_status_code") == 202
         assert accepted["status"] == "awaiting_approval"
@@ -355,7 +374,11 @@ async def test_query_returns_evidence_without_approval_or_work_order(
     object_type: str,
     object_id: str,
 ) -> None:
-    async with open_api_harness(engine, checkpoint_database_url, mcp_server) as harness:
+    async with open_api_harness(
+        engine,
+        checkpoint_database_url,
+        mcp_server,
+    ) as harness:
         response = await harness.client.post(
             "/api/v1/operations",
             headers=harness.headers(DemoAccount.OPERATOR),
@@ -408,6 +431,60 @@ async def test_authorized_audit_event_stream_replays_from_last_event_id(
     assert resumed.status_code == 200
     assert "id: 1" not in resumed.text
     assert "id: 3" in resumed.text
+
+
+@pytest.mark.asyncio
+async def test_completed_agent_operation_exposes_real_redacted_trace_categories(
+    engine: AsyncEngine,
+    checkpoint_database_url: SecretStr,
+    mcp_server: McpServerHarness,
+) -> None:
+    async with open_api_harness(
+        engine,
+        checkpoint_database_url,
+        mcp_server,
+        agent_trace_enabled=True,
+    ) as harness:
+        accepted = await harness.create_operation()
+        operation_id = UUID(str(accepted["operation_id"]))
+        detail = (
+            await harness.client.get(
+                f"/api/v1/operations/{operation_id}",
+                headers=harness.headers(DemoAccount.OPERATOR),
+            )
+        ).json()
+        approved = await harness.client.post(
+            f"/api/v1/operations/{operation_id}/approval",
+            headers=harness.headers(DemoAccount.APPROVER),
+            json=approval_payload(detail, "approved"),
+        )
+        trace = await harness.client.get(
+            f"/api/v1/operations/{operation_id}/agent-trace",
+            headers=harness.headers(DemoAccount.AUDITOR),
+        )
+
+    assert approved.status_code == 202
+    assert trace.status_code == 200
+    body = trace.json()
+    assert body["run"]["status"] == "completed"
+    assert {
+        "perception",
+        "model",
+        "tool",
+        "rule",
+        "human",
+        "execution",
+        "feedback",
+    } <= {event["event_type"] for event in body["events"]}
+    serialized = json.dumps(body, ensure_ascii=False).lower()
+    for forbidden in (
+        "authorization",
+        "api_key",
+        "reasoning_content",
+        "stack_trace",
+        "raw_body",
+    ):
+        assert forbidden not in serialized
 
 
 @pytest.mark.asyncio
@@ -675,6 +752,35 @@ async def test_expired_approval_returns_409_and_inventory_missing_is_queryable(
         assert failed["status"] == "failed"
         assert failed["error"]["code"] == "inventory_not_found"
         assert_safe_response([expired.json(), failed])
+
+
+@pytest.mark.asyncio
+async def test_trace_recording_preserves_missing_object_failed_operation_contract(
+    engine: AsyncEngine,
+    checkpoint_database_url: SecretStr,
+    mcp_server: McpServerHarness,
+) -> None:
+    async with open_api_harness(
+        engine,
+        checkpoint_database_url,
+        mcp_server,
+        agent_trace_enabled=True,
+    ) as harness:
+        request = OperationRequest(
+            message="为不存在的库存对象生成补货工单",
+            requested_action=ActionType.CREATE_WORK_ORDER,
+            object_type=ObjectType.INVENTORY,
+            object_id="SKU-MISSING-001",
+        )
+        operation_id = await harness.runner.start(request)
+        detail = await harness.operations.load_detail(operation_id)
+        trace = await harness.traces.load_snapshot(operation_id)
+
+    assert detail.status.value == "failed"
+    assert detail.error is not None
+    assert detail.error.code == "inventory_not_found"
+    assert trace.run.status.value == "failed"
+    assert trace.events[-1].event_type.value == "feedback"
 
 
 @pytest.mark.asyncio

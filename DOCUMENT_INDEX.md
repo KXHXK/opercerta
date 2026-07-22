@@ -1,5 +1,7 @@
 # OperCerta 文档索引
 
+新增 Agent Task 7 证据：`docs/release-evidence/agent-trace-rbac.md`（Agent run/event/citation 持久化、序列与语义去重、脱敏、RAG 引用、恢复不重复、Trace snapshot/SSE 与 operation 级 RBAC；产品 545 条、最新定向 8 条与 Git 安全 4 条通过，Task 8--9 和生产门禁仍未完成）。Agent 核心计划 Task 1--7 已执行，Task 8--10 待执行。
+
 新增 Agent Task 6 证据：`docs/release-evidence/agent-pgvector-rag.md`（pgvector 迁移、三份合成中文 SOP、FastEmbed、MCP RAG、LangGraph citation、降级/失败关闭、535+4 条回归与真实三场景检索；完整 Compose restart smoke 仍待 Task 9 在稳定 WSL 终端重跑，发布门禁保持 `CLOSED`）。对应过程日志：`docs/development-log/daily/2026-07-22.md`。
 
 新增已批准、正在实施规格：`docs/superpowers/specs/2026-07-21-opercerta-agent-core-architecture-design.md`（将现有可靠工单工作流增强为受控 Plan-and-Execute Agent，补齐 Perception、Core LLM、Planning、Memory/pgvector、MCP Tools、Execution/Feedback、Prompt、Harness、RAG、Agent Trace 与角色控制台；保留审批、幂等、恢复和发布门禁）。对应十项 Inline TDD 计划：`docs/superpowers/plans/2026-07-21-opercerta-agent-core-architecture.md`。
@@ -16,7 +18,7 @@
 
 新增阶段证据：`docs/release-evidence/three-business-evaluation-compose.md`（42 条三业务固定评测、Compose 三业务/重启恢复，以及 12 格真实缓存矩阵；明确本机小样本边界）。三业务主计划 Task 7 已执行，Task 8 本地阶段随后完成。
 
-Agent 核心架构最新证据：`docs/release-evidence/agent-verifier-reapproval.md`（批准后 Verifier、审批周期、复审恢复、竞态和幂等执行；Task 6 RAG 与 Task 7 Trace 尚未实施，发布门禁保持关闭）。
+Agent 核心架构阶段证据：`docs/release-evidence/agent-verifier-reapproval.md`（批准后 Verifier、审批周期、复审恢复、竞态和幂等执行；后续 Task 6 RAG 与 Task 7 Trace 已分别完成，发布门禁仍保持关闭）。
 
 新增已确认规格：`docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md`（将 OperCerta 收口范围固定为库存补货、设备维修、作业异常恢复三个真实闭环；共享 LangGraph 可靠性内核，并把六个 MCP 工具、Redis、OpenTelemetry、真实模型代表性验证、交互部署和中文学习包纳入门禁）。
 新增执行中计划：`docs/superpowers/plans/2026-07-20-opercerta-three-business-release.md`（Task 1–7、Task 8 本地发布/学习和真实模型代表性验证已完成；公网交互、用户掌握与最终远程门禁待完成；采用 Inline Execution）。
