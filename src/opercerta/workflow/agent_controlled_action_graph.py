@@ -361,11 +361,17 @@ def build_agent_investigation_graph(
             max_tool_calls=active_budget.max_tool_calls,
             include_knowledge=knowledge_enabled,
         )
+        observed_tools = {item.tool_name for item in observations(state)}
+        exposed_tools = tuple(
+            definition for definition in policy.definitions if definition.name not in observed_tools
+        )
+        if not exposed_tools:
+            return {"status": "failed", "error_code": "required_evidence_incomplete"}
         try:
             result = await model.plan(
                 PlanningContext(
                     goal=trusted_goal,
-                    tools=policy.definitions,
+                    tools=exposed_tools,
                     replan_count=cast(Literal[0, 1], state["replan_count"]),
                     prior_observations=tuple(observations(state)),
                 )

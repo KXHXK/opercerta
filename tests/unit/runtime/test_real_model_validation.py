@@ -1,6 +1,10 @@
 import json
 
+import pytest
+
+import scripts.verify_real_model as real_model_validation
 from scripts.verify_real_model import (
+    RepresentativeValidationError,
     build_real_report,
     run_representative_scenario,
     safe_failure_detail,
@@ -83,3 +87,129 @@ def test_representative_scenario_records_safe_failure_without_exception_text() -
     }
     assert "provider response" not in serialized
     assert "secret" not in serialized
+
+
+def test_representative_scenario_records_only_structured_safe_failure_detail() -> None:
+    def failing_query(*_args: object) -> dict[str, object]:
+        raise RepresentativeValidationError(
+            stage="create_operation",
+            http_status=503,
+            error_code="dependency_unavailable",
+        )
+
+    result = run_representative_scenario(
+        object_type="inventory",
+        object_id="SKU-LOW-001",
+        expected_kind="replenishment",
+        operator_headers={},
+        approver_headers={},
+        query_runner=failing_query,
+        approved_runner=lambda *_args: {},
+    )
+
+    assert result["failure_detail"] == {
+        "stage": "create_operation",
+        "http_status": 503,
+        "error_code": "dependency_unavailable",
+    }
+
+
+def test_run_query_converts_create_failure_to_safe_structured_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        real_model_validation,
+        "request",
+        lambda *_args, **_kwargs: (
+            503,
+            {
+                "code": "dependency_unavailable",
+                "message": "provider response and secret must not be persisted",
+            },
+        ),
+    )
+
+    with pytest.raises(RepresentativeValidationError) as captured:
+        real_model_validation.run_query("inventory", "SKU-LOW-001", {})
+
+    assert captured.value.detail == {
+        "stage": "create_operation",
+        "http_status": 503,
+        "error_code": "dependency_unavailable",
+    }
+    assert "provider response" not in str(captured.value)
+    assert "secret" not in str(captured.value)
+
+
+def test_run_query_converts_terminal_failure_to_safe_structured_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    responses = iter(
+        [
+            (202, {"operation_id": "op-safe"}),
+            (
+                200,
+                {
+                    "status": "failed",
+                    "error": {
+                        "code": "dependency_unavailable",
+                        "message": "provider response and secret must not be persisted",
+                    },
+                },
+            ),
+        ]
+    )
+    monkeypatch.setattr(
+        real_model_validation,
+        "request",
+        lambda *_args, **_kwargs: next(responses),
+    )
+
+    with pytest.raises(RepresentativeValidationError) as captured:
+        real_model_validation.run_query("inventory", "SKU-LOW-001", {})
+
+    assert captured.value.detail == {
+        "stage": "operation_terminal",
+        "operation_status": "failed",
+        "error_code": "dependency_unavailable",
+    }
+
+
+def test_run_query_identifies_agent_trace_contract_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    responses = iter(
+        [
+            (202, {"operation_id": "op-safe"}),
+            (
+                200,
+                {
+                    "status": "completed",
+                    "result": {"outcome": "query_completed"},
+                    "plan": None,
+                    "approval_binding": None,
+                    "approval": None,
+                    "work_order": None,
+                },
+            ),
+            (200, {"run": {"model_mode": "real"}, "events": []}),
+        ]
+    )
+    monkeypatch.setattr(
+        real_model_validation,
+        "request",
+        lambda *_args, **_kwargs: next(responses),
+    )
+    monkeypatch.setattr(
+        real_model_validation, "assert_database_counts", lambda *_args, **_kwargs: None
+    )
+    monkeypatch.setattr(
+        real_model_validation,
+        "assert_agent_trace",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("unsafe trace")),
+    )
+
+    with pytest.raises(RepresentativeValidationError) as captured:
+        real_model_validation.run_query("inventory", "SKU-LOW-001", {})
+
+    assert captured.value.detail == {"stage": "agent_trace_contract"}

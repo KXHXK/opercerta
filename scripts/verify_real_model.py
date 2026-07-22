@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+import re
 import subprocess
 import time
 from datetime import UTC, datetime
@@ -23,6 +24,38 @@ SCENARIOS = (
     ("equipment", "EQ-PUMP-001", "repair"),
     ("task", "TASK-BLOCKED-001", "task_recovery"),
 )
+
+SAFE_SLUG = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
+
+
+class RepresentativeValidationError(AssertionError):
+    """A validation failure containing only bounded, non-sensitive evidence."""
+
+    def __init__(
+        self,
+        *,
+        stage: str,
+        http_status: int | None = None,
+        error_code: str | None = None,
+        operation_status: str | None = None,
+    ) -> None:
+        detail: dict[str, Any] = {"stage": stage}
+        if http_status is not None:
+            detail["http_status"] = http_status
+        if error_code is not None and SAFE_SLUG.fullmatch(error_code):
+            detail["error_code"] = error_code
+        if operation_status is not None and SAFE_SLUG.fullmatch(operation_status):
+            detail["operation_status"] = operation_status
+        self.detail = detail
+        super().__init__("representative_validation_failed")
+
+
+def _safe_error_code(payload: object) -> str | None:
+    if not isinstance(payload, dict):
+        return None
+    nested_error = payload.get("error")
+    candidate = nested_error.get("code") if isinstance(nested_error, dict) else payload.get("code")
+    return candidate if isinstance(candidate, str) and SAFE_SLUG.fullmatch(candidate) else None
 
 
 def summarize_explanation(plan: dict[str, Any]) -> dict[str, int]:
@@ -126,13 +159,16 @@ def run_representative_scenario(
     try:
         query_result = active_query_runner(object_type, object_id, operator_headers)
     except Exception as error:
-        return {
+        failure: dict[str, Any] = {
             "scenario": object_type,
             "status": "failed",
             "failure_stage": "query",
             "error_type": type(error).__name__,
             "operations_attempted": 1,
         }
+        if isinstance(error, RepresentativeValidationError):
+            failure["failure_detail"] = error.detail
+        return failure
     try:
         approved_result = active_approved_runner(
             object_type,
@@ -177,16 +213,30 @@ def run_query(
         operator_headers,
     )
     elapsed_ms = round((time.monotonic() - started) * 1000, 3)
-    assert status == 202, (object_type, status, created)
+    if status != 202:
+        raise RepresentativeValidationError(
+            stage="create_operation",
+            http_status=status,
+            error_code=_safe_error_code(created),
+        )
     operation_id = created["operation_id"]
     detail_status, detail = request(
         "GET",
         f"/api/v1/operations/{operation_id}",
         headers=operator_headers,
     )
-    assert detail_status == 200
+    if detail_status != 200:
+        raise RepresentativeValidationError(
+            stage="load_operation",
+            http_status=detail_status,
+            error_code=_safe_error_code(detail),
+        )
     if detail["status"] != "completed":
-        raise AssertionError(json.dumps(safe_failure_detail(detail), ensure_ascii=False))
+        raise RepresentativeValidationError(
+            stage="operation_terminal",
+            operation_status=detail.get("status"),
+            error_code=_safe_error_code(detail),
+        )
     assert detail["result"]["outcome"] == "query_completed"
     assert detail["plan"] is None
     assert detail["approval_binding"] is None
@@ -198,15 +248,24 @@ def run_query(
         f"/api/v1/operations/{operation_id}/agent-trace",
         headers=operator_headers,
     )
-    assert trace_status == 200
-    assert trace["run"]["model_mode"] == "real"
-    assert_agent_trace(
-        trace,
-        expected_scenario=object_type,
-        expected_status="completed",
-        require_approval=False,
-        require_citations=True,
-    )
+    if trace_status != 200:
+        raise RepresentativeValidationError(
+            stage="load_agent_trace",
+            http_status=trace_status,
+            error_code=_safe_error_code(trace),
+        )
+    if trace.get("run", {}).get("model_mode") != "real":
+        raise RepresentativeValidationError(stage="agent_trace_model_mode")
+    try:
+        assert_agent_trace(
+            trace,
+            expected_scenario=object_type,
+            expected_status="completed",
+            require_approval=False,
+            require_citations=True,
+        )
+    except AssertionError as error:
+        raise RepresentativeValidationError(stage="agent_trace_contract") from error
     return {
         "operation_id": operation_id,
         "status": detail["status"],

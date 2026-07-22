@@ -246,6 +246,9 @@ async def test_missing_policy_evidence_causes_one_bounded_replan(
     assert result["replan_count"] == 1
     assert len(model.planning_contexts) == 2
     assert len(model.planning_contexts[1].prior_observations) == 1
+    assert tuple(definition.name for definition in model.planning_contexts[1].tools) == (
+        ReadToolName.POLICY_CONSTRAINTS,
+    )
     assert len(result["authorized_calls"]) == 2
 
 
