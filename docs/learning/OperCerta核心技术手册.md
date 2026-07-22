@@ -98,8 +98,70 @@ Trace、审计日志和 OpenTelemetry 解决不同问题：Trace 回答“Agent 
 
 ## 10. 当前诚实边界
 
-三业务、固定评测、WSL2 Compose、React 控制台、Redis、OpenTelemetry 适配器、CI 和 Moonshot AI `kimi-k2.6` 三业务代表性运行已有本地证据。模型只生成严格解释字段，动作、参数、审批和写入仍由确定性代码与数据库控制。公开交互 HTTPS 后端、生产 IAM/SSO、限流/防滥用、高可用和 Release Tag 尚未完成。静态 Netlify 页面不是公开业务后端。
+三业务、冻结评测、WSL2 Compose、React 控制台、Redis、OpenTelemetry 适配器、真实 FastEmbed/pgvector RAG 都已有本地证据。2026-07-20 的 Kimi 证据属于旧的“解释字段”路径；2026-07-22 新 Plan-and-Execute Agent 的真实 Kimi Tool Calling 端到端代表验证**未通过**，不能把旧证据移植成新架构通过。Mock 与 Real 报告必须分开。
 
-真实模型兼容要逐层验证：OpenAI-compatible 不保证 temperature、thinking 扩展和响应字段完全相同。本项目不强制 temperature；代表性 K2.6 验证显式关闭 thinking 以取得严格 JSON content。验证只记录安全元数据和端到端耗时，不保存原始输出；当前 adapter 不暴露 usage，所以不能声称 token 或费用数字。
+真实模型兼容要逐层验证：OpenAI-compatible 不保证 Tool Calling、structured output、thinking 扩展和响应字段完全相同。低层工具探针曾成功，但集成路径在严格规划阶段失败；系统没有回退 Mock 冒充成功，安全报告也不保存模型原文。当前 adapter 未返回 usage，所以不能声称 token 或费用数字。
+
+公开交互 HTTPS 后端、生产 IAM/SSO、限流/防滥用、高可用、备份恢复、自动部署和 Release Tag 仍未上线。静态 Netlify 页面不是公开业务后端，生产发布门禁保持 `CLOSED`。
 
 建议按“读代码入口 → 预测测试 → 手动运行 → 制造单变量故障 → 用自己的话讲解”的顺序掌握，而不是只复制命令。
+
+## 11. 为什么是 LangGraph + 最小 LangChain
+
+LangGraph 负责状态、分支、循环、人工中断、checkpoint 和恢复，是主编排框架。LangChain 只承担两项适配：把 OpenAI-compatible chat model 接成结构化输出，以及把允许的工具 schema 绑定为 Tool Calling。项目不再套一层 `create_agent`，避免出现两个调度器、两套 Memory 和不清楚的重试边界。
+
+这也解释了为什么不是聊天框：仓储处置的目标、场景和对象是有限枚举，用户通过表单表达意图；模型负责受控语义编码、只读调查建议和解释，不负责把任意自然语言直接变成写操作。
+
+## 12. 六层 Agent 如何映射代码
+
+```mermaid
+flowchart LR
+    P["1 感知层\nReact 表单 + FastAPI/Pydantic"] --> G["2 语义理解与目标编码\nGoalEncoding + versioned prompt"]
+    G --> R["3 推理与规划\nLangGraph + ToolPolicy + Harness"]
+    R --> T["5 技能与工具\nLangChain Tool Calling → MCP"]
+    T --> M["4 Memory / Retrieval\nstate + checkpoint + SQL + pgvector"]
+    M --> E["6 执行与反馈\n审批、复核、幂等工单、Trace"]
+    E -->|"事实变化、恢复或人工反馈"| P
+```
+
+- **感知层：** `OperationRequest` 只接受受控表单字段；当前没有图像、语音或真实传感器接入。
+- **语义理解与目标编码：** `GoalContext → GoalEncoding` 把可信表单编码为严格目标，Harness 防止模型改对象或动作。
+- **推理与规划：** `agent_controlled_action_graph.py` 做有界 Plan-and-Execute；缺证据最多重规划一次。
+- **Memory / Retrieval：** 图状态保存本轮上下文，PostgreSQL checkpointer 保存执行位置，业务表保存长期事实，pgvector 保存合成 SOP 知识。
+- **技能与工具：** `ToolPolicy` 暴露场景白名单，只读 MCP 调用由 `ToolExecutor` 执行；写工具不交给模型自由选择。
+- **执行与反馈：** 人工审批后重新取证，确定性规则决定动作，唯一约束保护工单，Trace 将结果反馈给 UI 和下一角色。
+
+## 13. Memory 的四种含义
+
+1. **短期运行状态：** LangGraph state，保存本轮 goal、plan、observations、analysis 与计数器。
+2. **恢复记忆：** PostgreSQL checkpointer，回答线程停在哪个节点；它不是业务真相。
+3. **业务长期记忆：** `operations/evidence/approvals/work_orders/audit_events`，提供事务、查询和审计。
+4. **知识记忆：** `knowledge_documents/knowledge_chunks/vector(512)`，保存版本化合成 SOP embedding，供 RAG 检索。
+
+聊天历史不是当前业务所需的第五种 Memory；无目的地保存用户对话会增加隐私和提示注入面。
+
+## 14. RAG 与 SQL/MCP 的边界
+
+RAG 回答“适用 SOP 怎么描述”，返回带 `document_id/chunk_id/version/score` 的引用；SQL/MCP 回答“SKU、设备或作业现在是什么状态，以及规则值是什么”。SOP 不能覆盖库存数量、设备告警或审批状态，模型摘要也不能写回成业务事实。RAG 可选失败时可降级，规则明确要求 SOP 时必须失败关闭。
+
+## 15. Tool Calling 如何校验
+
+模型只看到 `ToolPolicy` 生成的当前场景只读 schema；provider 安全名会映射回领域工具名。随后依次校验：工具是否在白名单、参数 JSON Schema、对象是否与可信 Goal 绑定、是否重复、调用预算、返回值是否能解析为类型化 Observation。任一步失败都在 MCP 写入前终止。`tool_choice="required"` 只约束 provider 必须返回工具调用，不能替代本地白名单与 Harness。
+
+## 16. 批准后为什么重新取证
+
+审批等待期间库存、告警、作业状态或规则都可能变化。批准只对当时绑定的证据 ID、规则版本、事实哈希、计划哈希和参数有效；恢复后绕过 Redis 重读 MCP，再由 Verifier 给出 `proceed/abort/escalate`。不重取证会产生典型 TOCTOU（检查时与使用时不一致）风险。
+
+## 17. Agent Trace、audit 与 OpenTelemetry
+
+- **Agent Trace：** 面向业务解释，展示 Goal、工具、RAG 引用、Observation 摘要、规则、人工节点、执行和反馈；不展示隐藏思维链。
+- **audit：** 面向合规，记录谁在何时改变了 operation、审批和工单状态。
+- **OpenTelemetry：** 面向运维，定位一次请求跨 API、图、MCP、Redis、SQL 的耗时和错误。
+
+三者使用不同数据模型和保留目的。把 audit 时间线改名为 Agent Trace，或把 span 当业务审计，都会形成误导。
+
+## 18. 重启恢复与仍未上线
+
+启动时 `RecoveryCoordinator` 从业务表找非终态 operation，以同一 UUID 作为 LangGraph `thread_id` 读取 checkpoint；恢复节点重新校验业务状态。若两者冲突，系统失败关闭而不是猜测成功。Compose 门禁已经验证 API/MCP 重启后等待审批 operation 仍可恢复。
+
+仍未上线的能力包括：公网可写 HTTPS API、生产身份与租户隔离、速率限制和防滥用、秘密托管、备份/恢复演练、多副本协调、高可用、生产监控告警、自动发布与 Release Tag，以及新 Agent 核心对真实 Kimi Tool Calling 的端到端兼容修复。

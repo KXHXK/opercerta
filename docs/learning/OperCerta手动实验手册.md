@@ -183,3 +183,93 @@ docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
 ## 10. 每次实验后的口头复盘
 
 不用文档回答：改了什么变量、哪一层首先失败、为什么没有错误写工单、什么自动化证据支持结论、还不能声称什么。把不懂的词写入桌面 `agent术语.md`，把真实故障补充到 interview casebook。
+
+## 11. Agent 核心人工闭环：按这条路径独立完成
+
+以下步骤默认使用 Mock 模型保证可重复，但 RAG 使用真实 FastEmbed、pgvector 和 MCP；它不是 Real Kimi 通过证明。
+
+### 步骤 1：启动并建立可重复基线
+
+- **输入：** `OPERCERTA_HF_HUB_OFFLINE=true docker compose --env-file .env.compose up --build -d`，随后运行 `python3 scripts/verify_agent_compose.py`。
+- **预期：** 三业务验证退出码 0；API、MCP、PostgreSQL、Redis healthy；知识检索有 citation。
+- **为什么：** 先用自动化证明依赖、迁移、RAG、审批和数据库断言一致，再做人工 UI 操作。
+- **常见错误：** 首次机器没有 FastEmbed 缓存却强制 offline；此时先在获准网络下完成一次模型缓存，不要伪造向量。
+- **面试怎么讲：** “Mock 固定模型用于回归确定性，embedding 和数据库仍是真实组件；Real 模型另立报告。”
+
+### 步骤 2：operator 提交有限业务表单
+
+- **输入：** 在 `http://127.0.0.1:5173/console` 选择 operator；任选 `SKU-LOW-001`、`EQ-PUMP-001`、`TASK-BLOCKED-001`，动作选“创建处置”。
+- **预期：** 请求进入 `awaiting_approval`，页面出现结构化 Goal，而不是开放聊天回复。
+- **为什么：** 场景、动作和对象来自可信枚举，避免自由文本决定高风险写操作。
+- **常见错误：** 只输入 message 而未选对象；严格 API 会返回 422，且不应创建 operation。
+- **面试怎么讲：** “感知层接受有限表单，LLM 只编码受控目标，Harness 禁止对象漂移。”
+
+### 步骤 3：查看 Goal、Tool、RAG 与 Observation
+
+- **输入：** 展开 Agent Trace 和工具证据区。
+- **预期：** 能看到 goal、场景白名单工具、`knowledge.search_sop`、citation reference、主体/规则 Observation 摘要；看不到 prompt、隐藏推理或 SOP 全文。
+- **为什么：** MCP 提供实时事实，RAG 提供版本化知识，两者不可互相替代。
+- **常见错误：** 把审计时间线当 Trace；audit 记录状态变更，Trace 才解释 Agent 节点。
+- **面试怎么讲：** “Tool Calling 经过 schema、白名单、对象绑定、预算和类型化返回五层校验。”
+
+### 步骤 4：approver 审批绑定计划
+
+- **输入：** 切换 approver，核对 rule version、facts hash、plan hash 和参数后批准。
+- **预期：** 审批身份来自 JWT；旧 binding、重复审批或已过期审批被拒绝。
+- **为什么：** 人工批准的是一份证据快照，不是脱离上下文的布尔值。
+- **常见错误：** 刷新后仍提交旧 binding，预期 409，不要绕过后端校验。
+- **面试怎么讲：** “PostgreSQL 行锁让并发审批只有一个原子胜者。”
+
+### 步骤 5：观察 Verifier
+
+- **输入：** 批准后查看 Trace 中 verification/guardrail 节点。
+- **预期：** 系统绕过 Redis 重新读取主体和规则，并给出 `proceed`；事实漂移会 `abort` 或 `escalate`，零工单或进入重新审批。
+- **为什么：** 消除审批等待造成的 TOCTOU 风险。
+- **常见错误：** 认为“批准后必须执行”；实际批准只在绑定事实仍成立时有效。
+- **面试怎么讲：** “LLM 给复核建议，确定性 binding 比较决定是否允许执行。”
+
+### 步骤 6：工单写入与回读
+
+- **输入：** 查看终态和 work order 区，再刷新详情。
+- **预期：** `completed`、一张类型正确的工单；重放仍返回同一 ID。
+- **为什么：** idempotency key、唯一约束、事务和写后读共同提供 effectively-once 副作用。
+- **常见错误：** 把它称为全链路 exactly-once；外部非幂等系统仍需 outbox/补偿。
+- **面试怎么讲：** “图允许至少一次重放，数据库保证业务只产生一个有效结果。”
+
+### 步骤 7：auditor 读取脱敏 Trace
+
+- **输入：** 切换 auditor，重新打开同一 operation 的 `.../agent-trace` 视图。
+- **预期：** sequence 连续，包含感知、模型、工具、RAG、规则、人工、执行与反馈摘要；operator/approver 权限范围不同。
+- **为什么：** Trace 是持久化投影，重启重放通过 semantic key 去重。
+- **常见错误：** 寻找模型完整思维链；产品明确不存储也不展示。
+- **面试怎么讲：** “Trace、audit、OTel 分别服务解释、合规和运维。”
+
+### 步骤 8：做 PostgreSQL 断言
+
+- **输入：**
+
+  ```bash
+  docker compose exec -T postgres sh -lc 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT status, count(*) FROM operations GROUP BY status ORDER BY status"'
+  docker compose exec -T postgres sh -lc 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT kind, count(*) FROM work_orders GROUP BY kind ORDER BY kind"'
+  ```
+
+- **预期：** UI 终态与数据库一致；目标 operation 只有一条审批和一张工单。
+- **为什么：** 页面成功提示不是最终证据，业务表才是事实源。
+- **常见错误：** 在宿主 shell 展开容器变量或把密码写入命令行。
+- **面试怎么讲：** “测试同时断言 HTTP、图状态和数据库副作用，避免自己设计用例又只验证自己返回值。”
+
+### 步骤 9：重启恢复
+
+- **输入：** `docker compose restart api mcp`，再运行 `python3 scripts/verify_agent_compose.py --recovery-only`。
+- **预期：** 重启前等待审批的 operation 仍可读且 Trace 不重复；四个服务最终 healthy。
+- **为什么：** 业务表提供候选集合，checkpoint 提供节点位置，两者共同恢复。
+- **常见错误：** 在 full 验证前先跑 `--recovery-only`，会缺少 marker；或误删 volume 后再期待恢复。
+- **面试怎么讲：** “这是 A/B 进程实例恢复，不是同一进程内暂停后继续。”
+
+### 步骤 10：运行冻结 Agent 评测
+
+- **输入：** `python3 scripts/run_agent_evaluation.py --output-dir tmp/evals`。
+- **预期：** 报告覆盖 9 类安全/恢复契约，并写入 `tmp/evals/opercerta-agent-v1-mock-report.json`。
+- **为什么：** 用例引用真实 pytest node ID，包含数据库与重启证据，不按模型文案做主观打分。
+- **常见错误：** 把 9/9 当生产准确率；它只是冻结合成契约回归。
+- **面试怎么讲：** “评测由我设计，但每例公开 expected trajectory 和可执行测试定位，避免只报一个无法审查的分数。”

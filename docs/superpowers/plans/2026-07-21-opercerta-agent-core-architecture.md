@@ -568,21 +568,21 @@ git commit -m "feat: build the OperCerta agent workspace"
 - Test: `tests/integration/evaluation/test_agent_suite.py`
 - Test: `tests/unit/runtime/test_verify_agent_compose.py`
 
-- [ ] **Step 1: 先冻结透明预期轨迹和负例**
+- [x] **Step 1: 先冻结透明预期轨迹和负例**
 
 每个用例声明输入、允许工具、禁止工具、是否允许 replan、所需 citation、预期审批状态、Verifier 分支、终态和数据库断言。覆盖非法 Schema、Prompt Injection、未知工具、对象漂移、RAG 跨场景、批准后事实变化、并发审批、重复写入和关键节点重启。用例与实现分离，不能删除失败用例迎合结果。
 
-- [ ] **Step 2: 运行 RED**
+- [x] **Step 2: 运行 RED**
 
 ```bash
 uv run pytest tests/unit/evaluation/test_agent_contracts.py tests/integration/evaluation/test_agent_suite.py tests/unit/runtime/test_verify_agent_compose.py -q
 ```
 
-- [ ] **Step 3: 实现评测器和 Compose 断言**
+- [x] **Step 3: 实现评测器和 Compose 断言**
 
 报告区分：任务终态、工具选择、引用、审批、数据库效果、恢复和安全。Mock 固定套件与 Real 代表调用分开输出；没有 provider usage 就不写 Token/费用。
 
-- [ ] **Step 4: 运行完整新鲜门禁**
+- [x] **Step 4: 运行完整新鲜门禁**
 
 ```bash
 uv run ruff check src tests migrations scripts
@@ -598,12 +598,14 @@ uv run python scripts/verify_repository_safety.py
 
 再进行已授权的少量真实 Kimi Tool Calling 和本地 FastEmbed RAG 代表验证；任何失败都如实保留，不能用 Mock 补写为 Real 通过。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add data/evals/opercerta-agent-v1.json scripts .github/workflows/ci.yml tests
 git commit -m "test: gate OperCerta agent trajectories"
 ```
+
+实施证据：提交 `642d3ba`；后端 566 条、前端 46 条、Agent 冻结评测 9/9、真实 FastEmbed/pgvector RAG、三业务 Compose 与 API/MCP 重启恢复通过。Real Kimi 新 Agent 代表 query 为 failed，未回退 Mock；详见 `docs/release-evidence/agent-core-architecture.md`。
 
 ## Task 10: 中文技术手册、人工实验、面试材料与交付证据
 
@@ -619,15 +621,15 @@ git commit -m "test: gate OperCerta agent trajectories"
 - Create only after fresh evidence: `docs/release-evidence/agent-core-architecture.md`
 - Modify: `docs/demo-script.md`
 
-- [ ] **Step 1: 写文档防漂移测试或清单**
+- [x] **Step 1: 写文档防漂移测试或清单**
 
 文档必须能回答：为什么 LangGraph + 最小 LangChain、为什么不是聊天框、六层如何映射代码、四类 Memory 区别、RAG 与 SQL/MCP 边界、Tool Calling 如何校验、为何批准后重新取证、Agent Trace 与 audit/OTel 区别、重启如何恢复、哪些仍未上线。
 
-- [ ] **Step 2: 完成中文学习与手动实验路径**
+- [x] **Step 2: 完成中文学习与手动实验路径**
 
 手动实验必须让用户独立完成：启动 → operator 提交三业务之一 → 查看 Goal/Tool/RAG/Observation → approver 审批 → Verifier → 工单回读 → auditor Trace → 数据库断言 → 重启恢复。每步写“输入、预期、为何如此、常见错误、面试可怎么讲”。
 
-- [ ] **Step 3: 只根据 Task 9 原始结果写证据**
+- [x] **Step 3: 只根据 Task 9 原始结果写证据**
 
 不得手填通过数量。证据引用命令、报告路径、Git commit、模型模式、数据边界和仍关闭的门禁；如果真实模型或 RAG 没通过，明确列为 blocker/known limitation。
 
@@ -644,7 +646,9 @@ cd web && npm test -- --run && npm run build && cd ..
 
 推送 feature branch，创建 PR，等待 GitHub Actions 全绿并完成 review；未合并/未验证前不改 `main` 结论、不启动 ForenTrail。
 
-- [ ] **Step 5: 提交文档**
+本地部分已完成：仓库安全、Ruff、187 文件格式、Mypy 76 个源文件、后端 567 条、前端 46 条和生产构建均通过。远程推送、PR、Actions 与 review 尚待用户授权，因此本 Step 保持未勾选。
+
+- [x] **Step 5: 提交文档**
 
 ```bash
 git add README.md IMPLEMENTATION_HANDOFF.md DOCUMENT_INDEX.md docs

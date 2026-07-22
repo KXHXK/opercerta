@@ -2,16 +2,16 @@
 
 ## 30 秒版本
 
-“OperCerta 是我用 FastAPI、LangGraph、FastMCP、PostgreSQL、Redis 和 React 实现的可恢复运营处置 Agent。它跑通库存补货、设备维修、作业异常恢复三条闭环：Agent 取证和评估，人工审批绑定证据快照，批准后重新复核，再幂等写工单。项目用数据库竞态测试、重启恢复、42 条固定评测和 Docker Compose smoke 证明关键可靠性，并用 Kimi K2.6 跑通三条真实模型解释路径；当前公开的是静态专题，公网交互后端仍按发布门禁建设。”
+“OperCerta 是我用 FastAPI、LangGraph、最小 LangChain、FastMCP、PostgreSQL/pgvector、Redis 和 React 实现的可恢复运营处置 Agent。它跑通库存补货、设备维修、作业异常恢复三条闭环：Plan-and-Execute Agent 受控取证，人工审批绑定快照，批准后重新复核，再幂等写工单。567 条后端测试、9/9 Agent 冻结评测和真实 Compose 重启证明本地可靠性；真实 Kimi Tool Calling 的新端到端路径目前未通过严格规划契约，我把它保留为兼容性问题，没有用 Mock 冒充。公网可写后端仍未上线。”
 
 ## 3 分钟版本
 
 1. **业务问题：** 运营异常不能让模型直接执行高风险写操作，需要证据、规则、审批和审计。
-2. **架构：** React 调 FastAPI；Runner 创建 operation；LangGraph 执行三种类型化图；MCP 读取合成状态/规则并创建工单；PostgreSQL 保存业务事实和 checkpoint；Redis 只缓存初次只读证据；SSE 回放审计。
+2. **六层 Agent 架构：** React/FastAPI 感知有限表单；LLM 编码 Goal；LangGraph 做有界规划；四类 Memory 分别承载状态、checkpoint、业务事实与 pgvector SOP；MCP 执行白名单工具；审批、复核、工单和 Trace 形成反馈循环。
 3. **可靠性：** 非法输入在边界失败；审批用行锁保证一个胜者；审批绑定包含证据/规则/事实/计划哈希；批准后绕过缓存重读 MCP；工单用确定性幂等键和唯一约束保证重放不多写。
 4. **恢复：** 业务 operation UUID 同时作为 LangGraph thread ID。启动扫描非终态业务表，再从 checkpoint 继续；业务表是真相，checkpoint 是执行进度。
-5. **证据：** 三业务 42 条固定合成评测、Compose 三场景和重启 smoke、缓存 2×2 调用矩阵、完整自动化门禁。自建评测继承原 30 条不可漂移库存基线，并检查实际工具与数据库事实。
-6. **边界：** 本地单节点、静态公网展示和真实模型代表性运行已验证；生产 IAM、公开 HTTPS 后端、高可用和 Release Tag 尚未完成。
+5. **证据：** 原三业务 42 条固定合成评测之外，新增 9 类 Agent 轨迹评测，覆盖非法 schema、提示注入、未知工具、对象漂移、RAG 隔离、审批后漂移、竞态、幂等和重启；Compose 使用真实 FastEmbed/pgvector RAG。
+6. **边界：** 本地 Mock Agent 闭环和真实 RAG 已验证；新 Agent 核心的 Kimi Tool Calling 集成未通过。生产 IAM、公开 HTTPS 后端、高可用和 Release Tag 尚未完成。
 
 ## 10 分钟深挖提纲
 
@@ -58,6 +58,16 @@ request ID 和 W3C trace context 关联 API/MCP；span 跨 LangGraph、Redis、S
 - 性能矩阵 HTTP 全成功却 MCP 指标为 0；对比源码/镜像/实例发现复用旧镜像，强制 `--build` 后不变量恢复。
 
 还可以讲 WSL 生命周期使 Docker 正常退出、Netlify worktree 部署错产物、失败测试污染共享数据库等案例。
+
+### 11. 为什么是 Plan-and-Execute，而不是开放 ReAct
+
+业务动作只有查询和创建三类受控工单，开放聊天会放大提示注入、对象漂移和越权工具风险。模型先把固定表单编码成 Goal，再提出只读工具计划；ToolPolicy/Harness 校验后执行，确定性规则和人工审批才允许进入写路径。需要重规划时最多一次，不允许无限自治循环。
+
+### 12. 真实 Kimi Tool Calling 未通过怎么讲
+
+“我先用低层 probe 验证 provider 能返回工具调用，再跑完整 API → LangGraph → MCP → RAG。完整代表操作在规划阶段没有稳定满足严格契约，安全报告记录为 failed，系统未降级到 Mock。这个结果说明 OpenAI-compatible 只保证接口外形，不保证 Tool Calling 与 structured output 行为一致。下一步会增加 provider contract fixture、受控 repair/retry 和失败 operation 原子收口，再重新验证；在此之前我不会在简历上写真实 Kimi 新闭环已跑通。”
+
+这不是项目失败，而是一个可讨论的工程边界：Mock 用于确定性回归，Real 用于兼容性验证；两者目的不同，证据不可混用。
 
 ## 高频追问
 

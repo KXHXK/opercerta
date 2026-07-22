@@ -2,11 +2,13 @@
 
 ## 最新核验：Agent Task 8 React 工作台已完成前端与响应式门禁
 
-2026-07-22，本地 `/console` 已从简易工单三栏升级为受控 Agent 工作台：固定表单、结构化 Goal、真实后端 Agent Trace、MCP/RAG 证据、模型建议与确定性计划对照、审批 binding、Verifier 说明、工单回读和 operator→approver→auditor 引导均已接入，且 audit 不再冒充 Trace。完整前端为 17 个测试文件/46 条测试，TypeScript/Vite 生产构建通过；1440/1024/390 浏览器检查无横向溢出，应用内无 fixed/sticky。Task 9 真实 Compose 浏览器闭环、重启和 Kimi Trace 仍未完成，生产发布门禁保持 `CLOSED`。详见 `docs/release-evidence/agent-workspace.md`。
+2026-07-22，Agent 核心 Task 9 已提交 `642d3ba`：本地后端 566 条、前端 46 条、冻结 Agent 评测 9/9、真实 FastEmbed/pgvector RAG、三业务 Compose 与 API/MCP 重启恢复通过。Real Moonshot/Kimi `kimi-k2.6` 新 Agent 代表 query 未通过严格规划路径，报告为 failed，未回退 Mock；异常 operation 原子收口仍是 known limitation。Task 10 中文交付正在进行，feature branch 尚未推送/PR，新鲜远程 Actions 尚无结论，生产发布门禁保持 `CLOSED`。详见 `docs/release-evidence/agent-core-architecture.md`。
+
+2026-07-22，本地 `/console` 已从简易工单三栏升级为受控 Agent 工作台：固定表单、结构化 Goal、真实后端 Agent Trace、MCP/RAG 证据、模型建议与确定性计划对照、审批 binding、Verifier 说明、工单回读和 operator→approver→auditor 引导均已接入，且 audit 不再冒充 Trace。完整前端为 17 个测试文件/46 条测试，TypeScript/Vite 生产构建通过；1440/1024/390 浏览器检查无横向溢出，应用内无 fixed/sticky。Task 9 Compose/RAG/重启已在后续证据完成，Real Kimi 新 Agent 路径仍未通过，生产发布门禁保持 `CLOSED`。详见 `docs/release-evidence/agent-workspace.md` 与 `docs/release-evidence/agent-core-architecture.md`。
 
 ## 最新核验：Agent Task 7 脱敏 Trace、API/SSE 与 RBAC 已完成本地门禁
 
-2026-07-22，迁移 `0006_agent_trace`、run/event/citation 数据模型、稳定 sequence/semantic key、递归脱敏、LangGraph 调查/审批/执行/反馈投影、RAG citation reference、Trace snapshot/SSE API 与 operation 级 RBAC 已实现。产品代码全量测试为 545 条通过；最新 operator owner/非 owner 权限补强后 Task 7 定向 8 条通过，WSL Git 安全 4 条通过。Trace 不保存 prompt、reasoning content、原始工具正文、SOP 正文、秘密或 stack trace；也不以 Trace 替代业务审计或 OTel。Windows 本地测试密码在失败 traceback 展开后已立即轮换。Task 8 React Agent 工作台、Task 9 完整 Compose/真实 Kimi Trace 和 Task 10 总交付尚未完成，生产发布门禁保持 `CLOSED`。详见 `docs/release-evidence/agent-trace-rbac.md`。
+2026-07-22 Task 7 检查点：迁移 `0006_agent_trace`、run/event/citation 数据模型、稳定 sequence/semantic key、递归脱敏、LangGraph 调查/审批/执行/反馈投影、RAG citation reference、Trace snapshot/SSE API 与 operation 级 RBAC 已实现。该检查点产品代码全量测试为 545 条通过；operator owner/非 owner 权限补强后定向 8 条通过，WSL Git 安全 4 条通过。Trace 不保存 prompt、reasoning content、原始工具正文、SOP 正文、秘密或 stack trace；也不以 Trace 替代业务审计或 OTel。Windows 本地测试密码在失败 traceback 展开后已立即轮换。Task 8--9 的后续结论以本文顶部新鲜记录为准。详见 `docs/release-evidence/agent-trace-rbac.md`。
 
 ## 最新核验：Agent Task 6 pgvector 中文 SOP RAG 已完成本地代码与真实检索门禁
 
@@ -64,11 +66,11 @@
 
 本地短时 JWT 与四角色 RBAC 已实施，审批主体只从 JWT `sub` 取得。库存补货固定合成契约评测当前有效版本为 `replenishment-v3`：真实 FastAPI、FastMCP、PostgreSQL 与恢复夹具运行 30 条，30 passed、0 failed。已新增 SSE 审计快照回放与 `Last-Event-ID` 续传；全量 pytest 为 325 passed。详见 `docs/release-evidence/demo-jwt-rbac.md`、`docs/release-evidence/replenishment-contract-evaluation.md` 和 `docs/release-evidence/sse-audit-replay.md`。
 
-最后核验：2026-07-20 Asia/Shanghai；真实模型本地代表性验证、主线 CI/Compose、静态专题和作品集生产同步已完成，产品发布门禁仍为 `CLOSED`。
+历史核验：2026-07-20 Asia/Shanghai；旧解释型真实模型路径、当时主线 CI/Compose、静态专题和作品集生产同步已完成。新 Agent 核心结论以本文顶部 2026-07-22 记录为准，产品发布门禁仍为 `CLOSED`。
 
 ## 当前阶段
 
-可靠性内核、库存补货、设备维修、作业异常恢复、三业务单页控制台、本地 Caddy 发布候选和真实模型代表性验证已完成代码与本机运行门禁。后端已覆盖严格输入、证据与计划、绑定审批、真实 MCP 读写、真实模型解释、批准后重取事实、写后读验证、拒绝、过期、A/B 重启恢复以及 FastAPI 查询/创建/审批。公网交互与生产治理仍未完成，发布门禁保持关闭。
+可靠性内核、库存补货、设备维修、作业异常恢复、三业务单页控制台、本地 Caddy 发布候选、Mock Agent 与真实 RAG 已完成代码和本机运行门禁。后端已覆盖严格输入、证据与计划、绑定审批、真实 MCP 读写、批准后重取事实、写后读验证、拒绝、过期、A/B 重启恢复以及 FastAPI 查询/创建/审批。旧解释型真实模型路径有历史证据，但新 Plan-and-Execute Kimi Tool Calling 尚未通过。公网交互与生产治理仍未完成，发布门禁保持关闭。
 
 ## 已验证事实
 
@@ -145,8 +147,8 @@
 
 ## 下一步
 
-继续只实施 OperCerta。零成本展示 PR、`main` compose-smoke、Netlify 专题和作品集同步均已完成；下一步执行用户手动演示/口述掌握检查，再决定公网可写 HTTPS 后端的成本与安全范围。生产 IAM/限流/备份、自动部署和 Release Tag 尚未完成。
+继续只实施 OperCerta。Task 10 本地交付完成后，先修复 Real Kimi Tool Calling 与 provider 异常 operation 原子收口，再由用户批准推送/PR；Actions 全绿后执行用户手动演示/口述掌握检查。生产 IAM/限流/备份、自动部署和 Release Tag 尚未完成。
 
 ## 发布门禁
 
-`OperCerta production release gate: CLOSED`。当前证据证明三业务本地后端与单页控制台、Redis/Trace/Real model adapter、真实模型代表性运行、42 条固定评测、WSL2/Caddy 本地发布候选、演示身份、GitHub Actions 分层 CI、只读静态专题、独立静态作品集入口和中文学习包通过对应阶段门禁；生产身份、公网 HTTPS 后端、限流/备份、自动部署、用户掌握和 Release Tag 仍待完成。求职演示发布门禁不能与生产门禁混用。
+`OperCerta production release gate: CLOSED`。当前证据证明三业务本地 Mock Agent、真实 FastEmbed/pgvector RAG、Agent Trace、审批/幂等/恢复、单页控制台和历史静态展示通过对应门禁；新 Agent 核心的 Real Kimi Tool Calling、provider 异常原子收口、新鲜远程 CI、生产身份、公网 HTTPS 后端、限流/备份、自动部署、用户掌握和 Release Tag 仍待完成。求职演示发布门禁不能与生产门禁混用。
