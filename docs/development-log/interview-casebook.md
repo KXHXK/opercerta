@@ -306,3 +306,11 @@
 - **设计：** 业务详情是主结果，Trace 作为独立权限资源加载；同一 operation 的 Trace 读取被拒绝时保留已加载安全快照，并提示切换 auditor 完成终态核验。读取另一个无权 operation 时不沿用旧 Trace。
 - **验证：** API 权限测试证明 approver 只读待审批状态；前端角色引导和 App 编排测试通过。
 - **面试表达：** “RBAC 不只是隐藏按钮，还会改变请求组合方式。我让核心业务结果与可解释轨迹独立失败，并用角色接力完成最小授权下的完整演示。”
+
+## 33. CI 数据库镜像必须具备迁移声明的 extension
+
+- **问题：** Agent 核心 Draft PR 首次 Actions 中，三个快速 job 通过，backend-tests 在 Alembic 的 `CREATE EXTENSION vector` 处失败。
+- **根因：** 本地 Compose 已迁移到 pgvector 镜像，CI backend service 仍是普通 PostgreSQL 18，导致运行环境和数据库迁移合同漂移。
+- **修复：** 先新增 CI 资产 RED，要求固定 `pgvector/pgvector:0.8.2-pg18-trixie` 且禁止 `postgres:18`；再修改工作流，未跳过迁移或 RAG 测试。
+- **验证：** 定向 CI/容器资产测试 12 条通过；修复提交 `ba53e70` 后，Actions run `29936753836` 的仓库安全、Python 质量、后端和前端全部通过。
+- **面试表达：** “数据库 extension 是部署依赖，不只是 Python 包。我用可执行资产测试约束 CI 镜像与 Compose 一致，避免本地绿、远端红的基础设施漂移。”

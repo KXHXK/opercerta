@@ -2,7 +2,7 @@
 
 ## 结论
 
-2026-07-22，Agent 核心 Task 1--9 的本地实现与可重复门禁已完成并提交。三业务通过真实 LangGraph Agent 调查节点、受控 Tool Calling 契约、FastMCP、真实 FastEmbed/pgvector RAG、人工审批、批准后复核、幂等写入、Agent Trace 和 Compose 重启恢复。Task 9 实现提交为 `642d3ba test: gate OperCerta agent trajectories`。
+2026-07-22，Agent 核心 Task 1--9 的本地实现与可重复门禁已完成并提交。三业务通过真实 LangGraph Agent 调查节点、受控 Tool Calling 契约、FastMCP、真实 FastEmbed/pgvector RAG、人工审批、批准后复核、幂等写入、Agent Trace 和 Compose 重启恢复。Task 9 实现提交为 `642d3ba test: gate OperCerta agent trajectories`。2026-07-23 已创建 [Draft PR #8](https://github.com/KXHXK/opercerta/pull/8)，修复提交 `ba53e70` 后，远程快速门禁 run `29936753836` 全绿。
 
 真实 Kimi Tool Calling 的新端到端代表验证为 **failed**，没有回退 Mock，也没有改写成成功。因此本证据不打开生产发布门禁：`OperCerta production release gate: CLOSED`。
 
@@ -62,6 +62,14 @@ docker compose ps
 
 还观察到 provider/图异常可能留下 `received` operation，随后启动恢复会把它收口为 `recovery_state_conflict`。这说明异常原子收口和 provider 兼容 repair 仍需实现，属于阻塞真实模型发布的 known limitation。
 
+## Draft PR 与远程 CI
+
+- 分支：`feat/agent-core-implementation`；PR：[Draft PR #8](https://github.com/KXHXK/opercerta/pull/8)。
+- 首次 run `29936292055`：repository-safety、python-quality、frontend 通过；backend-tests 因普通 `postgres:18` 不提供迁移要求的 vector extension 而失败。
+- 修复：先写 CI 资产 RED，再把 backend service 固定为 `pgvector/pgvector:0.8.2-pg18-trixie`；提交 `ba53e70 fix: use pgvector in backend CI`。
+- 修复后 run [`29936753836`](https://github.com/KXHXK/opercerta/actions/runs/29936753836)：repository-safety、python-quality、backend-tests、frontend 全部通过。
+- `compose-smoke` 在 PR 事件按设计跳过；本地 Agent Compose 已有本页前述证据，但新 Agent 核心合并后的 main Compose 证据仍未产生。
+
 ## 数据、安全与指标边界
 
 - 业务和 SOP 均来自仓库合成数据，不含旧公司材料。
@@ -74,7 +82,7 @@ docker compose ps
 
 1. 新 Agent 核心的真实 Kimi Tool Calling 端到端兼容未通过；
 2. provider 异常下 operation 原子失败收口仍需补强；
-3. 本 feature branch 尚未推送、创建 PR 或取得新鲜 GitHub Actions 全绿；
+3. Draft PR 快速 Actions 已全绿，但尚未 review/合并，合并后的 main `compose-smoke` 尚无新鲜证据；
 4. 公网可写 HTTPS API、生产 IAM/租户隔离、限流防滥用、秘密托管、备份、高可用、自动部署和 Release Tag 未完成；
 5. 用户尚需不依赖 Codex 完成一次人工闭环和口述复盘。
 

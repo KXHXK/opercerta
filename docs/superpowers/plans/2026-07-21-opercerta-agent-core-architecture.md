@@ -646,7 +646,7 @@ cd web && npm test -- --run && npm run build && cd ..
 
 推送 feature branch，创建 PR，等待 GitHub Actions 全绿并完成 review；未合并/未验证前不改 `main` 结论、不启动 ForenTrail。
 
-本地部分已完成：仓库安全、Ruff、187 文件格式、Mypy 76 个源文件、后端 567 条、前端 46 条和生产构建均通过。远程推送、PR、Actions 与 review 尚待用户授权，因此本 Step 保持未勾选。
+本地部分已完成：仓库安全、Ruff、187 文件格式、Mypy 76 个源文件、后端 567 条、前端 46 条和生产构建均通过。远程分支与 Draft PR #8 已创建；修复 CI pgvector 漂移的提交 `ba53e70` 后，run `29936753836` 的四个 PR 快速 job 全绿。review、合并与 main-only Compose smoke 尚未完成，因此本 Step 保持未勾选。
 
 - [x] **Step 5: 提交文档**
 

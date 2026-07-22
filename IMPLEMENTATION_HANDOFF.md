@@ -2,7 +2,9 @@
 
 ## 当前检查点
 
-- 2026-07-22 Agent 核心 Task 9 已提交为 `642d3ba`：新增 9 类冻结 Agent 轨迹评测、真实 Agent Compose/RAG/数据库/重启验证、CI 门禁和安全 Real 报告。新鲜证据为后端 `566 passed in 179.66s`、前端 17 文件/46 条、Ruff/187 文件格式/Mypy 76 个源文件、Agent 评测 9/9、Compose 三业务与 API/MCP 重启退出码 0。Real Moonshot/Kimi `kimi-k2.6` 新 Agent 代表 query 为 failed，未回退 Mock；低层 probe 可返回 Tool Call，但集成规划未稳定满足严格契约，provider 异常还可能留下 `received` operation。证据见 `docs/release-evidence/agent-core-architecture.md`。Task 10 文档与本地门禁正在收口，feature branch 尚未推送/PR，生产发布门禁保持 `CLOSED`。
+- 2026-07-23 `feat/agent-core-implementation` 已推送并创建 [Draft PR #8](https://github.com/KXHXK/opercerta/pull/8)。首次 run `29936292055` 暴露 backend-tests 的普通 PostgreSQL 镜像不含 vector extension；按 RED/GREEN 新增 CI 资产契约并提交 `ba53e70 fix: use pgvector in backend CI` 后，run `29936753836` 的 repository-safety、python-quality、backend-tests、frontend 全绿。PR 的 `compose-smoke` 按设计跳过；review、合并和 main-only Compose 尚未完成。过程见 `docs/development-log/daily/2026-07-23.md`，生产发布门禁保持 `CLOSED`。
+
+- 2026-07-22 Agent 核心 Task 9 已提交为 `642d3ba`：新增 9 类冻结 Agent 轨迹评测、真实 Agent Compose/RAG/数据库/重启验证、CI 门禁和安全 Real 报告。新鲜证据为后端 `566 passed in 179.66s`、前端 17 文件/46 条、Ruff/187 文件格式/Mypy 76 个源文件、Agent 评测 9/9、Compose 三业务与 API/MCP 重启退出码 0。Real Moonshot/Kimi `kimi-k2.6` 新 Agent 代表 query 为 failed，未回退 Mock；低层 probe 可返回 Tool Call，但集成规划未稳定满足严格契约，provider 异常还可能留下 `received` operation。证据见 `docs/release-evidence/agent-core-architecture.md`。后续 Draft PR 快速 CI 已由上一条补齐，生产发布门禁保持 `CLOSED`。
 
 - 2026-07-22 Agent 核心 Task 8 已完成 React 单页 Agent 工作台：有限三业务表单、结构化 Goal、真实 Trace、MCP/RAG 证据、模型建议/确定性计划对照、审批 binding、Verifier 说明、工单回读和 operator→approver→auditor 引导已接入；audit 与 Trace 继续分层。前端 17 个测试文件/46 条测试及生产构建通过；1440/1024/390 浏览器检查无横向溢出，应用内无 fixed/sticky。Task 9 真实 Compose 浏览器 E2E、重启和 Kimi Trace 尚未完成，发布门禁保持 `CLOSED`。证据见 `docs/release-evidence/agent-workspace.md`。
 
@@ -54,7 +56,7 @@
 ## 新对话必须先做
 
 1. 先阅读 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md` 和最近每日日志，再阅读相关设计、计划、交接和 Git 状态。
-2. 只实施 OperCerta；下一步先完成 Task 10 文档/本地门禁，修复 Real Kimi 规划兼容与 provider 异常 operation 原子收口，再推送 feature branch、创建 PR 并等待新鲜 Actions；生产门禁关闭前不启动其他项目。
+2. 只实施 OperCerta；Draft PR 快速 Actions 已全绿，下一步修复 Real Kimi 规划兼容与 provider 异常 operation 原子收口，再完成 review、用户掌握检查和 main Compose；生产门禁关闭前不启动其他项目。
 3. 运行集成测试前，以不回显方式从已忽略 `.env.local` 加载 `OPERCERTA_DATABASE_URL`；不得提交该文件或任何凭据。
 4. 每个效果数字都保留基线、测试数据、测量脚本和结果证据；指标未测出前使用目标值或空值，不写成已实现结果。
 5. 使用公开或合成数据，从零编写全部代码和文档，不导入任何原单位源码、数据、截图、模型、品牌或内部规则。
@@ -68,4 +70,4 @@
 
 ## 可复制到新对话的启动语
 
-> 工作目录为本 OperCerta 仓库根目录。请先读取 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md`、最近每日日志、`README.md`、`IMPLEMENTATION_HANDOFF.md`、`docs/specs/` 下的四份设计文件及当前相关规格、计划和证据；Agent 核心 Task 9 已提交 `642d3ba`，Real Kimi 新 Agent 路径仍为 failed。下一步先完成 Task 10 和新鲜远程 CI，再修复 Real provider 兼容与异常 operation 原子收口，最后执行用户手动演示/口述掌握检查。公开根路径只读、`/engineering` 仅 localhost、`/console` 仅本地真实演示；不复用旧公司材料，不虚构指标，不启动其他项目。
+> 工作目录为本 OperCerta 仓库根目录。请先读取 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md`、最近每日日志、`README.md`、`IMPLEMENTATION_HANDOFF.md`、`docs/specs/` 下的四份设计文件及当前相关规格、计划和证据；Agent 核心 Draft PR #8 的快速 Actions 已全绿，Real Kimi 新 Agent 路径仍为 failed。下一步先修复 Real provider 兼容与异常 operation 原子收口，再完成 review、用户手动演示/口述掌握检查和 main Compose。公开根路径只读、`/engineering` 仅 localhost、`/console` 仅本地真实演示；不复用旧公司材料，不虚构指标，不启动其他项目。
