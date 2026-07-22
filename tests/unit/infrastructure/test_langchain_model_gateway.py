@@ -46,11 +46,13 @@ class FakeChatModel:
         structured: dict[type[object], object] | None = None,
     ) -> None:
         self.bound_tools: list[object] = []
+        self.bound_tool_choice: str | None = None
         self.tool_runnable = FakeRunnable(tool_response, tool_error)
         self.structured = structured or {}
 
-    def bind_tools(self, tools: list[object]) -> FakeRunnable:
+    def bind_tools(self, tools: list[object], *, tool_choice: str) -> FakeRunnable:
         self.bound_tools = tools
+        self.bound_tool_choice = tool_choice
         return self.tool_runnable
 
     def with_structured_output(self, schema: type[object]) -> FakeRunnable:
@@ -107,6 +109,7 @@ async def test_native_tool_call_becomes_strict_investigation_plan() -> None:
     assert result.plan.steps[0].tool_name == "inventory.get_snapshot"
     assert result.plan.steps[0].arguments == {"sku": "SKU-DEMO-001"}
     assert model.bound_tools[0]["function"]["name"] == "inventory_get_snapshot"  # type: ignore[index]
+    assert model.bound_tool_choice == "required"
 
 
 @pytest.mark.asyncio

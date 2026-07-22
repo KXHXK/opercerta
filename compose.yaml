@@ -31,7 +31,9 @@ services:
     build: .
     env_file: .env.compose
     environment:
-      - OPERCERTA_EMBEDDING_CACHE_DIR=/home/opercerta/.cache/fastembed
+      OPERCERTA_EMBEDDING_CACHE_DIR: /home/opercerta/.cache/fastembed
+      HF_HUB_DISABLE_XET: "1"
+      HF_HUB_OFFLINE: ${OPERCERTA_HF_HUB_OFFLINE:-false}
     volumes:
       - fastembed_cache:/home/opercerta/.cache/fastembed
     command: ["python", "-m", "opercerta.runtime.mcp"]
@@ -53,6 +55,12 @@ services:
       OPERCERTA_CACHE_TTL_SECONDS: ${OPERCERTA_CACHE_TTL_SECONDS:-60}
       OPERCERTA_TOOL_MODE: ${OPERCERTA_TOOL_MODE:-parallel}
       OPERCERTA_METRICS_ENABLED: ${OPERCERTA_METRICS_ENABLED:-false}
+      OPERCERTA_MODEL_MODE: ${OPERCERTA_MODEL_MODE:-mock}
+      OPERCERTA_MODEL_BASE_URL: ${OPERCERTA_MODEL_BASE_URL:-}
+      OPERCERTA_MODEL_NAME: ${OPERCERTA_MODEL_NAME:-}
+      OPERCERTA_MODEL_API_KEY: ${OPERCERTA_MODEL_API_KEY:-}
+      OPERCERTA_MODEL_THINKING_MODE: ${OPERCERTA_MODEL_THINKING_MODE:-default}
+      OPERCERTA_MCP_TIMEOUT_SECONDS: ${OPERCERTA_MCP_TIMEOUT_SECONDS:-2}
     command: ["python", "-m", "opercerta.runtime.api"]
     ports:
       - "${OPERCERTA_API_BIND:-127.0.0.1}:${PORT:-8080}:8080"

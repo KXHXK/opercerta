@@ -25,6 +25,11 @@ def test_redis_is_internal_healthy_and_required_only_by_api() -> None:
     assert "OPERCERTA_CACHE_TTL_SECONDS=60" in example
     assert "OPERCERTA_CACHE_ENABLED: ${OPERCERTA_CACHE_ENABLED:-true}" in compose
     assert "OPERCERTA_OTLP_ENABLED=false" in example
+    assert "OPERCERTA_MODEL_MODE: ${OPERCERTA_MODEL_MODE:-mock}" in compose
+    assert "OPERCERTA_MODEL_BASE_URL: ${OPERCERTA_MODEL_BASE_URL:-}" in compose
+    assert "OPERCERTA_MODEL_NAME: ${OPERCERTA_MODEL_NAME:-}" in compose
+    assert "OPERCERTA_MODEL_API_KEY: ${OPERCERTA_MODEL_API_KEY:-}" in compose
+    assert "OPERCERTA_MCP_TIMEOUT_SECONDS: ${OPERCERTA_MCP_TIMEOUT_SECONDS:-2}" in compose
 
 
 def test_postgres_18_uses_the_parent_data_mount() -> None:
@@ -40,7 +45,9 @@ def test_compose_pins_pgvector_and_persists_the_embedding_cache() -> None:
 
     assert "image: pgvector/pgvector:0.8.2-pg18-trixie" in compose
     assert "fastembed_cache:/home/opercerta/.cache/fastembed" in compose
-    assert "OPERCERTA_EMBEDDING_CACHE_DIR=/home/opercerta/.cache/fastembed" in compose
+    assert "OPERCERTA_EMBEDDING_CACHE_DIR: /home/opercerta/.cache/fastembed" in compose
+    assert 'HF_HUB_DISABLE_XET: "1"' in compose
+    assert "HF_HUB_OFFLINE: ${OPERCERTA_HF_HUB_OFFLINE:-false}" in compose
     assert "install -d -o opercerta -g opercerta /home/opercerta/.cache/fastembed" in Path(
         "Dockerfile"
     ).read_text(encoding="utf-8")
@@ -52,6 +59,7 @@ def test_image_uses_locked_dependencies_and_non_root_user() -> None:
     dockerfile = Path("Dockerfile").read_text(encoding="utf-8")
 
     assert "uv sync --frozen --no-dev" in dockerfile
+    assert "install -d -o opercerta -g opercerta /home/opercerta/.cache" in dockerfile
     assert "USER opercerta" in dockerfile
 
 

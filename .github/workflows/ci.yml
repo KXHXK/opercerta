@@ -95,6 +95,8 @@ jobs:
         run: uv run pytest -q
       - name: Run three-business contract evaluation
         run: uv run python scripts/run_opercerta_evaluation.py
+      - name: Run frozen Agent safety and recovery evaluation
+        run: uv run python scripts/run_agent_evaluation.py
 
   frontend:
     name: frontend
@@ -142,12 +144,12 @@ jobs:
           sed -i 's/CHANGE_ME/ci-only-database-password/' .env.compose
       - name: Build and start Compose services
         run: docker compose up --build -d
-      - name: Verify replenishment smoke
-        run: python scripts/verify_compose.py
+      - name: Verify Agent trajectories and database effects
+        run: python scripts/verify_agent_compose.py
       - name: Restart API and MCP
         run: docker compose restart api mcp
-      - name: Verify health after restart
-        run: python scripts/verify_compose.py --recovery-only
+      - name: Verify Agent recovery after restart
+        run: python scripts/verify_agent_compose.py --recovery-only
       - name: Show safe Compose status on failure
         if: failure()
         run: docker compose ps

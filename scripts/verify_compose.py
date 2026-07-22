@@ -5,6 +5,7 @@ import json
 import os
 import subprocess
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError
@@ -12,6 +13,12 @@ from urllib.request import Request, urlopen
 from uuid import UUID
 
 RECOVERY_MARKER = Path("tmp/compose-recovery-operation.txt")
+
+
+@dataclass(frozen=True)
+class ComposeVerificationResult:
+    completed: tuple[tuple[str, str], ...]
+    recovery_operation_id: str
 
 
 def decode_response_body(body: bytes) -> Any | None:
@@ -26,7 +33,7 @@ def api_request_timeout_seconds() -> float:
         configured = float(os.environ.get("OPERCERTA_API_REQUEST_TIMEOUT_SECONDS", "10"))
     except ValueError:
         configured = 10.0
-    return max(1.0, min(configured, 120.0))
+    return max(1.0, min(configured, 600.0))
 
 
 def request(
@@ -149,7 +156,7 @@ def assert_database_counts(
 
 
 def verify_recovery_only(operator_headers: dict[str, str]) -> None:
-    operation_id = str(UUID(RECOVERY_MARKER.read_text(encoding="utf-8").strip()))
+    operation_id = read_recovery_operation_id()
     status, detail = request(
         "GET",
         f"/api/v1/operations/{operation_id}",
@@ -162,19 +169,14 @@ def verify_recovery_only(operator_headers: dict[str, str]) -> None:
     assert_database_counts(operation_id, approvals=0, work_orders=0)
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--recovery-only", action="store_true")
-    args = parser.parse_args()
-    wait_for_ready()
-    assert request("GET", "/health/live") == (200, {"status": "live"})
-    assert request("GET", "/health/ready")[0] == 200
-    operator_headers = demo_headers("operator")
-    if args.recovery_only:
-        verify_recovery_only(operator_headers)
-        return
-    approver_headers = demo_headers("approver")
+def read_recovery_operation_id() -> str:
+    return str(UUID(RECOVERY_MARKER.read_text(encoding="utf-8").strip()))
 
+
+def verify_full(
+    operator_headers: dict[str, str],
+    approver_headers: dict[str, str],
+) -> ComposeVerificationResult:
     scenarios = (
         ("inventory", "SKU-LOW-001", "replenishment"),
         ("equipment", "EQ-PUMP-001", "repair"),
@@ -219,7 +221,7 @@ def main() -> None:
         )
         assert observed_kind == work_order_kind
         assert_database_counts(operation_id, approvals=1, work_orders=1)
-        completed.append((operation_id, work_order_kind))
+        completed.append((operation_id, object_type))
 
     inventory_id, inventory_detail = create_operation(
         "inventory", "SKU-BACKORDER-001", operator_headers
@@ -261,6 +263,22 @@ def main() -> None:
     ).splitlines()
     assert event_types.count("work_order_created") == 1
     assert event_types[-1] == "operation_completed"
+    return ComposeVerificationResult(tuple(completed), recovery_id)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--recovery-only", action="store_true")
+    args = parser.parse_args()
+    wait_for_ready()
+    assert request("GET", "/health/live") == (200, {"status": "live"})
+    assert request("GET", "/health/ready")[0] == 200
+    operator_headers = demo_headers("operator")
+    if args.recovery_only:
+        verify_recovery_only(operator_headers)
+        return
+    approver_headers = demo_headers("approver")
+    verify_full(operator_headers, approver_headers)
 
 
 if __name__ == "__main__":

@@ -45,6 +45,7 @@ from opercerta.domain.replenishment import EvidenceBundle, ReplenishmentPlan
 from opercerta.domain.scenarios import ScenarioKind
 from opercerta.domain.task_recovery import TaskRecoveryEvidenceBundle, TaskRecoveryPlan
 from opercerta.domain.work_orders import canonical_payload_json
+from opercerta.infrastructure.model_gateway import ModelOutputInvalid
 
 
 class AgentInvestigationState(TypedDict):
@@ -252,6 +253,7 @@ _QUERY_TRIGGER = {
 _POLICY_ERRORS = (
     AgentContractViolation,
     DuplicateToolCall,
+    ModelOutputInvalid,
     ObjectBindingMismatch,
     ToolBudgetExceeded,
     ToolPolicyViolation,

@@ -21,6 +21,7 @@ from opercerta.domain.agent import (
     VerificationDecision,
 )
 from opercerta.domain.contracts import OperationRequest
+from opercerta.infrastructure.model_gateway import ModelOutputInvalid
 from opercerta.tools.catalog import SyntheticCatalog
 from opercerta.workflow.agent_controlled_action_graph import (
     build_agent_investigation_graph,
@@ -108,6 +109,12 @@ class ScriptedAgentModel:
     async def report(self, context: ReportingContext) -> FinalReport:
         del context
         raise AssertionError("reporting belongs to the outer workflow")
+
+
+class InvalidPlanModel(ScriptedAgentModel):
+    async def plan(self, context: PlanningContext) -> PlanningResult:
+        self.planning_contexts.append(context)
+        raise ModelOutputInvalid
 
 
 def goal_for(request: OperationRequest) -> GoalEncoding:
@@ -263,6 +270,30 @@ async def test_model_cannot_change_trusted_goal(catalog: SyntheticCatalog) -> No
 
     assert result["status"] == "failed"
     assert result["error_code"] == "trusted_goal_mismatch"
+    assert gateway.calls == []
+
+
+@pytest.mark.asyncio
+async def test_invalid_model_plan_fails_closed_before_mcp_call(
+    catalog: SyntheticCatalog,
+) -> None:
+    request = OperationRequest(
+        message="query inventory",
+        requested_action="query",
+        object_type="inventory",
+        object_id="SKU-LOW-001",
+    )
+    gateway = FakeReadGateway(catalog)
+    graph = build_agent_investigation_graph(
+        InvalidPlanModel([]),
+        gateway,
+        clock=lambda: NOW,
+    )
+
+    result = await graph.ainvoke(build_agent_investigation_initial_state(request))
+
+    assert result["status"] == "failed"
+    assert result["error_code"] == "model_output_invalid"
     assert gateway.calls == []
 
 

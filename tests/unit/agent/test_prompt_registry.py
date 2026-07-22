@@ -37,3 +37,31 @@ def test_all_packaged_prompts_are_versioned_and_non_empty() -> None:
     assert {prompt.prompt_id for prompt in prompts} == set(PromptId)
     assert {prompt.version for prompt in prompts} == {"v1"}
     assert all(len(prompt.content_hash) == 64 for prompt in prompts)
+
+
+def test_planner_prompt_freezes_machine_readable_enum_values() -> None:
+    content = PromptRegistry.packaged().load(PromptId.PLANNER).content
+
+    for literal in (
+        "subject",
+        "policy",
+        "knowledge",
+        "query_reported",
+        "approved_work_order_verified",
+        "snake_case",
+    ):
+        assert literal in content
+
+
+def test_structured_prompts_declare_exact_output_fields_and_decisions() -> None:
+    registry = PromptRegistry.packaged()
+    analyst = registry.load(PromptId.ANALYST).content
+    verifier = registry.load(PromptId.VERIFIER).content
+    reporter = registry.load(PromptId.REPORTER).content
+
+    for field in ("summary", "recommendation", "uncertainties", "citations"):
+        assert field in analyst
+    for literal in ("proceed", "abort", "escalate", "proposed_plan"):
+        assert literal in verifier
+    for field in ("outcome", "summary", "evidence_refs", "citations", "snake_case"):
+        assert field in reporter

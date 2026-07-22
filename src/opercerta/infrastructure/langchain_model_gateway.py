@@ -38,7 +38,7 @@ class AsyncRunnable(Protocol):
 
 
 class AgentChatModel(Protocol):
-    def bind_tools(self, tools: list[object]) -> AsyncRunnable: ...
+    def bind_tools(self, tools: list[object], *, tool_choice: str) -> AsyncRunnable: ...
 
     def with_structured_output(self, schema: type[object]) -> AsyncRunnable: ...
 
@@ -94,7 +94,7 @@ class LangChainOpenAIModelGateway:
             }
             for definition in context.tools
         ]
-        bound = self._model.bind_tools(cast(list[object], tools))
+        bound = self._model.bind_tools(cast(list[object], tools), tool_choice="required")
         response = await bound.ainvoke(self._messages(prompt.content, context))
         if not isinstance(response, AIMessage):
             raise ModelOutputInvalid

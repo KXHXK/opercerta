@@ -53,6 +53,7 @@ def test_ci_fast_jobs_use_frozen_python_postgres_and_frontend_gates() -> None:
     assert "PGPASSWORD: opercerta_ci_only" in text
     assert "uv run pytest -q" in text
     assert "python scripts/run_opercerta_evaluation.py" in text
+    assert "python scripts/run_agent_evaluation.py" in text
     assert 'node-version: "24"' in text
     assert "npm ci" in text
     assert "npm run test:run" in text
@@ -67,9 +68,9 @@ def test_ci_compose_smoke_is_main_or_manual_only_and_always_cleans_up() -> None:
     assert "github.event_name == 'workflow_dispatch'" in text
     assert "github.ref == 'refs/heads/main'" in text
     assert "docker compose up --build -d" in text
-    assert "python scripts/verify_compose.py" in text
+    assert "python scripts/verify_agent_compose.py" in text
     assert "docker compose restart api mcp" in text
-    assert "python scripts/verify_compose.py --recovery-only" in text
+    assert "python scripts/verify_agent_compose.py --recovery-only" in text
     assert "if: failure()" in text
     assert "docker compose ps" in text
     assert "if: always()" in text

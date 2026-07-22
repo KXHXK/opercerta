@@ -53,7 +53,7 @@ def test_release_smoke_runs_only_through_caddy_and_always_cleans_up() -> None:
     assert "COMPOSE_FILE=compose.release.yaml" in script
     assert 'OPERCERTA_API_URL="http://localhost:' in script
     assert "docker compose up --build -d" in script
-    assert "scripts/verify_compose.py" in script
+    assert "scripts/verify_agent_compose.py" in script
     assert "docker compose restart api mcp" in script
     assert "docker compose down -v --remove-orphans" in script
 
@@ -72,7 +72,9 @@ def test_real_model_smoke_loads_ignored_config_and_limits_the_representative_set
     assert '"query"' in verifier
     assert '"create_work_order"' in verifier
     assert "raw_model_output" not in verifier
-    assert "token_usage_available" in verifier
+    assert "token_usage_available" not in verifier
+    assert "cost_available" not in verifier
+    assert "assert_agent_trace" in verifier
 
 
 def test_learning_pack_covers_three_business_manual_failure_and_interview_explanation() -> None:
