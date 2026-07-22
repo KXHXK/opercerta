@@ -58,7 +58,7 @@ docker compose ps
 
 ## Real Kimi 代表验证
 
-安全报告：`tmp/real-model-agent-v1-diagnostic.json`（ignored，不提交）。最终代表调用元数据：provider `Moonshot AI`，model `kimi-k2.6`，mode `real`，inventory query，`status=failed`，`failure_stage=query`，`error_type=RepresentativeValidationError`，`operations_attempted=1`，安全失败详情为 `stage=create_operation`、`http_status=503`、`error_code=dependency_unavailable`。报告没有原始模型文本、凭据、token 或费用字段。
+历史安全报告路径为 `tmp/real-model-agent-v1-report.json`；本轮增加阶段诊断后的安全报告为 `tmp/real-model-agent-v1-diagnostic.json`（两者均 ignored，不提交）。最终代表调用元数据：provider `Moonshot AI`，model `kimi-k2.6`，mode `real`，inventory query，`status=failed`，`failure_stage=query`，`error_type=RepresentativeValidationError`，`operations_attempted=1`，安全失败详情为 `stage=create_operation`、`http_status=503`、`error_code=dependency_unavailable`。报告没有原始模型文本、凭据、token 或费用字段。
 
 低层 probe 得到 `inventory.get_snapshot` 的 native tool call；无 RAG 的完整 LangGraph probe 完成 Goal → inventory/policy → Analysis；开启 RAG 后首次复现 replan 重复已完成工具，修复为“只暴露 missing tools”后，真实图 probe 按 inventory → knowledge → policy 完成。该修复保留 Harness 的重复调用硬拒绝，不以 Prompt 代替代码边界。
 
