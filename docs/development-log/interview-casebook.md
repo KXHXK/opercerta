@@ -244,3 +244,27 @@
 - `docs/release-evidence/performance-cache-matrix.md`
 - `docs/release-evidence/real-model-representative-validation.md`
 - `docs/release-evidence/zero-cost-showcase-engineering-walkthrough.md`
+- `docs/release-evidence/agent-pgvector-rag.md`
+
+## 案例：固定 embedding 模型直连失败与可审计降级
+
+- **现象：** `BAAI/bge-small-zh-v1.5` 首次初始化访问官方 Hugging Face，约 150 秒后报 `Network is unreachable`；没有生成向量，也没有写知识表。
+- **根因：** WSL 主机直连官方域名同样超时，问题在外部网络路径，不在 Docker DNS、FastEmbed 合同或 pgvector。
+- **处理：** 先探测可达端点，只在 ignored 本地 `.env.compose` 临时配置 `HF_ENDPOINT`；产品 Compose 不硬编码第三方镜像。缓存完成后以 `local_files_only=True` 验证 512 维有限向量，并运行三场景真实检索。
+- **证据边界：** 记录固定模型、维度、文档版本、chunk 和实际 cosine 分数；不把小规模合成语料包装成准确率。
+- **面试表达：** “我把下载、向量生成、数据库写入分层验证。网络失败时系统没有写半成品；缓存成功后我用离线模式证明模型和检索链路独立可用。”
+
+## 案例：Codex 自动化 WSL 会话停止 Docker service
+
+- **现象：** 新镜像构建和服务健康成功，但完整 smoke 到数据库计数断言时，Compose 返回 `service "postgres" is not running`。
+- **诊断：** Docker journal 显示 service 被正常 `terminated`，容器均退出 0；轮询 Docker、持续 `docker events` 和前台 Compose 三种 keepalive 都在约 43--49 秒复现。
+- **决策：** 连续三次同根因后停止 workaround，不改产品代码掩盖环境问题；保留 535+4 测试、新镜像健康和失败日志，把完整 restart smoke 作为 Task 9 稳定交互式 WSL 门禁。
+- **面试表达：** “我区分产品失败与执行宿主失败。三次最小假设都未改变结果后停止试错，避免为了绿色结果篡改业务验证脚本。”
+
+## 27. 迁移测试不能依赖数据库碰巧已经升级
+
+- **问题：** Task 6 在已有开发卷上通过，但新建空 pgvector 卷时迁移往返测试第一步失败，结果为 1 failed/74 passed。
+- **根因：** 测试只声明原始 `database_url` fixture，却直接执行从 head 降到 `0004_approval_cycles`；旧开发卷碰巧已迁移到 head，掩盖了隐式前置条件。
+- **修复：** 不改生产迁移，让测试显式依赖负责升级到 head 的 `migrated_database_url`；随后验证 downgrade→upgrade→downgrade→upgrade。
+- **验证：** 单条迁移测试 `1 passed`；新建空卷的完整聚焦门禁 `75 passed in 36.33s`。
+- **面试表达：** “迁移测试必须自己建立起点，不能借用开发机历史状态。空数据库是更强的隔离门禁，它把偶然通过变成可重复证明。”

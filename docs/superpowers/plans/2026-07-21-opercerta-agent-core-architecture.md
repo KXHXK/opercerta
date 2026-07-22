@@ -410,20 +410,20 @@ git commit -m "feat: verify approvals before idempotent execution"
 - Test: `tests/integration/db/test_agent_knowledge_migration.py`
 - Test: `tests/integration/db/test_knowledge_repository.py`
 - Test: `tests/unit/infrastructure/test_embedding_gateway.py`
-- Test: `tests/integration/mcp/test_knowledge_tool.py`
+- Test: `tests/integration/mcp/test_tool_server.py`
 - Test: `tests/integration/workflow/test_agent_rag.py`
 
-- [ ] **Step 1: 写迁移、幂等、过滤、引用和降级 RED 测试**
+- [x] **Step 1: 写迁移、幂等、过滤、引用和降级 RED 测试**
 
 覆盖 `CREATE EXTENSION vector`、upgrade/downgrade/upgrade、document version/checksum、chunk 序号唯一、场景/active/version metadata filter、无合格引用返回 `knowledge_insufficient`、重复入库不重复、废弃版本不召回、跨场景 chunk 不泄露。CI repository test 使用固定可解释向量，不伪称真实语义质量。
 
-- [ ] **Step 2: 运行 RED**
+- [x] **Step 2: 运行 RED**
 
 ```bash
 uv run pytest tests/integration/db/test_agent_knowledge_migration.py tests/integration/db/test_knowledge_repository.py tests/unit/infrastructure/test_embedding_gateway.py tests/integration/mcp/test_knowledge_tool.py tests/integration/workflow/test_agent_rag.py -q
 ```
 
-- [ ] **Step 3: 固定依赖、迁移 image 并实现入库/检索**
+- [x] **Step 3: 固定依赖、迁移 image 并实现入库/检索**
 
 ```bash
 uv add pgvector==0.5.0 fastembed==0.8.0
@@ -431,21 +431,23 @@ uv add pgvector==0.5.0 fastembed==0.8.0
 
 Compose PostgreSQL image 固定为 `pgvector/pgvector:0.8.2-pg18-trixie`。本地真实 embedding 使用 `BAAI/bge-small-zh-v1.5`，维度 512；模型缓存目录显式配置且不提交模型文件。新增 MCP `knowledge.search_sop`，返回 document/chunk/version/score/safe snippet。
 
-- [ ] **Step 4: 把 RAG 接入已通过的 Agent 主闭环**
+- [x] **Step 4: 把 RAG 接入已通过的 Agent 主闭环**
 
 Planner 可选择 `knowledge.search_sop`；Analyst 的知识性主张必须绑定 citation。RAG 不可用时返回 `knowledge_unavailable`：普通场景允许 Guard 依据精确事实继续并展示降级，明确要求 SOP 的规则则失败关闭。
 
-- [ ] **Step 5: 运行 GREEN 和真实本地代表检索**
+- [x] **Step 5: 运行 GREEN 和真实本地代表检索**
 
 ```bash
-uv run pytest tests/integration/db/test_agent_knowledge_migration.py tests/integration/db/test_knowledge_repository.py tests/unit/infrastructure/test_embedding_gateway.py tests/integration/mcp/test_knowledge_tool.py tests/integration/workflow/test_agent_rag.py -q
+uv run pytest tests/integration/db/test_agent_knowledge_migration.py tests/integration/db/test_knowledge_repository.py tests/unit/infrastructure/test_embedding_gateway.py tests/integration/mcp/test_tool_server.py tests/integration/workflow/test_agent_rag.py -q
 uv run python scripts/ingest_knowledge.py --check
 docker compose config
 ```
 
 网络允许时下载并缓存固定 FastEmbed 模型，运行三业务代表查询；记录模型、维度、文档版本和返回引用，不预设或虚构准确率。
 
-- [ ] **Step 6: 提交**
+实施证据：新建空卷容器网络聚焦 `75 passed`、产品测试 `535 passed`、WSL 原生 Git 安全 `4 passed`；Ruff、173 文件格式、mypy 73 个源文件、114 包锁文件与仓库安全扫描通过。三份合成 SOP 共 12 个 chunk，真实固定模型完成首次入库、三文档幂等 replay 和三场景隔离检索；空卷门禁修复了迁移测试依赖预迁移数据库的隐式前置条件。新镜像构建并观察到 PostgreSQL/MCP healthy、API started；额外完整 Compose smoke 因当前 Codex 自动化 WSL 会话外层在约 43--49 秒停止 Docker service 未完成，保留到 Task 9 稳定交互式终端门禁，发布门禁继续 `CLOSED`。
+
+- [x] **Step 6: 提交**
 
 ```bash
 git add pyproject.toml uv.lock compose.yaml compose.release.yaml migrations/versions/0005_agent_knowledge.py src/opercerta/domain/knowledge.py src/opercerta/infrastructure/embedding_gateway.py src/opercerta/infrastructure/db/knowledge_repository.py src/opercerta/tools src/opercerta/infrastructure/mcp_gateway.py src/opercerta/workflow/agent_controlled_action_graph.py data/knowledge scripts/ingest_knowledge.py tests

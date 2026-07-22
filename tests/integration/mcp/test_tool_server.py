@@ -11,15 +11,21 @@ from mcp.types import CallToolResult
 from sqlalchemy import delete, insert
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from opercerta.domain.knowledge import (
+    KnowledgeSearchEvidence,
+    build_knowledge_ingest_command,
+)
 from opercerta.domain.maintenance import EquipmentEvidence, MaintenancePolicyEvidence
 from opercerta.domain.replenishment import InventoryEvidence, PolicyEvidence
+from opercerta.domain.scenarios import ScenarioKind
 from opercerta.domain.task_recovery import TaskEvidence, TaskRecoveryPolicyEvidence
 from opercerta.domain.work_orders import (
     WorkOrderRecord,
     WorkOrderWriteResult,
     derive_idempotency_key,
 )
-from opercerta.infrastructure.db.schema import approvals, operations
+from opercerta.infrastructure.db.knowledge_repository import KnowledgeRepository
+from opercerta.infrastructure.db.schema import approvals, knowledge_documents, operations
 from tests.integration.mcp.conftest import McpServerHarness
 
 
@@ -95,6 +101,7 @@ async def test_real_transport_lists_exact_tools_and_returns_inventory(
         assert {tool.name for tool in listed.tools} == {
             "equipment.get_status",
             "inventory.get_snapshot",
+            "knowledge.search_sop",
             "policy.list_constraints",
             "task.get_status",
             "work_order.create",
@@ -110,6 +117,91 @@ async def test_real_transport_lists_exact_tools_and_returns_inventory(
     parsed = InventoryEvidence.model_validate(result.structuredContent)
     assert parsed.on_hand_quantity == 20
     assert parsed.reserved_quantity == 8
+
+
+@pytest.mark.asyncio
+async def test_knowledge_tool_returns_cited_active_sop_for_requested_scenario(
+    engine: AsyncEngine,
+    mcp_server: McpServerHarness,
+) -> None:
+    vector = (1.0,) + (0.0,) * 511
+    repository = KnowledgeRepository(engine)
+    inventory = await repository.ingest(
+        build_knowledge_ingest_command(
+            scenario=ScenarioKind.INVENTORY,
+            slug="inventory-sop",
+            version="1.0.0",
+            title="库存补货 SOP",
+            active=True,
+            chunks=(("批准后必须重新读取库存事实。", vector, {"section": "verify"}),),
+        )
+    )
+    await repository.ingest(
+        build_knowledge_ingest_command(
+            scenario=ScenarioKind.EQUIPMENT,
+            slug="equipment-sop",
+            version="1.0.0",
+            title="设备维修 SOP",
+            active=True,
+            chunks=(("设备维修需要核对告警。", vector, {"section": "verify"}),),
+        )
+    )
+
+    try:
+        async with open_mcp_session(mcp_server.url) as session:
+            result = await session.call_tool(
+                "knowledge.search_sop",
+                {
+                    "scenario": "inventory",
+                    "query": "库存批准后复核",
+                    "limit": 3,
+                },
+            )
+        evidence = KnowledgeSearchEvidence.model_validate(result.structuredContent)
+        assert result.isError is False
+        assert evidence.scenario is ScenarioKind.INVENTORY
+        assert [item.document_id for item in evidence.results] == [inventory.document.id]
+        assert evidence.results[0].slug == "inventory-sop"
+    finally:
+        async with engine.begin() as connection:
+            await connection.execute(delete(knowledge_documents))
+
+
+@pytest.mark.asyncio
+async def test_knowledge_tool_rejects_results_below_minimum_similarity(
+    engine: AsyncEngine,
+    mcp_server: McpServerHarness,
+) -> None:
+    orthogonal = (0.0, 1.0) + (0.0,) * 510
+    await KnowledgeRepository(engine).ingest(
+        build_knowledge_ingest_command(
+            scenario=ScenarioKind.INVENTORY,
+            slug="unrelated-inventory-note",
+            version="1.0.0",
+            title="无关库存说明",
+            active=True,
+            chunks=(("这段内容与审批复核问题无关。", orthogonal, {"section": "other"}),),
+        )
+    )
+
+    try:
+        async with open_mcp_session(mcp_server.url) as session:
+            result = await session.call_tool(
+                "knowledge.search_sop",
+                {
+                    "scenario": "inventory",
+                    "query": "库存批准后复核",
+                    "limit": 3,
+                },
+            )
+
+        assert result.isError is True
+        assert result_text(result) == expected_tool_error(
+            "knowledge.search_sop", "knowledge_insufficient"
+        )
+    finally:
+        async with engine.begin() as connection:
+            await connection.execute(delete(knowledge_documents))
 
 
 @pytest.mark.asyncio

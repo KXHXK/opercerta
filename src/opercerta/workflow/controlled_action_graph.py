@@ -324,6 +324,8 @@ def build_controlled_action_graph(
     parallel_evidence_reads: bool = True,
     approval_ttl_seconds: int = 300,
     agent_model_gateway: AgentModelGateway | None = None,
+    knowledge_enabled: bool = False,
+    knowledge_required: bool = False,
 ) -> ControlledActionGraph:
     traced_gateway = TracedControlledEvidenceGateway(gateway, tracing)
     initial_gateway = CachedControlledEvidenceGateway(
@@ -378,6 +380,8 @@ def build_controlled_action_graph(
             checkpointer=checkpointer,
             registry=registry,
             clock=clock,
+            knowledge_enabled=knowledge_enabled,
+            knowledge_required=knowledge_required,
         )
         if agent_model_gateway is not None
         else None

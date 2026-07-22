@@ -16,6 +16,8 @@ from opercerta.domain.errors import (
     InvalidTaskEvidence,
     InvalidTaskRecoveryPolicyEvidence,
     InventoryNotFound,
+    KnowledgeInsufficient,
+    KnowledgeUnavailable,
     TaskNotFound,
 )
 from opercerta.domain.work_orders import canonical_payload_json
@@ -40,6 +42,8 @@ EXPECTED_READ_FAILURES = (
     InvalidTaskEvidence,
     InvalidTaskRecoveryPolicyEvidence,
     InventoryNotFound,
+    KnowledgeInsufficient,
+    KnowledgeUnavailable,
     TaskNotFound,
 )
 

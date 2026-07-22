@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from opercerta.domain.knowledge import TextEmbeddingGateway
 from opercerta.tools.catalog import SyntheticCatalog
 from opercerta.tools.server import build_mcp_server
 
@@ -16,9 +17,15 @@ def create_mcp_app(
     engine: AsyncEngine,
     clock: Callable[[], datetime],
     *,
+    embedding_gateway: TextEmbeddingGateway | None = None,
     on_shutdown: Callable[[], Awaitable[None]] | None = None,
 ) -> FastAPI:
-    mcp_app = build_mcp_server(catalog, engine, clock).streamable_http_app()
+    mcp_app = build_mcp_server(
+        catalog,
+        engine,
+        clock,
+        embedding_gateway=embedding_gateway,
+    ).streamable_http_app()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:

@@ -1,5 +1,9 @@
 # OperCerta 当前状态
 
+## 最新核验：Agent Task 6 pgvector 中文 SOP RAG 已完成本地代码与真实检索门禁
+
+2026-07-22，PostgreSQL `0005_agent_knowledge`、`vector(512)`/HNSW、三份从零编写的合成中文 SOP、固定 `BAAI/bge-small-zh-v1.5` FastEmbed、MCP `knowledge.search_sop`、LangGraph citation、普通场景降级和强制 SOP 失败关闭均已实现。新鲜门禁为新建空卷容器网络聚焦 75 条、产品 535 条、Git 安全 4 条，Ruff/173 文件格式/mypy 73 个源文件/114 包锁文件/安全扫描通过；真实模型完成 3 文档 12 chunk 入库、幂等 replay 与三场景隔离检索。空卷门禁还修复了迁移测试依赖预迁移数据库的隐式前置条件。新镜像构建成功并观察到 PostgreSQL/MCP healthy、API started；完整 Compose smoke 在 Codex 自动化 WSL 会话中因外层 Docker service 约 43--49 秒停止而未完成，须在 Task 9 稳定终端重跑。Task 7 Agent Trace/API/SSE/RBAC 与前端展示尚未实施，生产发布门禁保持 `CLOSED`。详见 `docs/release-evidence/agent-pgvector-rag.md`。
+
 ## 最新核验：Agent Task 5 审批后 Verifier 与多轮复审已完成本地代码门禁
 
 2026-07-22，三业务已接入批准后 Verifier：重新取证绕过缓存，`proceed` 仅在 binding 一致时幂等写入，`abort` 零工单安全终止，`escalate` 或模型参数漂移进入新审批周期。PostgreSQL 迁移 `0004_approval_cycles` 保留历史审批并按当前周期授权写入；缺失检查点恢复和“数据库已提交、检查点未保存”重放均有自动化证据。定向门禁 `48 passed`，完整 workflow `62 passed`，后端产品测试 `502 passed`，WSL 原生 Git 安全脚本 `4 passed`，Ruff/mypy 通过。Task 6 的 pgvector/RAG、Task 7 的 Agent Trace/API/SSE/前端展示仍未实施，旧 Compose 应用镜像尚未重建，因此生产发布门禁保持 `CLOSED`。详见 `docs/release-evidence/agent-verifier-reapproval.md`。

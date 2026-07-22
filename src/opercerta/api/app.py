@@ -271,6 +271,14 @@ class ProductionSettings(BaseSettings):
         default=False,
         validation_alias="OPERCERTA_METRICS_ENABLED",
     )
+    knowledge_enabled: bool = Field(
+        default=True,
+        validation_alias="OPERCERTA_KNOWLEDGE_ENABLED",
+    )
+    knowledge_required: bool = Field(
+        default=False,
+        validation_alias="OPERCERTA_KNOWLEDGE_REQUIRED",
+    )
 
     @field_validator("model_base_url", "model_name", "model_api_key", mode="before")
     @classmethod
@@ -430,6 +438,8 @@ async def _open_production_runtime(
                 parallel_evidence_reads=settings.tool_mode == "parallel",
                 approval_ttl_seconds=int(settings.approval_ttl_seconds),
                 agent_model_gateway=agent_model_gateway,
+                knowledge_enabled=settings.knowledge_enabled,
+                knowledge_required=settings.knowledge_required,
             )
             recovery = ControlledActionRecoveryCoordinator(graph, operations)
             runner = OperationRunner(

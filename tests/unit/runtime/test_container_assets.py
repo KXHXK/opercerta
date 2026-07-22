@@ -34,6 +34,20 @@ def test_postgres_18_uses_the_parent_data_mount() -> None:
     assert "postgres_data:/var/lib/postgresql/data" not in compose
 
 
+def test_compose_pins_pgvector_and_persists_the_embedding_cache() -> None:
+    compose = Path("compose.yaml").read_text(encoding="utf-8")
+    example = Path(".env.compose.example").read_text(encoding="utf-8")
+
+    assert "image: pgvector/pgvector:0.8.2-pg18-trixie" in compose
+    assert "fastembed_cache:/home/opercerta/.cache/fastembed" in compose
+    assert "OPERCERTA_EMBEDDING_CACHE_DIR=/home/opercerta/.cache/fastembed" in compose
+    assert "install -d -o opercerta -g opercerta /home/opercerta/.cache/fastembed" in Path(
+        "Dockerfile"
+    ).read_text(encoding="utf-8")
+    assert "OPERCERTA_KNOWLEDGE_ENABLED=true" in example
+    assert "OPERCERTA_KNOWLEDGE_REQUIRED=false" in example
+
+
 def test_image_uses_locked_dependencies_and_non_root_user() -> None:
     dockerfile = Path("Dockerfile").read_text(encoding="utf-8")
 

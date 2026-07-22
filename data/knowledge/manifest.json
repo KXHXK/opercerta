@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "embedding": {
+    "model": "BAAI/bge-small-zh-v1.5",
+    "dimension": 512
+  },
+  "chunking": {
+    "strategy": "markdown_h2",
+    "max_chars": 4000
+  },
+  "documents": [
+    {
+      "scenario": "inventory",
+      "slug": "inventory-controlled-action-sop",
+      "version": "1.0.0",
+      "title": "库存补货受控操作 SOP",
+      "path": "inventory-replenishment-v1.md",
+      "sha256": "617da281e0cf1628e2515c56ed1a63c24573dd2bd3184dfe11ccdc7b72bc5f85",
+      "active": true,
+      "synthetic": true
+    },
+    {
+      "scenario": "equipment",
+      "slug": "equipment-controlled-action-sop",
+      "version": "1.0.0",
+      "title": "设备维修受控操作 SOP",
+      "path": "equipment-maintenance-v1.md",
+      "sha256": "17f258f93202559f9a1635082c3f95975b2ad9037736550dd0314c13f73cb65d",
+      "active": true,
+      "synthetic": true
+    },
+    {
+      "scenario": "task",
+      "slug": "task-controlled-action-sop",
+      "version": "1.0.0",
+      "title": "作业恢复受控操作 SOP",
+      "path": "task-recovery-v1.md",
+      "sha256": "f0434a8c13857e8ea530fb5b0823fb04f5355f20c473ea6c902dbacb70d1027b",
+      "active": true,
+      "synthetic": true
+    }
+  ]
+}

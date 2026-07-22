@@ -66,6 +66,42 @@ def test_policy_exposes_only_scenario_read_tools(
 
 
 @pytest.mark.parametrize(
+    ("scenario", "object_id", "expected_query"),
+    [
+        ("inventory", "SKU-DEMO-001", "库存补货 SKU-DEMO-001 审批复核 SOP"),
+        ("equipment", "EQ-PUMP-001", "设备维修 EQ-PUMP-001 审批复核 SOP"),
+        ("task", "TASK-BLOCKED-001", "任务恢复 TASK-BLOCKED-001 审批复核 SOP"),
+    ],
+)
+def test_policy_optionally_exposes_scenario_bound_knowledge_search(
+    scenario: str,
+    object_id: str,
+    expected_query: str,
+) -> None:
+    policy = ToolPolicy(
+        goal(scenario, object_id),
+        max_tool_calls=4,
+        include_knowledge=True,
+    )
+
+    assert {definition.name.value for definition in policy.definitions} == {
+        {
+            "inventory": "inventory.get_snapshot",
+            "equipment": "equipment.get_status",
+            "task": "task.get_status",
+        }[scenario],
+        "policy.list_constraints",
+        "knowledge.search_sop",
+    }
+    proposal = policy.authorize(
+        tool_call_id="call-knowledge",
+        tool_name="knowledge.search_sop",
+        arguments={"scenario": scenario, "query": expected_query},
+    )
+    assert proposal.arguments == {"scenario": scenario, "query": expected_query}
+
+
+@pytest.mark.parametrize(
     ("scenario", "object_id", "arguments"),
     [
         (

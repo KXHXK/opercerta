@@ -254,3 +254,24 @@ class DependencyUnavailable(RuntimeError):
 
     def __init__(self) -> None:
         super().__init__(self.code)
+
+
+class KnowledgeVersionConflict(RuntimeError):
+    code = "knowledge_version_conflict"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class KnowledgeInsufficient(LookupError):
+    code = "knowledge_insufficient"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class KnowledgeUnavailable(RuntimeError):
+    code = "knowledge_unavailable"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)

@@ -23,6 +23,7 @@ from opercerta.domain.agent import (
     GoalContext,
     GoalEncoding,
     IntentEnvelope,
+    KnowledgeCitation,
     PlanningContext,
     ReadToolName,
     ToolCallProposal,
@@ -37,6 +38,7 @@ from opercerta.domain.errors import (
     ToolBudgetExceeded,
     ToolPolicyViolation,
 )
+from opercerta.domain.knowledge import KnowledgeSearchEvidence
 from opercerta.domain.maintenance import MaintenanceEvidenceBundle, MaintenancePlan
 from opercerta.domain.model_gateway import AgentModelGateway
 from opercerta.domain.replenishment import EvidenceBundle, ReplenishmentPlan
@@ -297,7 +299,11 @@ def build_agent_investigation_graph(
     checkpointer: object | None = None,
     registry: ScenarioRegistry | None = None,
     clock: Callable[[], datetime] | None = None,
+    knowledge_enabled: bool = False,
+    knowledge_required: bool = False,
 ) -> AgentInvestigationGraph:
+    if knowledge_required and not knowledge_enabled:
+        raise ValueError("required knowledge must be enabled")
     active_budget = budget or AgentBudget(
         max_model_calls=4,
         max_tool_calls=4,
@@ -348,7 +354,11 @@ def build_agent_investigation_graph(
         if failure is not None:
             return failure
         trusted_goal = goal(state)
-        policy = ToolPolicy(trusted_goal, max_tool_calls=active_budget.max_tool_calls)
+        policy = ToolPolicy(
+            trusted_goal,
+            max_tool_calls=active_budget.max_tool_calls,
+            include_knowledge=knowledge_enabled,
+        )
         try:
             result = await model.plan(
                 PlanningContext(
@@ -397,12 +407,19 @@ def build_agent_investigation_graph(
     def route_evidence(state: AgentInvestigationState) -> str:
         if state["status"] == "failed":
             return "failed"
+        if knowledge_required and any(
+            item.tool_name is ReadToolName.KNOWLEDGE_SEARCH and item.status == "error"
+            for item in observations(state)
+        ):
+            return "failed"
         trusted_goal = goal(state)
         successful = {item.tool_name for item in observations(state) if item.status == "ok"}
         required = {
             _SUBJECT_TOOL[trusted_goal.scenario],
             ReadToolName.POLICY_CONSTRAINTS,
         }
+        if knowledge_required:
+            required.add(ReadToolName.KNOWLEDGE_SEARCH)
         if required <= successful:
             return "complete"
         if state["replan_count"] < active_budget.max_replans:
@@ -416,12 +433,15 @@ def build_agent_investigation_graph(
         failure = budget_failure(state)
         if failure is not None:
             return failure
+        citations = _knowledge_citations(observations(state))
         analyzed = await model.analyze(
             AnalysisContext(
                 goal=goal(state),
                 observations=tuple(observations(state)),
+                citations=citations,
             )
         )
+        analyzed = analyzed.model_copy(update={"citations": citations})
         return {
             "analysis": cast(dict[str, JsonValue], analyzed.model_dump(mode="json")),
             "model_call_count": state["model_call_count"] + 1,
@@ -451,9 +471,21 @@ def build_agent_investigation_graph(
         }
 
     def mark_failed(state: AgentInvestigationState) -> dict[str, object]:
+        knowledge_error = next(
+            (
+                item.structured_payload.get("error_code")
+                for item in observations(state)
+                if item.tool_name is ReadToolName.KNOWLEDGE_SEARCH
+                and item.status == "error"
+                and isinstance(item.structured_payload.get("error_code"), str)
+            ),
+            None,
+        )
         return {
             "status": "failed",
-            "error_code": state["error_code"] or "required_evidence_incomplete",
+            "error_code": (
+                state["error_code"] or knowledge_error or "required_evidence_incomplete"
+            ),
         }
 
     def route_status(state: AgentInvestigationState) -> str:
@@ -492,3 +524,24 @@ def build_agent_investigation_graph(
     builder.add_edge("calculate_policy_facts", END)
     builder.add_edge("mark_failed", END)
     return builder.compile(checkpointer=checkpointer)  # type: ignore[arg-type]
+
+
+def _knowledge_citations(
+    tool_observations: list[ToolObservation],
+) -> tuple[KnowledgeCitation, ...]:
+    citations: list[KnowledgeCitation] = []
+    for observation in tool_observations:
+        if observation.tool_name is not ReadToolName.KNOWLEDGE_SEARCH or observation.status != "ok":
+            continue
+        evidence = KnowledgeSearchEvidence.model_validate(observation.structured_payload)
+        citations.extend(
+            KnowledgeCitation(
+                document_id=result.document_id,
+                chunk_id=result.chunk_id,
+                version=result.version,
+                score=max(0.0, min(1.0, result.score)),
+                safe_snippet=result.content[:500],
+            )
+            for result in evidence.results
+        )
+    return tuple(citations)

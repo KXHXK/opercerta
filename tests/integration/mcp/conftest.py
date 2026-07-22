@@ -16,6 +16,18 @@ ROOT = Path(__file__).resolve().parents[3]
 NOW = datetime(2026, 7, 16, 8, 0, tzinfo=UTC)
 
 
+class FixedTestEmbeddingGateway:
+    model_id = "fixed-test-embedding-v1"
+    dimension = 512
+
+    async def embed_documents(
+        self,
+        texts: tuple[str, ...],
+    ) -> tuple[tuple[float, ...], ...]:
+        vector = (1.0,) + (0.0,) * 511
+        return tuple(vector for _ in texts)
+
+
 @dataclass(frozen=True, slots=True)
 class McpServerHarness:
     url: str
@@ -57,6 +69,7 @@ async def mcp_server(engine: AsyncEngine) -> AsyncIterator[McpServerHarness]:
         catalog,
         engine,
         lambda: NOW,
+        embedding_gateway=FixedTestEmbeddingGateway(),
         host="127.0.0.1",
         port=port,
     )

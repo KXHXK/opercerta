@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:18
+    image: pgvector/pgvector:0.8.2-pg18-trixie
     env_file: .env.compose
     volumes:
       - postgres_data:/var/lib/postgresql
@@ -30,6 +30,10 @@ services:
   mcp:
     build: .
     env_file: .env.compose
+    environment:
+      - OPERCERTA_EMBEDDING_CACHE_DIR=/home/opercerta/.cache/fastembed
+    volumes:
+      - fastembed_cache:/home/opercerta/.cache/fastembed
     command: ["python", "-m", "opercerta.runtime.mcp"]
     depends_on:
       bootstrap:
@@ -88,5 +92,6 @@ services:
 
 volumes:
   postgres_data:
+  fastembed_cache:
   caddy_data:
   caddy_config:

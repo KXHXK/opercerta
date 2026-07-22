@@ -12,6 +12,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import create_async_engine
 
+from opercerta.infrastructure.embedding_gateway import FastEmbedGateway
 from opercerta.observability.tracing import configure_tracing, instrument_sqlalchemy_engine
 from opercerta.tools.app import create_mcp_app
 from opercerta.tools.catalog import SyntheticCatalog
@@ -26,6 +27,10 @@ class McpSettings(BaseSettings):
     otlp_enabled: bool = Field(default=False, validation_alias="OPERCERTA_OTLP_ENABLED")
     otlp_endpoint: AnyHttpUrl | None = Field(
         default=None, validation_alias="OPERCERTA_OTLP_ENDPOINT"
+    )
+    embedding_cache_dir: Path = Field(
+        default=Path.home() / ".cache" / "opercerta" / "fastembed",
+        validation_alias="OPERCERTA_EMBEDDING_CACHE_DIR",
     )
 
 
@@ -46,6 +51,7 @@ def create_mcp_runtime_app(settings: McpSettings | None = None) -> FastAPI:
         service_name="opercerta-mcp",
     )
     instrument_sqlalchemy_engine(engine.sync_engine, tracing)
+    embedding_gateway = FastEmbedGateway(active_settings.embedding_cache_dir)
 
     async def shutdown() -> None:
         await engine.dispose()
@@ -67,6 +73,7 @@ def create_mcp_runtime_app(settings: McpSettings | None = None) -> FastAPI:
         ),
         engine,
         clock=lambda: datetime.now(UTC),
+        embedding_gateway=embedding_gateway,
         on_shutdown=shutdown,
     )
 

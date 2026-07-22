@@ -31,18 +31,29 @@ _ACTIONS = {
     ScenarioKind.EQUIPMENT: "repair_equipment",
     ScenarioKind.TASK: "recover_task",
 }
+_KNOWLEDGE_QUERIES = {
+    ScenarioKind.INVENTORY: "库存补货 {object_id} 审批复核 SOP",
+    ScenarioKind.EQUIPMENT: "设备维修 {object_id} 审批复核 SOP",
+    ScenarioKind.TASK: "任务恢复 {object_id} 审批复核 SOP",
+}
 
 
 class ToolPolicy:
     """Pure authorization policy; call history remains in recoverable graph state."""
 
-    def __init__(self, goal: GoalEncoding, *, max_tool_calls: int) -> None:
+    def __init__(
+        self,
+        goal: GoalEncoding,
+        *,
+        max_tool_calls: int,
+        include_knowledge: bool = False,
+    ) -> None:
         if type(max_tool_calls) is not int or max_tool_calls < 1:
             raise ValueError("max_tool_calls must be a positive integer")
         self._goal = goal
         self._max_tool_calls = max_tool_calls
-        self._expected_arguments = self._build_expected_arguments(goal)
-        self.definitions = self._build_definitions(goal)
+        self._expected_arguments = self._build_expected_arguments(goal, include_knowledge)
+        self.definitions = self._build_definitions(goal, include_knowledge)
 
     def authorize(
         self,
@@ -91,24 +102,36 @@ class ToolPolicy:
     @staticmethod
     def _build_expected_arguments(
         goal: GoalEncoding,
+        include_knowledge: bool = False,
     ) -> dict[ReadToolName, dict[str, JsonValue]]:
         subject_key = _SUBJECT_KEYS[goal.scenario]
         subject_tool = _SUBJECT_TOOLS[goal.scenario]
-        return {
+        expected: dict[ReadToolName, dict[str, JsonValue]] = {
             subject_tool: {subject_key: goal.object_id},
             ReadToolName.POLICY_CONSTRAINTS: {
                 "action": _ACTIONS[goal.scenario],
                 subject_key: goal.object_id,
             },
         }
+        if include_knowledge:
+            expected[ReadToolName.KNOWLEDGE_SEARCH] = {
+                "scenario": goal.scenario.value,
+                "query": _KNOWLEDGE_QUERIES[goal.scenario].format(object_id=goal.object_id),
+            }
+        return expected
 
     @classmethod
-    def _build_definitions(cls, goal: GoalEncoding) -> tuple[ToolDefinition, ...]:
-        expected = cls._build_expected_arguments(goal)
+    def _build_definitions(
+        cls,
+        goal: GoalEncoding,
+        include_knowledge: bool = False,
+    ) -> tuple[ToolDefinition, ...]:
+        expected = cls._build_expected_arguments(goal, include_knowledge)
         subject_tool = _SUBJECT_TOOLS[goal.scenario]
         descriptions = {
             subject_tool: "读取当前业务对象的合成事实快照。",
             ReadToolName.POLICY_CONSTRAINTS: "读取当前业务对象适用的确定性规则约束。",
+            ReadToolName.KNOWLEDGE_SEARCH: "检索当前场景已激活的合成中文 SOP。",
         }
         return tuple(
             ToolDefinition(

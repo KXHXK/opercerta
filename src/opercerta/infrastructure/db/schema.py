@@ -1,7 +1,96 @@
 import sqlalchemy as sa
+from pgvector.sqlalchemy import Vector
 from sqlalchemy.dialects import postgresql
 
 metadata = sa.MetaData()
+
+knowledge_documents = sa.Table(
+    "knowledge_documents",
+    metadata,
+    sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+    sa.Column("scenario", sa.String(length=16), nullable=False),
+    sa.Column("slug", sa.String(length=128), nullable=False),
+    sa.Column("version", sa.String(length=64), nullable=False),
+    sa.Column("title", sa.String(length=200), nullable=False),
+    sa.Column("checksum", sa.String(length=64), nullable=False),
+    sa.Column("active", sa.Boolean(), server_default=sa.true(), nullable=False),
+    sa.Column(
+        "created_at",
+        sa.DateTime(timezone=True),
+        server_default=sa.text("CURRENT_TIMESTAMP"),
+        nullable=False,
+    ),
+    sa.Column(
+        "updated_at",
+        sa.DateTime(timezone=True),
+        server_default=sa.text("CURRENT_TIMESTAMP"),
+        nullable=False,
+    ),
+    sa.UniqueConstraint(
+        "scenario",
+        "slug",
+        "version",
+        name="uq_knowledge_documents_scenario_slug_version",
+    ),
+    sa.CheckConstraint(
+        "scenario IN ('inventory', 'equipment', 'task')",
+        name="ck_knowledge_documents_scenario",
+    ),
+    sa.CheckConstraint(
+        "checksum ~ '^[0-9a-f]{64}$'",
+        name="ck_knowledge_documents_checksum",
+    ),
+)
+
+knowledge_chunks = sa.Table(
+    "knowledge_chunks",
+    metadata,
+    sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+    sa.Column(
+        "document_id",
+        postgresql.UUID(as_uuid=True),
+        sa.ForeignKey("knowledge_documents.id", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    sa.Column("chunk_index", sa.Integer(), nullable=False),
+    sa.Column("content", sa.Text(), nullable=False),
+    sa.Column("content_hash", sa.String(length=64), nullable=False),
+    sa.Column("embedding", Vector(512), nullable=False),
+    sa.Column(
+        "metadata",
+        postgresql.JSONB(),
+        server_default=sa.text("'{}'::jsonb"),
+        nullable=False,
+    ),
+    sa.Column(
+        "created_at",
+        sa.DateTime(timezone=True),
+        server_default=sa.text("CURRENT_TIMESTAMP"),
+        nullable=False,
+    ),
+    sa.UniqueConstraint(
+        "document_id",
+        "chunk_index",
+        name="uq_knowledge_chunks_document_index",
+    ),
+    sa.UniqueConstraint(
+        "document_id",
+        "content_hash",
+        name="uq_knowledge_chunks_document_content_hash",
+    ),
+    sa.CheckConstraint(
+        "chunk_index >= 0",
+        name="ck_knowledge_chunks_index_non_negative",
+    ),
+    sa.CheckConstraint(
+        "length(btrim(content)) > 0",
+        name="ck_knowledge_chunks_content_non_empty",
+    ),
+    sa.CheckConstraint(
+        "content_hash ~ '^[0-9a-f]{64}$'",
+        name="ck_knowledge_chunks_content_hash",
+    ),
+)
 
 operations = sa.Table(
     "operations",
