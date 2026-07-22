@@ -46,7 +46,8 @@ def test_ci_fast_jobs_use_frozen_python_postgres_and_frontend_gates() -> None:
     assert "uv run ruff check ." in text
     assert "uv run ruff format --check ." in text
     assert "uv run mypy src" in text
-    assert "image: postgres:18" in text
+    assert "image: pgvector/pgvector:0.8.2-pg18-trixie" in text
+    assert "image: postgres:18" not in text
     assert (
         "OPERCERTA_DATABASE_URL: postgresql+psycopg://opercerta_ci@127.0.0.1:5432/opercerta_ci"
     ) in text

@@ -60,7 +60,7 @@ jobs:
     timeout-minutes: 20
     services:
       postgres:
-        image: postgres:18
+        image: pgvector/pgvector:0.8.2-pg18-trixie
         env:
           POSTGRES_USER: opercerta_ci
           POSTGRES_PASSWORD: opercerta_ci_only
