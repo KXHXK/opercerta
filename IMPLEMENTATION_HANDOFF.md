@@ -4,7 +4,7 @@
 
 - 2026-07-23 `feat/agent-core-implementation` 已推送并创建 [Draft PR #8](https://github.com/KXHXK/opercerta/pull/8)。首次 run `29936292055` 暴露 backend-tests 的普通 PostgreSQL 镜像不含 vector extension；按 RED/GREEN 新增 CI 资产契约并提交 `ba53e70 fix: use pgvector in backend CI` 后，最新基线 run `29937375023` 的 repository-safety、python-quality、backend-tests、frontend 全绿。PR 的 `compose-smoke` 按设计跳过；review、合并和 main-only Compose 尚未完成。过程见 `docs/development-log/daily/2026-07-23.md`，生产发布门禁保持 `CLOSED`。
 
-- 2026-07-23 Agent 核心后续修复：Kimi + RAG replan 改为只暴露尚缺工具，provider/图异常会把 operation 原子收口为固定 `dependency_unavailable`；真实图 probe 已完成 inventory → knowledge → policy。新鲜本地证据为 unit 352 条、关键 Agent 图集成 7 条、Ruff/188 文件格式/Mypy 76 个源文件。完整 Compose Real Kimi 仍未稳定通过，最终安全报告为 create operation 503 `dependency_unavailable`；本轮远程 CI 尚待推送。测试 traceback 曾展开本地数据库凭据，用户必须轮换 Windows PostgreSQL 角色密码并同步 ignored `.env.local`。证据见 `docs/release-evidence/agent-core-architecture.md`，生产门禁保持 `CLOSED`。
+- 2026-07-23 Agent 核心后续修复：Kimi + RAG replan 改为只暴露尚缺工具，provider/图异常会把 operation 原子收口为固定 `dependency_unavailable`；真实图 probe 已完成 inventory → knowledge → policy。新鲜本地证据为 unit 352 条、关键 Agent 图集成 7 条、Ruff/188 文件格式/Mypy 76 个源文件；Draft PR run `29946792369` 为完整后端 `573 passed`、三业务评测 1 条与 Agent 评测 9/9，四个快速 job 全绿。完整 Compose Real Kimi 仍未稳定通过，最终安全报告为 create operation 503 `dependency_unavailable`。测试 traceback 曾展开本地数据库凭据，用户必须轮换 Windows PostgreSQL 角色密码并同步 ignored `.env.local`。证据见 `docs/release-evidence/agent-core-architecture.md`，生产门禁保持 `CLOSED`。
 - 2026-07-22 Agent 核心 Task 9 已提交为 `642d3ba`：新增 9 类冻结 Agent 轨迹评测、真实 Agent Compose/RAG/数据库/重启验证、CI 门禁和安全 Real 报告。新鲜证据为后端 `566 passed in 179.66s`、前端 17 文件/46 条、Ruff/187 文件格式/Mypy 76 个源文件、Agent 评测 9/9、Compose 三业务与 API/MCP 重启退出码 0。Real Moonshot/Kimi `kimi-k2.6` 新 Agent 代表 query 为 failed，未回退 Mock。证据见 `docs/release-evidence/agent-core-architecture.md`。
 
 - 2026-07-22 Agent 核心 Task 8 已完成 React 单页 Agent 工作台：有限三业务表单、结构化 Goal、真实 Trace、MCP/RAG 证据、模型建议/确定性计划对照、审批 binding、Verifier 说明、工单回读和 operator→approver→auditor 引导已接入；audit 与 Trace 继续分层。前端 17 个测试文件/46 条测试及生产构建通过；1440/1024/390 浏览器检查无横向溢出，应用内无 fixed/sticky。Task 9 真实 Compose 浏览器 E2E、重启和 Kimi Trace 尚未完成，发布门禁保持 `CLOSED`。证据见 `docs/release-evidence/agent-workspace.md`。
@@ -57,7 +57,7 @@
 ## 新对话必须先做
 
 1. 先阅读 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md` 和最近每日日志，再阅读相关设计、计划、交接和 Git 状态。
-2. 只实施 OperCerta；Real Kimi replan 与 provider 异常 operation 原子收口已完成本地修复，下一步推送并复验 Draft PR Actions、轮换本地数据库密码，再完成 review、用户掌握检查和 main Compose；生产门禁关闭前不启动其他项目。
+2. 只实施 OperCerta；Real Kimi replan 与 provider 异常 operation 原子收口已通过 Draft PR 快速 Actions，下一步轮换本地数据库密码，再完成 review、用户掌握检查和 main Compose；生产门禁关闭前不启动其他项目。
 3. 运行集成测试前，以不回显方式从已忽略 `.env.local` 加载 `OPERCERTA_DATABASE_URL`；不得提交该文件或任何凭据。
 4. 每个效果数字都保留基线、测试数据、测量脚本和结果证据；指标未测出前使用目标值或空值，不写成已实现结果。
 5. 使用公开或合成数据，从零编写全部代码和文档，不导入任何原单位源码、数据、截图、模型、品牌或内部规则。

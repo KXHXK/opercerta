@@ -2,7 +2,7 @@
 
 OperCerta 是面向库存异常、设备告警和运营工单的智能运营处置 Agent 独立作品仓库。
 
-> 当前状态：库存补货、设备维修、作业异常恢复三条 FastAPI + LangGraph + 最小 LangChain + FastMCP + PostgreSQL/pgvector 闭环、演示 JWT/RBAC、Agent Trace、本地 React 控制台和真实 FastEmbed RAG 已有自动化证据。Task 10 历史完整门禁为后端 567 条、前端 46 条、冻结 Agent 轨迹评测 9/9，以及 Compose 三业务/RAG/API-MCP 重启恢复；本轮已修复 Kimi replan 重复工具和 provider 异常 operation 原子收口，新鲜无数据库回归为 unit 352 条、关键 Agent 图集成 7 条。Moonshot AI `kimi-k2.6` 完整 Compose 代表验证仍因外部依赖 30 秒有界超时返回安全 503，未回退 Mock 冒充成功。[Draft PR #8](https://github.com/KXHXK/opercerta/pull/8) 的上一轮快速 Actions 已全绿，本轮修复 CI、review 与 main-only Compose 尚待完成。新版[零成本静态项目专题](https://opercerta-kxh.netlify.app)和[单页作品集](https://kxh-agent-portfolio.netlify.app)可只读访问；公开页面不提供后端写入口。生产身份、交互 HTTPS 后端、自动部署和公开 API 尚未完成，生产发布门禁：`CLOSED`。
+> 当前状态：库存补货、设备维修、作业异常恢复三条 FastAPI + LangGraph + 最小 LangChain + FastMCP + PostgreSQL/pgvector 闭环、演示 JWT/RBAC、Agent Trace、本地 React 控制台和真实 FastEmbed RAG 已有自动化证据。Task 10 历史完整门禁为后端 567 条、前端 46 条、冻结 Agent 轨迹评测 9/9，以及 Compose 三业务/RAG/API-MCP 重启恢复；本轮已修复 Kimi replan 重复工具和 provider 异常 operation 原子收口，新鲜本地回归为 unit 352 条、关键 Agent 图集成 7 条，Draft PR run `29946792369` 完整后端 573 条、三业务评测与 Agent 评测 9/9 通过。Moonshot AI `kimi-k2.6` 完整 Compose 代表验证仍因外部依赖 30 秒有界超时返回安全 503，未回退 Mock 冒充成功。[Draft PR #8](https://github.com/KXHXK/opercerta/pull/8) 的快速 Actions 已全绿，review 与 main-only Compose 尚待完成。新版[零成本静态项目专题](https://opercerta-kxh.netlify.app)和[单页作品集](https://kxh-agent-portfolio.netlify.app)可只读访问；公开页面不提供后端写入口。生产身份、交互 HTTPS 后端、自动部署和公开 API 尚未完成，生产发布门禁：`CLOSED`。
 
 ## 当前已验证范围
 
@@ -28,7 +28,7 @@ OperCerta 是面向库存异常、设备告警和运营工单的智能运营处�
 
 ## 下一实施边界
 
-下一阶段仍只实施 OperCerta。重复工具规划与异常 operation 原子收口已完成本地修复；下一步推送并复验 Draft PR Actions、轮换本地测试数据库密码，再完成 review、用户手动演示/口述掌握检查和 main Compose，之后才决定是否建设公网可写 HTTPS 后端。生产 IAM、限流/防滥用、备份、高可用、自动部署和 Release Tag 仍待完成。生产发布门禁为 `CLOSED`，关闭前不启动其他项目。
+下一阶段仍只实施 OperCerta。重复工具规划与异常 operation 原子收口已完成并通过 Draft PR 快速 Actions；下一步由用户轮换本地测试数据库密码，再完成 review、用户手动演示/口述掌握检查和 main Compose，之后才决定是否建设公网可写 HTTPS 后端。生产 IAM、限流/防滥用、备份、高可用、自动部署和 Release Tag 仍待完成。生产发布门禁为 `CLOSED`，关闭前不启动其他项目。
 
 三业务收口规格与八项 TDD 主计划见 [设计](docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md)和[计划](docs/superpowers/plans/2026-07-20-opercerta-three-business-release.md)。历史库存切片设计仍作为可靠性内核演进记录保留。
 

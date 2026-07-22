@@ -605,7 +605,7 @@ git add data/evals/opercerta-agent-v1.json scripts .github/workflows/ci.yml test
 git commit -m "test: gate OperCerta agent trajectories"
 ```
 
-实施证据：提交 `642d3ba`；后端 566 条、前端 46 条、Agent 冻结评测 9/9、真实 FastEmbed/pgvector RAG、三业务 Compose 与 API/MCP 重启恢复通过。2026-07-23 后续按 TDD 修复 Kimi replan 重复工具和 provider 异常 operation 原子收口，新鲜 unit 352 条、关键图集成 7 条；Real Kimi 完整 Compose 代表 query 仍为 failed，未回退 Mock；本轮远程 CI 与凭据轮换待完成。详见 `docs/release-evidence/agent-core-architecture.md`。
+实施证据：提交 `642d3ba`；后端 566 条、前端 46 条、Agent 冻结评测 9/9、真实 FastEmbed/pgvector RAG、三业务 Compose 与 API/MCP 重启恢复通过。2026-07-23 后续按 TDD 修复 Kimi replan 重复工具和 provider 异常 operation 原子收口，新鲜 unit 352 条、关键图集成 7 条；Draft PR run `29946792369` 完整后端 573 条与 Agent 评测 9/9 通过。Real Kimi 完整 Compose 代表 query 仍为 failed，未回退 Mock；凭据轮换待完成。详见 `docs/release-evidence/agent-core-architecture.md`。
 
 ## Task 10: 中文技术手册、人工实验、面试材料与交付证据
 

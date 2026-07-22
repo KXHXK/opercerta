@@ -31,6 +31,8 @@ Task 10 新增文档防漂移测试后，最终本地复验为 `567 passed in 18
 
 2026-07-23 本轮修复的新鲜、无数据库本地回归为 unit `352 passed in 28.05s`、关键 Agent 图集成 `7 passed in 3.54s`、Ruff 通过、`188 files already formatted`、Mypy 76 个源文件通过。完整数据库套件在本地 WSL 自动化中因数据库服务被外部停止而未形成绿色证据；本次提交推送后的 GitHub Actions backend-tests 才是完整数据库回归依据。
 
+远程 run [`29946792369`](https://github.com/KXHXK/opercerta/actions/runs/29946792369) 补齐该依据：完整后端 `573 passed in 61.77s`，三业务契约评测 `1 passed`，冻结 Agent 安全与恢复评测 `9/9`；repository-safety、python-quality、backend-tests、frontend 全部通过。`compose-smoke` 按 PR 工作流设计跳过，不可写成已运行。
+
 ### 冻结 Agent 轨迹评测
 
 ```bash
@@ -72,6 +74,8 @@ provider/图异常留下 `received` operation 的缺口已经修复：operation 
 - 首次 run `29936292055`：repository-safety、python-quality、frontend 通过；backend-tests 因普通 `postgres:18` 不提供迁移要求的 vector extension 而失败。
 - 修复：先写 CI 资产 RED，再把 backend service 固定为 `pgvector/pgvector:0.8.2-pg18-trixie`；提交 `ba53e70 fix: use pgvector in backend CI`。
 - 最新基线 run [`29937375023`](https://github.com/KXHXK/opercerta/actions/runs/29937375023)：repository-safety、python-quality、backend-tests、frontend 全部通过。
+- 本轮实现首次 run `29945720955` 的 backend-tests 为 572 通过、1 条交付资产测试失败；根因是新诊断报告路径替换了冻结历史路径。未修改测试契约，提交 `221fe3d` 补回历史证据路径。
+- 修复后 run [`29946792369`](https://github.com/KXHXK/opercerta/actions/runs/29946792369)：四个 PR 快速 job 全绿，完整后端 573 条、三业务评测和 Agent 评测 9/9 通过。
 - `compose-smoke` 在 PR 事件按设计跳过；本地 Agent Compose 已有本页前述证据，但新 Agent 核心合并后的 main Compose 证据仍未产生。
 
 ## 数据、安全与指标边界
@@ -86,10 +90,9 @@ provider/图异常留下 `received` operation 的缺口已经修复：operation 
 ## 仍关闭的门禁
 
 1. 新 Agent 核心的真实 Kimi Tool Calling 完整 Compose 端到端仍未稳定通过；
-2. 本次原子收口/replan 修复尚待新一轮 Draft PR Actions 完整数据库回归；
-3. 本地测试角色密码需人工轮换并同步 ignored `.env.local`；
-4. Draft PR 尚未 review/合并，合并后的 main `compose-smoke` 尚无新鲜证据；
-5. 公网可写 HTTPS API、生产 IAM/租户隔离、限流防滥用、秘密托管、备份、高可用、自动部署和 Release Tag 未完成；
-6. 用户尚需不依赖 Codex 完成一次人工闭环和口述复盘。
+2. 本地测试角色密码需人工轮换并同步 ignored `.env.local`；
+3. Draft PR 尚未 review/合并，合并后的 main `compose-smoke` 尚无新鲜证据；
+4. 公网可写 HTTPS API、生产 IAM/租户隔离、限流防滥用、秘密托管、备份、高可用、自动部署和 Release Tag 未完成；
+5. 用户尚需不依赖 Codex 完成一次人工闭环和口述复盘。
 
 因此只完成 OperCerta 本地 Agent 核心交付，不启动 ForenTrail。
