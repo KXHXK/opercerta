@@ -2,7 +2,7 @@
 
 ## 最新核验：Agent 核心 Draft PR 快速门禁已通过
 
-2026-07-23，`feat/agent-core-implementation` 的 Kimi + RAG replan 已改为只暴露尚缺工具，provider/图异常 operation 已能原子收口为固定 `dependency_unavailable`；真实图 probe 完成 inventory → knowledge → policy。新鲜本地回归为 unit 352 条、关键 Agent 图集成 7 条、Ruff/188 文件格式/Mypy 76 个源文件；Draft PR run `29946792369` 的 repository-safety、python-quality、backend-tests、frontend 全绿，完整后端 `573 passed`、三业务评测 1 条和 Agent 评测 9/9。完整 Compose Real Kimi 仍未稳定通过，最终安全证据为 create operation 503 `dependency_unavailable`；未回退 Mock。测试 traceback 曾展开本地 PostgreSQL 测试凭据，用户必须轮换密码并同步 ignored `.env.local`。生产发布门禁保持 `CLOSED`。
+2026-07-23，`feat/agent-core-implementation` 的 Kimi + RAG replan 已改为只暴露尚缺工具，provider/图异常 operation 已能原子收口为固定 `dependency_unavailable`；真实图 probe 完成 inventory → knowledge → policy。新鲜本地回归为 unit 352 条、关键 Agent 图集成 7 条、Ruff/188 文件格式/Mypy 76 个源文件；Draft PR run `29946792369` 的 repository-safety、python-quality、backend-tests、frontend 全绿，完整后端 `573 passed`、三业务评测 1 条和 Agent 评测 9/9。完整 Compose Real Kimi 仍未稳定通过，最终安全证据为 create operation 503 `dependency_unavailable`；未回退 Mock。测试 traceback 曾展开的本地 PostgreSQL 测试凭据已轮换，主仓库与 worktree ignored 配置一致，并由 Windows 原生 `psql` 执行 `SELECT 1` 安全验证。生产发布门禁保持 `CLOSED`。
 
 同日此前已创建 [Draft PR #8](https://github.com/KXHXK/opercerta/pull/8)。首次 Actions 暴露 CI 普通 PostgreSQL 镜像不含迁移要求的 vector extension；提交 `ba53e70` 用资产契约统一为 pgvector 镜像后，最新基线 run `29937375023` 的 repository-safety、python-quality、backend-tests、frontend 全部通过。PR 事件按设计跳过 `compose-smoke`；PR 尚未 review/合并，main 新鲜 Compose 和生产治理仍未完成。
 
@@ -153,8 +153,8 @@
 
 ## 下一步
 
-继续只实施 OperCerta。Real Kimi replan 与 provider 异常 operation 原子收口已通过 Draft PR 快速 Actions；下一步由用户轮换 Windows PostgreSQL 测试角色密码、同步 ignored `.env.local`。之后再完成 review、用户手动演示/口述掌握检查和合并后的 main Compose。生产 IAM/限流/备份、自动部署和 Release Tag 尚未完成。
+继续只实施 OperCerta。Real Kimi replan、provider 异常 operation 原子收口、Draft PR 快速 Actions、inline 合并前审查和本地凭据轮换验证已完成。下一步进行用户手动演示/口述掌握检查与 PR 合并审批，合并后执行 main Compose。生产 IAM/限流/备份、自动部署和 Release Tag 尚未完成。
 
 ## 发布门禁
 
-`OperCerta production release gate: CLOSED`。当前证据证明三业务本地 Mock Agent、真实 FastEmbed/pgvector RAG、Agent Trace、审批/幂等/恢复、单页控制台、历史静态展示，以及 replan/异常原子收口与 Draft PR 快速 CI；新 Agent 核心的 Real Kimi 完整 Compose 稳定通过、凭据轮换、review/main Compose、生产身份、公网 HTTPS 后端、限流/备份、自动部署、用户掌握和 Release Tag 仍待完成。求职演示发布门禁不能与生产门禁混用。
+`OperCerta production release gate: CLOSED`。当前证据证明三业务本地 Mock Agent、真实 FastEmbed/pgvector RAG、Agent Trace、审批/幂等/恢复、单页控制台、历史静态展示、replan/异常原子收口、Draft PR 快速 CI 和凭据轮换；新 Agent 核心的 Real Kimi 完整 Compose 稳定通过、合并/main Compose、生产身份、公网 HTTPS 后端、限流/备份、自动部署、用户掌握和 Release Tag 仍待完成。求职演示发布门禁不能与生产门禁混用。

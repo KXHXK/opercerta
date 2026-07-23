@@ -96,7 +96,7 @@ Agent 核心架构阶段证据：`docs/release-evidence/agent-verifier-reapprova
 | `docs/superpowers/specs/2026-07-19-portfolio-netlify-static-mirror-design.md` | 作品集 Netlify 独立静态镜像设计 | 已实施并完成公网验证 | 本次提交 | 1 |
 | `docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md` | 三业务闭环、技术栈补齐、求职发布与学习交付修订 | 已确认；实施计划已创建 | `632f0a1` | 1 |
 | `docs/superpowers/specs/2026-07-21-opercerta-agent-core-architecture-design.md` | 六层 Agent 核心架构、Plan-and-Execute、Harness、pgvector Memory、RAG 与 Agent Trace 纠偏 | 已确认；已按有界循环、最小 LangChain 和 RAG 边界修订 | `bf3b6da` + 本次提交 | 1 |
-| `docs/superpowers/plans/2026-07-21-opercerta-agent-core-architecture.md` | Agent 核心架构十项 Inline TDD 实施计划 | Task 1--10 与 replan/异常原子收口快速 CI 已完成；凭据轮换、review/main Compose 待完成 | `221fe3d` + 本次提交 | 1 |
+| `docs/superpowers/plans/2026-07-21-opercerta-agent-core-architecture.md` | Agent 核心架构十项 Inline TDD 实施计划 | Task 1--10、replan/异常原子收口快速 CI、凭据轮换与 inline review 已完成；用户掌握、合并/main Compose 待完成 | `221fe3d` + 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-20-opercerta-three-business-release.md` | 三业务求职发布八项 Inline TDD 主计划 | 真实模型代表性验证已执行；公网和远程门禁待完成 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-14-opercerta-reliability-kernel.md` | 可靠性内核 TDD 总计划 | Task 1–6 已执行 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-16-langgraph-restart-recovery.md` | Task 5 四点重启恢复可执行 TDD 计划 | 已执行；证据已归档 | 本次提交 | 1 |
@@ -111,7 +111,7 @@ Agent 核心架构阶段证据：`docs/release-evidence/agent-verifier-reapprova
 | `docs/development-log/README.md` | 日志机制说明 | 已初始化 | `f70411f` | 1 |
 | `docs/development-log/current-state.md` | 当前已验证状态 | 已同步真实模型代表性验证与剩余外部门禁 | 本次提交 | 1 |
 | `docs/development-log/interview-casebook.md` | 实施问题、诊断、修复与面试复盘案例 | 已补充 Agent、RAG、Trace 与 CI pgvector 漂移案例 | 本次提交 | 1 |
-| `docs/development-log/daily/2026-07-23.md` | Agent 核心 Draft PR、CI/replan/异常收口根因、RED/GREEN 修复与 Real 诊断 | run `29946792369` 快速 job 全绿；凭据轮换、review/main Compose 待完成 | 本次提交 | 1 |
+| `docs/development-log/daily/2026-07-23.md` | Agent 核心 Draft PR、CI/replan/异常收口根因、RED/GREEN 修复、Real 诊断与凭据轮换 | 快速 CI、凭据轮换与 inline review 完成；用户掌握、合并/main Compose 待完成 | 本次提交 | 1 |
 | `docs/development-log/learning-method.md` | 学习掌握、单变量实验与面试训练方法 | 已加入三业务学习包和手动闭环建议 | `a3994ef` | 1 |
 | `docs/learning/OperCerta核心技术手册.md` | 一次请求的全技术链路、可靠性设计与技术边界 | 本地学习交付已完成；需用户实践 | `a3994ef` | 1 |
 | `docs/learning/OperCerta手动实验手册.md` | WSL2/Compose/业务/规则/MCP 故障的手动实验 | 命令已记录；用户掌握检查待执行 | `a3994ef` | 1 |

@@ -82,7 +82,7 @@ provider/图异常留下 `received` operation 的缺口已经修复：operation 
 
 - 业务和 SOP 均来自仓库合成数据，不含旧公司材料。
 - `.env.local`、JWT、数据库凭据、API key、prompt 原文、隐藏思维链和 SOP 正文未进入报告或 Git。
-- 本轮本地完整数据库测试的失败 traceback 曾展开测试角色凭据；值未进入仓库或本文，但必须轮换 Windows PostgreSQL 角色密码并同步 ignored `.env.local`，轮换前不得打开生产门禁。
+- 本轮本地完整数据库测试的失败 traceback 曾展开测试角色凭据；值未进入仓库或本文。Windows PostgreSQL 角色密码已轮换并同步 ignored `.env.local`，Windows 原生 `psql` 使用该配置执行 `SELECT 1` 成功；只记录布尔验证结果。
 - Agent Trace 只保存受限摘要与 citation reference；audit 与 OpenTelemetry 不冒充 Agent Trace。
 - 未获得 provider usage，因此不填写 token 和成本；未做生产负载，因此不填写吞吐、延迟 SLA 或可用性。
 - 本地单节点 Compose 通过不代表公网、高可用、备份恢复或生产安全通过。
@@ -90,9 +90,8 @@ provider/图异常留下 `received` operation 的缺口已经修复：operation 
 ## 仍关闭的门禁
 
 1. 新 Agent 核心的真实 Kimi Tool Calling 完整 Compose 端到端仍未稳定通过；
-2. 本地测试角色密码需人工轮换并同步 ignored `.env.local`；
-3. Draft PR 尚未 review/合并，合并后的 main `compose-smoke` 尚无新鲜证据；
-4. 公网可写 HTTPS API、生产 IAM/租户隔离、限流防滥用、秘密托管、备份、高可用、自动部署和 Release Tag 未完成；
-5. 用户尚需不依赖 Codex 完成一次人工闭环和口述复盘。
+2. Draft PR 尚未合并，合并后的 main `compose-smoke` 尚无新鲜证据；
+3. 公网可写 HTTPS API、生产 IAM/租户隔离、限流防滥用、秘密托管、备份、高可用、自动部署和 Release Tag 未完成；
+4. 用户尚需不依赖 Codex 完成一次人工闭环和口述复盘。
 
 因此只完成 OperCerta 本地 Agent 核心交付，不启动 ForenTrail。

@@ -28,7 +28,7 @@ OperCerta 是面向库存异常、设备告警和运营工单的智能运营处�
 
 ## 下一实施边界
 
-下一阶段仍只实施 OperCerta。重复工具规划与异常 operation 原子收口已完成并通过 Draft PR 快速 Actions；下一步由用户轮换本地测试数据库密码，再完成 review、用户手动演示/口述掌握检查和 main Compose，之后才决定是否建设公网可写 HTTPS 后端。生产 IAM、限流/防滥用、备份、高可用、自动部署和 Release Tag 仍待完成。生产发布门禁为 `CLOSED`，关闭前不启动其他项目。
+下一阶段仍只实施 OperCerta。重复工具规划与异常 operation 原子收口已完成并通过 Draft PR 快速 Actions，本地测试数据库密码也已轮换并用 Windows 原生 `psql` 安全验证；下一步完成用户手动演示/口述掌握检查和 PR 合并审批，再执行 main Compose。之后才决定是否建设公网可写 HTTPS 后端。生产 IAM、限流/防滥用、备份、高可用、自动部署和 Release Tag 仍待完成。生产发布门禁为 `CLOSED`，关闭前不启动其他项目。
 
 三业务收口规格与八项 TDD 主计划见 [设计](docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md)和[计划](docs/superpowers/plans/2026-07-20-opercerta-three-business-release.md)。历史库存切片设计仍作为可靠性内核演进记录保留。
 
