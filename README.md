@@ -1,4 +1,16 @@
-# OperCerta｜智能运营处置 Agent
+# OperCerta | Auditable Operations Agent
+
+OperCerta is a controlled AI operations agent for inventory exceptions,
+equipment alerts, and operational work orders. It combines FastAPI,
+LangGraph, FastMCP, PostgreSQL, approval checkpoints, idempotent tool calls,
+and audit-focused observability in a reproducible reference implementation.
+
+- [Project showcase](https://opercerta-kxh.netlify.app)
+- [Portfolio overview](https://kxh-agent-portfolio.netlify.app)
+- Status: engineering showcase; the public site is read-only and the
+  production release gate remains closed.
+
+## 中文说明
 
 OperCerta 是面向库存异常、设备告警和运营工单的智能运营处置 Agent 独立作品仓库。
 
