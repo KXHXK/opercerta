@@ -1,3 +1,5 @@
+import { raiseApiError } from "./api/client";
+
 export type AuditEvent = {
   sequence: number;
   type: string;
@@ -52,7 +54,7 @@ export async function readAuditSnapshot(
     try {
       const response = await fetch(`/api/v1/operations/${operationId}/events`, request);
       if (!response.ok) {
-        throw new Error(`api_status_${response.status}`);
+        await raiseApiError(response);
       }
 
       return parseSnapshot(await response.text(), afterSequence);

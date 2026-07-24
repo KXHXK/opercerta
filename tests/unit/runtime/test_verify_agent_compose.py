@@ -11,27 +11,79 @@ def complete_trace() -> dict[str, object]:
             "scenario": "inventory",
             "status": "completed",
             "model_mode": "mock",
-            "next_sequence": 8,
+            "next_sequence": 10,
         },
         "events": [
-            {"sequence": 1, "event_type": "perception", "tool_ref": None, "citations": []},
-            {"sequence": 2, "event_type": "model", "tool_ref": None, "citations": []},
+            {
+                "sequence": 1,
+                "event_type": "perception",
+                "node": "intent_envelope",
+                "tool_ref": None,
+                "citations": [],
+            },
+            {
+                "sequence": 2,
+                "event_type": "model",
+                "node": "plan_investigation",
+                "tool_ref": None,
+                "citations": [],
+            },
             {
                 "sequence": 3,
                 "event_type": "tool",
+                "node": "execute_read_tools",
                 "tool_ref": "inventory.get_snapshot",
                 "citations": [],
             },
             {
                 "sequence": 4,
                 "event_type": "rag",
+                "node": "execute_read_tools",
                 "tool_ref": "knowledge.search_sop",
                 "citations": [{"document_id": "a", "chunk_id": "b", "version": "1.0.0", "rank": 1}],
             },
-            {"sequence": 5, "event_type": "rule", "tool_ref": None, "citations": []},
-            {"sequence": 6, "event_type": "human", "tool_ref": None, "citations": []},
-            {"sequence": 7, "event_type": "execution", "tool_ref": None, "citations": []},
-            {"sequence": 8, "event_type": "feedback", "tool_ref": None, "citations": []},
+            {
+                "sequence": 5,
+                "event_type": "rule",
+                "node": "calculate_policy_facts",
+                "tool_ref": None,
+                "citations": [],
+            },
+            {
+                "sequence": 6,
+                "event_type": "human",
+                "node": "approval_decision",
+                "tool_ref": None,
+                "citations": [],
+            },
+            {
+                "sequence": 7,
+                "event_type": "model",
+                "node": "verify_current_facts",
+                "tool_ref": None,
+                "citations": [],
+            },
+            {
+                "sequence": 8,
+                "event_type": "guardrail",
+                "node": "verify_approval_binding",
+                "tool_ref": None,
+                "citations": [],
+            },
+            {
+                "sequence": 9,
+                "event_type": "execution",
+                "node": "execute_controlled_action",
+                "tool_ref": None,
+                "citations": [],
+            },
+            {
+                "sequence": 10,
+                "event_type": "feedback",
+                "node": "operation_terminal",
+                "tool_ref": None,
+                "citations": [],
+            },
         ],
     }
 
@@ -80,6 +132,26 @@ def test_agent_trace_assertion_requires_real_citation_records_when_requested() -
     trace["events"][3]["citations"] = []  # type: ignore[index]
 
     with pytest.raises(AssertionError, match="citation"):
+        assert_agent_trace(
+            trace,
+            expected_scenario="inventory",
+            expected_status="completed",
+            require_approval=True,
+            require_citations=True,
+        )
+
+
+def test_approved_trace_requires_verifier_and_binding_guardrail_before_execution() -> None:
+    trace = complete_trace()
+    trace["events"] = [  # type: ignore[index]
+        event
+        for event in trace["events"]  # type: ignore[union-attr]
+        if event.get("node") not in {"verify_current_facts", "verify_approval_binding"}
+    ]
+    for sequence, event in enumerate(trace["events"], start=1):  # type: ignore[union-attr]
+        event["sequence"] = sequence
+
+    with pytest.raises(AssertionError, match="Verifier"):
         assert_agent_trace(
             trace,
             expected_scenario="inventory",

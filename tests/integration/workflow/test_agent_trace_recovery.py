@@ -87,6 +87,151 @@ async def test_investigation_trace_replay_does_not_duplicate_business_events(
 
 
 @pytest.mark.asyncio
+async def test_operation_outcome_projects_verifier_guardrail_and_safe_terminal_status(
+    engine: AsyncEngine,
+) -> None:
+    request = OperationRequest(
+        message="为 SKU-LOW-001 生成补货工单",
+        requested_action=ActionType.CREATE_WORK_ORDER,
+        object_type=ObjectType.INVENTORY,
+        object_id="SKU-LOW-001",
+    )
+    operation_id = await OperationRepository(engine).create(request)
+    repository = AgentTraceRepository(engine)
+    recorder = TraceRecorder(repository, clock=lambda: NOW, model_mode="mock")
+    state = build_agent_investigation_initial_state(request)
+    state.update(
+        {
+            "goal": GoalEncoding(
+                goal=ActionType.CREATE_WORK_ORDER,
+                scenario=ScenarioKind.INVENTORY,
+                object_id="SKU-LOW-001",
+                required_evidence=("subject", "policy"),
+                success_condition="create_replenishment_work_order",
+            ).model_dump(mode="json"),
+            "analysis": AgentAnalysis(
+                summary="库存事实已核验。",
+                recommendation="审批后创建补货工单。",
+            ).model_dump(mode="json"),
+            "status": "completed",
+        }
+    )
+    approval_id = uuid4()
+    work_order_id = uuid4()
+
+    try:
+        await recorder.capture_investigation(operation_id, request, state)
+        await recorder.capture_operation_outcome(
+            operation_id,
+            status="awaiting_approval",
+            approval_cycle=1,
+            approval=None,
+            verification=None,
+            verification_route=None,
+            work_order=None,
+            result=None,
+            error_code=None,
+        )
+        await recorder.capture_operation_outcome(
+            operation_id,
+            status="completed",
+            approval_cycle=1,
+            approval={
+                "id": str(approval_id),
+                "approver_id": "demo.approver",
+                "decision": "approved",
+            },
+            verification={"decision": "proceed"},
+            verification_route="proceed",
+            work_order={"id": str(work_order_id)},
+            result={"outcome": "work_order_completed"},
+            error_code=None,
+        )
+        snapshot = await repository.load_snapshot(operation_id)
+
+        assert snapshot.run.status is AgentRunStatus.COMPLETED
+        assert [event.semantic_key for event in snapshot.events][-5:] == [
+            f"human:approval:{approval_id}",
+            "model:verification:1",
+            "guardrail:binding_verification:1",
+            "execution:operation_terminal",
+            "feedback:operation_terminal",
+        ]
+        verifier = snapshot.events[-4]
+        assert verifier.node == "verify_current_facts"
+        assert verifier.safe_output == {
+            "decision": "proceed",
+            "route": "proceed",
+            "summary": "批准后已绕过缓存重新取证并完成 Verifier 复核。",
+        }
+        guardrail = snapshot.events[-3]
+        assert guardrail.node == "verify_approval_binding"
+        assert guardrail.safe_output["binding_valid"] is True
+    finally:
+        async with engine.begin() as connection:
+            await connection.execute(delete(operations).where(operations.c.id == operation_id))
+
+
+@pytest.mark.asyncio
+async def test_expired_approval_finishes_trace_as_a_safe_business_terminal(
+    engine: AsyncEngine,
+) -> None:
+    request = OperationRequest(
+        message="为 SKU-LOW-001 生成补货工单",
+        requested_action=ActionType.CREATE_WORK_ORDER,
+        object_type=ObjectType.INVENTORY,
+        object_id="SKU-LOW-001",
+    )
+    operation_id = await OperationRepository(engine).create(request)
+    repository = AgentTraceRepository(engine)
+    recorder = TraceRecorder(repository, clock=lambda: NOW, model_mode="mock")
+    state = build_agent_investigation_initial_state(request)
+    state.update(
+        {
+            "analysis": AgentAnalysis(
+                summary="库存事实已核验。",
+                recommendation="等待审批。",
+            ).model_dump(mode="json"),
+            "status": "completed",
+        }
+    )
+
+    try:
+        await recorder.capture_investigation(operation_id, request, state)
+        await recorder.capture_operation_outcome(
+            operation_id,
+            status="awaiting_approval",
+            approval_cycle=1,
+            approval=None,
+            verification=None,
+            verification_route=None,
+            work_order=None,
+            result=None,
+            error_code=None,
+        )
+        await recorder.capture_operation_outcome(
+            operation_id,
+            status="expired",
+            approval_cycle=1,
+            approval=None,
+            verification=None,
+            verification_route=None,
+            work_order=None,
+            result=None,
+            error_code="approval_expired",
+        )
+        snapshot = await repository.load_snapshot(operation_id)
+
+        assert snapshot.run.status is AgentRunStatus.COMPLETED
+        assert snapshot.events[-1].semantic_key == "feedback:operation_terminal"
+        assert snapshot.events[-1].safe_output == {"operation_status": "expired"}
+        assert snapshot.events[-1].error_code == "approval_expired"
+    finally:
+        async with engine.begin() as connection:
+            await connection.execute(delete(operations).where(operations.c.id == operation_id))
+
+
+@pytest.mark.asyncio
 async def test_rag_observation_persists_only_safe_citation_refs(engine: AsyncEngine) -> None:
     request = OperationRequest(
         message="查询 SKU-LOW-001 当前库存状态",

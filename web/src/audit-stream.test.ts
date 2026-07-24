@@ -35,3 +35,22 @@ it("reconnects a broken snapshot up to three times", async () => {
   expect(events.map((event) => event.sequence)).toEqual([5]);
   expect(fetchMock).toHaveBeenCalledTimes(4);
 });
+
+it("preserves a safe authorization envelope without retrying it as a network error", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(
+    new Response(JSON.stringify({ code: "permission_denied", message: "无权执行此操作" }), {
+      status: 403,
+      headers: { "content-type": "application/json" }
+    })
+  );
+  vi.stubGlobal("fetch", fetchMock);
+
+  const promise = readAuditSnapshot("operation-1", 0, "Bearer memory-only");
+
+  await expect(promise).rejects.toEqual(expect.objectContaining({
+    status: 403,
+    code: "permission_denied",
+    userMessage: "当前角色无权执行此操作。请切换到流程要求的角色。"
+  }));
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+});

@@ -29,7 +29,6 @@ export function OperationControls({
         <option value="operator">operator｜创建处置</option>
         <option value="approver">approver｜提交审批</option>
         <option value="auditor">auditor｜审计读取</option>
-        <option value="demo-admin">demo-admin｜演示管理员</option>
       </select>
 
       <label className="field-label" htmlFor="business-scenario">业务场景</label>

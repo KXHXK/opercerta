@@ -289,6 +289,16 @@ class ControlledActionGraph:
                 status=detail.status.value,
                 approval_cycle=detail.approval_cycle,
                 approval=approval_payload,
+                verification=(
+                    cast(dict[str, object], result["verification"])
+                    if isinstance(result.get("verification"), dict)
+                    else None
+                ),
+                verification_route=(
+                    str(result["verification_route"])
+                    if result.get("verification_route") is not None
+                    else None
+                ),
                 work_order=(
                     detail.work_order.model_dump(mode="json")
                     if detail.work_order is not None

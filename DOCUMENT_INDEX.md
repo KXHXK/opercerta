@@ -1,5 +1,9 @@
 # OperCerta 文档索引
 
+新增 2026-07-24 收口日志：`docs/development-log/daily/2026-07-24.md`。记录未知错误安全 fallback、审批写入/后置读取语义、一次性 pgvector 完整门禁、凭据回显风险与提交前恢复点；本轮完整后端 579 条、前端 53 条及 Mock release Compose 通过，Real Kimi、远程 CI、合并与生产发布仍未执行。
+
+新增规格一致性审计与最小修复计划：`docs/superpowers/plans/2026-07-23-opercerta-spec-conformance-audit.md`、`docs/development-log/audits/2026-07-23-spec-conformance-audit.md`。审计确认三业务受控 Agent 主线与原设计一致，并修复安全错误提示、Verifier/绑定护栏 Trace、安全终态、主业务角色和 FastEmbed 首次缓存说明；demo-admin 独立入口、Real Kimi 完整 Compose、PR 合并与生产门禁仍待人工审批。
+
 新增 Agent Task 9 总证据：`docs/release-evidence/agent-core-architecture.md`（后端 566 条、前端 46 条、Agent 评测 9/9、真实 FastEmbed/pgvector RAG、Compose 三业务与重启恢复通过；后续已修复 Kimi replan 重复工具与 provider 异常 operation 原子收口，新鲜 unit 352 条/关键图集成 7 条，Draft PR run `29946792369` 完整后端 573 条与 Agent 评测 9/9；Real Kimi 完整 Compose 仍 failed，未回退 Mock）。review/main Compose 仍待完成，发布门禁保持 `CLOSED`。问题与修复见 `docs/development-log/daily/2026-07-23.md`。
 
 Agent Task 8 证据：`docs/release-evidence/agent-workspace.md`（有限表单、Goal、真实 Agent Trace、MCP/RAG 引用、模型建议/确定性计划、审批/Verifier、工单与角色接力；前端 46 条、生产构建和 1440/1024/390 响应式检查通过）。
@@ -97,6 +101,7 @@ Agent 核心架构阶段证据：`docs/release-evidence/agent-verifier-reapprova
 | `docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md` | 三业务闭环、技术栈补齐、求职发布与学习交付修订 | 已确认；实施计划已创建 | `632f0a1` | 1 |
 | `docs/superpowers/specs/2026-07-21-opercerta-agent-core-architecture-design.md` | 六层 Agent 核心架构、Plan-and-Execute、Harness、pgvector Memory、RAG 与 Agent Trace 纠偏 | 已确认；已按有界循环、最小 LangChain 和 RAG 边界修订 | `bf3b6da` + 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-21-opercerta-agent-core-architecture.md` | Agent 核心架构十项 Inline TDD 实施计划 | Task 1--10、replan/异常原子收口快速 CI、凭据轮换与 inline review 已完成；用户掌握、合并/main Compose 待完成 | `221fe3d` + 本次提交 | 1 |
+| `docs/superpowers/plans/2026-07-23-opercerta-spec-conformance-audit.md` | 原始规格、Agent 修订、实现与证据的一致性审计及最小修复计划 | 已执行本轮非发布修复；关键发布动作待用户审批 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-20-opercerta-three-business-release.md` | 三业务求职发布八项 Inline TDD 主计划 | 真实模型代表性验证已执行；公网和远程门禁待完成 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-14-opercerta-reliability-kernel.md` | 可靠性内核 TDD 总计划 | Task 1–6 已执行 | 本次提交 | 1 |
 | `docs/superpowers/plans/2026-07-16-langgraph-restart-recovery.md` | Task 5 四点重启恢复可执行 TDD 计划 | 已执行；证据已归档 | 本次提交 | 1 |
@@ -112,6 +117,8 @@ Agent 核心架构阶段证据：`docs/release-evidence/agent-verifier-reapprova
 | `docs/development-log/current-state.md` | 当前已验证状态 | 已同步真实模型代表性验证与剩余外部门禁 | 本次提交 | 1 |
 | `docs/development-log/interview-casebook.md` | 实施问题、诊断、修复与面试复盘案例 | 已补充 Agent、RAG、Trace 与 CI pgvector 漂移案例 | 本次提交 | 1 |
 | `docs/development-log/daily/2026-07-23.md` | Agent 核心 Draft PR、CI/replan/异常收口根因、RED/GREEN 修复、Real 诊断与凭据轮换 | 快速 CI、凭据轮换与 inline review 完成；用户掌握、合并/main Compose 待完成 | 本次提交 | 1 |
+| `docs/development-log/daily/2026-07-24.md` | 前端安全 fallback、审批写入/读取分层、一次性 pgvector 完整门禁和凭据回显复盘 | 本地 579 后端、53 前端及 Mock release Compose 通过；待提交审批 | 本次提交 | 1 |
+| `docs/development-log/audits/2026-07-23-spec-conformance-audit.md` | 四份原始设计、Agent 核心修订与当前实现的偏差矩阵 | 主线对齐；本轮偏差已修，生产扩展待审批 | 本次提交 | 1 |
 | `docs/development-log/learning-method.md` | 学习掌握、单变量实验与面试训练方法 | 已加入三业务学习包和手动闭环建议 | `a3994ef` | 1 |
 | `docs/learning/OperCerta核心技术手册.md` | 一次请求的全技术链路、可靠性设计与技术边界 | 本地学习交付已完成；需用户实践 | `a3994ef` | 1 |
 | `docs/learning/OperCerta手动实验手册.md` | WSL2/Compose/业务/规则/MCP 故障的手动实验 | 命令已记录；用户掌握检查待执行 | `a3994ef` | 1 |

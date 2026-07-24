@@ -96,6 +96,8 @@ Trace、审计日志和 OpenTelemetry 解决不同问题：Trace 回答“Agent 
 
 角色权限也在服务端执行：operator 只能读取本人 operation，approver 只读取当前需要其处理的 operation，auditor 可跨场景只读脱敏轨迹，demo-admin 只允许在显式本地模式开启。当前 SSE 是持久化快照回放，不应夸大成实时消息总线。
 
+批准路径会把 `verify_current_facts` 与 `verify_approval_binding` 作为两个独立 Trace 事件投影到前端：前者说明 Verifier 已基于绕过缓存的新证据给出 `proceed/abort/escalate`，后者说明确定性绑定护栏是否允许写入。它们必须出现在 `execute_controlled_action` 之前，避免把“模型复核、确定性授权、幂等写入”误画成一个黑盒步骤。拒绝、过期和 Verifier abort 也是已完成的安全业务终态，不能让 Agent run 永久停在 `running`。
+
 ## 10. 当前诚实边界
 
 三业务、冻结评测、WSL2 Compose、React 控制台、Redis、OpenTelemetry 适配器、真实 FastEmbed/pgvector RAG 都已有本地证据。2026-07-20 的 Kimi 证据属于旧的“解释字段”路径；2026-07-22 新 Plan-and-Execute Agent 的真实 Kimi Tool Calling 端到端代表验证**未通过**，不能把旧证据移植成新架构通过。Mock 与 Real 报告必须分开。
@@ -131,6 +133,8 @@ flowchart LR
 - **技能与工具：** `ToolPolicy` 暴露场景白名单，只读 MCP 调用由 `ToolExecutor` 执行；写工具不交给模型自由选择。
 - **执行与反馈：** 人工审批后重新取证，确定性规则决定动作，唯一约束保护工单，Trace 将结果反馈给 UI 和下一角色。
 
+这里的 Harness 是模块组合，不是一个万能类：`AgentHarness` 固定可信 Goal 和计划预算，`ToolPolicy` 负责工具白名单、对象绑定与重复调用，`ToolExecutor` 负责类型化执行，模型适配器负责 timeout/retry/结构化输出，Pydantic 负责 schema validator，确定性场景图负责审批与写入 guardrail，`TraceRecorder` 负责脱敏和语义去重。面试时应讲清这一职责拆分，不要因为其中有一个 `harness.py` 就声称所有能力都集中在单个类里。
+
 ## 13. Memory 的四种含义
 
 1. **短期运行状态：** LangGraph state，保存本轮 goal、plan、observations、analysis 与计数器。
@@ -159,6 +163,8 @@ RAG 回答“适用 SOP 怎么描述”，返回带 `document_id/chunk_id/versio
 - **OpenTelemetry：** 面向运维，定位一次请求跨 API、图、MCP、Redis、SQL 的耗时和错误。
 
 三者使用不同数据模型和保留目的。把 audit 时间线改名为 Agent Trace，或把 span 当业务审计，都会形成误导。
+
+前端错误同样属于可解释链路：API 的 401/403/409/422/503 安全 envelope 会保留 HTTP 状态、固定错误码和安全 message，再映射成可操作中文提示。前端不能把 `approval_expired`、权限不足、非法输入和依赖故障全部吞成同一句“请重试”，否则既不利于用户恢复，也掩盖了后端已经实现的安全边界。
 
 ## 18. 重启恢复与仍未上线
 

@@ -1,6 +1,6 @@
 # OperCerta Agent 核心架构增强设计
 
-> 状态：用户已于 2026-07-21 批准方案 B 与本文边界；尚未实施
+> 状态：用户已于 2026-07-21 批准方案 B 与本文边界；核心实现、测试与 Draft PR 已完成，生产发布门禁仍为 `CLOSED`
 >
 > 适用范围：OperCerta 三业务的 Agent 能力、Memory、Tool Calling、Agent Trace 与控制台纠偏
 >
@@ -24,7 +24,7 @@ OperCerta 已完成库存补货、设备维修和作业异常恢复三条受控�
 
 因此，本次不是把传统工单页面改成聊天框，而是在可靠工单内核中补上受控 AI Agent 模块，使系统形成“感知 → 理解 → 规划 → 工具/记忆 → 执行 → 反馈”的可验证闭环。
 
-发布门禁继续为 `CLOSED`。本文只定义批准设计，不声称新增 Agent 能力已经通过测试、真实模型、Compose 或公网验证。
+发布门禁继续为 `CLOSED`。本文是批准后的设计基线；实际通过项与未通过项以 `docs/release-evidence/agent-core-architecture.md` 和 `docs/development-log/current-state.md` 的新鲜证据为准，不以本文状态替代测试、真实模型、Compose 或公网验证。
 
 ## 2. 开源调研结论与技术选择
 

@@ -102,3 +102,83 @@ it("loads a created operation after acquiring an in-memory demo token", async ()
   expect(screen.getAllByText("建议补货并提交人工审批").length).toBeGreaterThan(0);
   expect(fetchMock).toHaveBeenCalledTimes(5);
 });
+
+it("shows an actionable safe error when a controlled request is rejected", async () => {
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({ access_token: "memory-token" }), { status: 200 })
+    )
+    .mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          code: "request_validation_failed",
+          message: "请求内容无效。"
+        }),
+        { status: 422, headers: { "content-type": "application/json" } }
+      )
+    );
+  vi.stubGlobal("fetch", fetchMock);
+
+  render(<App />);
+  fireEvent.change(screen.getByLabelText("演示角色"), { target: { value: "operator" } });
+  await waitFor(() => expect(screen.getByRole("button", { name: "创建处置" })).toBeEnabled());
+  fireEvent.click(screen.getByRole("button", { name: "创建处置" }));
+
+  expect(await screen.findByRole("status")).toHaveTextContent(
+    "提交内容不符合受控业务契约。请检查场景、对象与动作。"
+  );
+});
+
+it("keeps an accepted approval final when the post-write refresh is forbidden", async () => {
+  const binding = {
+    scenario: "inventory" as const,
+    subject_evidence_id: "inventory-evidence", policy_evidence_id: "policy-evidence",
+    rule_version: "rule-v1", decision_facts_hash: "facts-hash", plan_hash: "plan-hash",
+    parameters: { kind: "replenishment" as const, recommended_quantity: 18 }
+  };
+  const detail = {
+    operation_id: "operation-1", status: "awaiting_approval",
+    request: { message: "为 SKU-LOW-001 创建库存补货工单", object_type: "inventory", object_id: "SKU-LOW-001" },
+    evidence: [], assessment: null, plan: null, approval_binding: binding, approval: null,
+    work_order: null, result: null, error: null, last_audit_sequence: 2
+  };
+  const trace = {
+    run: {
+      id: "run-1", operation_id: "operation-1", run_key: "primary", scenario: "inventory",
+      status: "awaiting_human", model_mode: "mock", initiated_by: "demo.operator",
+      next_sequence: 1, started_at: "2026-07-22T09:00:00Z", ended_at: null
+    },
+    events: []
+  };
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: "memory-token" }), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify(detail), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify(trace), { status: 200 }))
+    .mockResolvedValueOnce(new Response("id: 2\nevent: approval_requested\ndata: {}\n\n", { status: 200 }))
+    .mockResolvedValueOnce(new Response(null, { status: 204 }))
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({ code: "permission_denied", message: "无权读取处置。" }), {
+        status: 403,
+        headers: { "content-type": "application/json" }
+      })
+    );
+  vi.stubGlobal("fetch", fetchMock);
+
+  render(<App />);
+  fireEvent.change(screen.getByLabelText("演示角色"), { target: { value: "approver" } });
+  fireEvent.change(screen.getByLabelText("处置编号"), { target: { value: "operation-1" } });
+  await waitFor(() => expect(screen.getByRole("button", { name: "读取处置" })).toBeEnabled());
+  fireEvent.click(screen.getByRole("button", { name: "读取处置" }));
+  const approve = await screen.findByRole("button", { name: "批准" });
+
+  fireEvent.click(approve);
+
+  expect(await screen.findByRole("status")).toHaveTextContent(
+    "审批已提交，但未能读取最新处置"
+  );
+  await waitFor(() => expect(approve).toBeDisabled());
+  expect(screen.queryByText("审批未提交，请读取最新处置状态后重试。")).not.toBeInTheDocument();
+  expect(fetchMock).toHaveBeenCalledTimes(6);
+});

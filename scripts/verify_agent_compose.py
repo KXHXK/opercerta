@@ -80,7 +80,20 @@ def assert_agent_trace(
     event_types = {event["event_type"] for event in events}
     required = {"perception", "model", "tool", "rule", "feedback"}
     if require_approval:
-        required |= {"human", "execution"}
+        required |= {"human", "execution", "guardrail"}
+    if require_approval:
+        nodes = [event.get("node") for event in events]
+        try:
+            verifier_index = nodes.index("verify_current_facts")
+            binding_index = nodes.index("verify_approval_binding")
+            execution_index = nodes.index("execute_controlled_action")
+        except ValueError as error:
+            raise AssertionError(
+                "approved Agent Trace requires Verifier, binding guardrail, and execution nodes"
+            ) from error
+        assert verifier_index < binding_index < execution_index, (
+            "Verifier and binding guardrail must complete before controlled execution"
+        )
     assert required <= event_types
     tool_refs = {event.get("tool_ref") for event in events if event.get("tool_ref")}
     forbidden_tools = tool_refs - ALLOWED_TOOLS

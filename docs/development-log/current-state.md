@@ -1,5 +1,17 @@
 # OperCerta 当前状态
 
+## 最新核验：前端安全边界与审批写入语义已完成本地收口
+
+2026-07-24，规格一致性复核继续发现并修复两项端到端边界：未知后端错误码不再把原始 `message` 暴露给用户；审批 API 已成功写入但后置读取因 RBAC/网络失败时，前端明确保留“审批已提交”事实并禁用重复决定，不再误报“审批未提交”。两项均先写 RED，再以最小实现转为 GREEN。
+
+新鲜门禁：前端 17 文件/`53 passed` 与 production build；后端 unit `356 passed`、一次性 pgvector 测试库完整套件 `579 passed in 376.68s`；Ruff、189 文件格式、Mypy 76 个源文件、114 包锁定与仓库安全扫描通过；Mock release Compose 三业务、RAG/Trace、批准后 Verifier/绑定护栏/受控写入、数据库事实和 API/MCP 重启恢复退出码 0。`.env.local` 指向的 Windows 测试库未运行，失败 traceback 再次回显 ignored 旧凭据，该值必须视为已暴露并在恢复原生测试库前轮换；本轮完整套件改用运行时随机凭据的一次性本地容器且已清理。修改尚未 commit/push；Real Kimi、PR 合并、main Compose、生产发布和 ForenTrail 均未执行，发布门禁保持 `CLOSED`。过程见 `docs/development-log/daily/2026-07-24.md`。
+
+## 最新核验：规格一致性审计与 Agent 展示收口通过本地门禁
+
+2026-07-23 对四份原始设计、三业务修订、Agent 核心规格、当前源码和证据逐项复核，主线仍是“传统仓储/运营工单可靠性内核 + 受控单 Agent 增强”，没有退化为普通 CRUD，也没有扩成自由聊天或多 Agent。修复了前端吞掉 401/403/409/422/503 安全 envelope、产品 Trace 缺少独立 Verifier/绑定护栏、安全业务终态仍显示 running、主角色混入未完成 demo-admin，以及空 FastEmbed cache 离线冷启动说明不完整。
+
+新鲜本地门禁：后端 unit `356 passed in 38.86s`；前端 17 文件/`51 passed` 与 TypeScript/Vite production build；Ruff 全绿、`182 files already formatted`、Mypy 76 个源文件；Mock Compose 三业务 Agent 验证退出码 0，并新增强制 `Verifier → binding guardrail → controlled execution` 顺序断言；API/MCP 重启恢复退出码 0，四服务 healthy。独立本地测试数据库端口未监听，数据库集成 Pytest 未形成新鲜绿色结果；本轮未用环境故障冒充业务失败，Compose 的真实 PostgreSQL 断言已通过。Real Kimi、PR 合并、main Compose、生产发布和 ForenTrail 均未执行，发布门禁保持 `CLOSED`。审计见 `docs/development-log/audits/2026-07-23-spec-conformance-audit.md`。
+
 ## 最新核验：Agent 核心 Draft PR 快速门禁已通过
 
 2026-07-23，`feat/agent-core-implementation` 的 Kimi + RAG replan 已改为只暴露尚缺工具，provider/图异常 operation 已能原子收口为固定 `dependency_unavailable`；真实图 probe 完成 inventory → knowledge → policy。新鲜本地回归为 unit 352 条、关键 Agent 图集成 7 条、Ruff/188 文件格式/Mypy 76 个源文件；Draft PR run `29946792369` 的 repository-safety、python-quality、backend-tests、frontend 全绿，完整后端 `573 passed`、三业务评测 1 条和 Agent 评测 9/9。完整 Compose Real Kimi 仍未稳定通过，最终安全证据为 create operation 503 `dependency_unavailable`；未回退 Mock。测试 traceback 曾展开的本地 PostgreSQL 测试凭据已轮换，主仓库与 worktree ignored 配置一致，并由 Windows 原生 `psql` 执行 `SELECT 1` 安全验证。生产发布门禁保持 `CLOSED`。

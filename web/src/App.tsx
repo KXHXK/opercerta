@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 
-import { ApiClient } from "./api/client";
+import { ApiClient, userFacingError } from "./api/client";
 import type {
   AgentTraceSnapshot,
   OperationDetail as OperationDetailData
@@ -39,16 +39,22 @@ function ConsoleApp({ apiBaseUrl }: { apiBaseUrl: string }) {
   const [isBusy, setIsBusy] = useState(false);
   const [message, setMessage] = useState("请选择演示角色以获取内存 JWT。");
 
-  async function loadOperation(operationId: string) {
+  async function loadOperation(operationId: string): Promise<string | null> {
     const nextDetail = await client.getOperation(operationId);
     setDetail(nextDetail);
+    let traceWarning: string | null = null;
     try {
       setTrace(await client.getAgentTrace(operationId));
-    } catch {
+    } catch (error) {
       setTrace((current) => current?.run.operation_id === operationId ? current : null);
+      traceWarning = userFacingError(
+        error,
+        "Agent Trace 暂时不可读，请稍后重试或切换 auditor。"
+      );
     }
     const snapshot = await readAuditSnapshot(operationId, 0, session.authorizationHeader());
     setEvents(snapshot);
+    return traceWarning;
   }
 
   async function selectRole(nextRole: DemoRole) {
@@ -62,12 +68,18 @@ function ConsoleApp({ apiBaseUrl }: { apiBaseUrl: string }) {
       if (detail !== null) {
         try {
           setTrace(await client.getAgentTrace(detail.operation_id));
-        } catch {
+        } catch (error) {
           setTrace((current) => current?.run.operation_id === detail.operation_id ? current : null);
+          setMessage(
+            `已切换为 ${nextRole}；${userFacingError(
+              error,
+              "Agent Trace 暂时不可读，请稍后重试或切换 auditor。"
+            )}`
+          );
         }
       }
-    } catch {
-      setMessage("演示身份获取失败，请确认本地 API 已启动后重试。");
+    } catch (error) {
+      setMessage(userFacingError(error, "演示身份获取失败，请确认本地 API 已启动后重试。"));
     }
   }
 
@@ -77,10 +89,16 @@ function ConsoleApp({ apiBaseUrl }: { apiBaseUrl: string }) {
     setMessage(`正在${actionLabel}${scenario.label}…`);
     try {
       const accepted = await client.createOperation(scenario, action);
-      await loadOperation(accepted.operation_id);
-      setMessage(`已完成${actionLabel}并读取处置：${accepted.operation_id}`);
-    } catch {
-      setMessage("处置创建或审计回放失败，请检查本地服务状态后重试。");
+      const warning = await loadOperation(accepted.operation_id);
+      setMessage(
+        warning === null
+          ? `已完成${actionLabel}并读取处置：${accepted.operation_id}`
+          : `已完成${actionLabel}并读取业务详情；${warning}`
+      );
+    } catch (error) {
+      setMessage(
+        userFacingError(error, "处置创建或审计回放失败，请检查本地服务状态后重试。")
+      );
     } finally {
       setIsBusy(false);
     }
@@ -90,10 +108,14 @@ function ConsoleApp({ apiBaseUrl }: { apiBaseUrl: string }) {
     setIsBusy(true);
     setMessage("正在读取处置与审计快照…");
     try {
-      await loadOperation(operationId);
-      setMessage(`已读取处置：${operationId}`);
-    } catch {
-      setMessage("未能读取处置，请检查编号、角色权限或本地服务状态。");
+      const warning = await loadOperation(operationId);
+      setMessage(
+        warning === null ? `已读取处置：${operationId}` : `已读取业务详情；${warning}`
+      );
+    } catch (error) {
+      setMessage(
+        userFacingError(error, "未能读取处置，请检查编号、角色权限或本地服务状态。")
+      );
     } finally {
       setIsBusy(false);
     }
@@ -102,7 +124,21 @@ function ConsoleApp({ apiBaseUrl }: { apiBaseUrl: string }) {
   async function submitDecision(decision: "approved" | "rejected") {
     if (detail === null || detail.approval_binding === null) return;
     await client.submitApproval(detail.operation_id, detail.approval_binding, decision);
-    await loadOperation(detail.operation_id);
+    try {
+      const warning = await loadOperation(detail.operation_id);
+      setMessage(
+        warning === null
+          ? `审批已提交并读取最新处置：${detail.operation_id}`
+          : `审批已提交并读取业务详情；${warning}`
+      );
+    } catch (error) {
+      setMessage(
+        `审批已提交，但未能读取最新处置；${userFacingError(
+          error,
+          "请切换 auditor 或稍后读取。"
+        )}`
+      );
+    }
   }
 
   return (

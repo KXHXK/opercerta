@@ -29,6 +29,25 @@ git status --short
 
 预期：Ubuntu 为 WSL2；Docker Server 可用；Git 只显示你已知的本地修改。
 
+### 1.1 首次启动与 FastEmbed 缓存
+
+`knowledge.search_sop` 使用固定的 `BAAI/bge-small-zh-v1.5`。首次创建空的 `fastembed_cache` volume 时，必须先允许 MCP 下载模型文件：
+
+```bash
+OPERCERTA_HF_HUB_OFFLINE=false docker compose up --build -d
+docker compose ps
+docker compose logs --tail=80 mcp
+```
+
+确认 MCP 为 `healthy` 后，模型文件会保留在命名 volume。此后才可以验证离线重启：
+
+```bash
+OPERCERTA_HF_HUB_OFFLINE=true docker compose up -d --force-recreate mcp api
+docker compose ps
+```
+
+如果空 volume 第一次就设置 `OPERCERTA_HF_HUB_OFFLINE=true`，MCP 因找不到本地模型而失败是正确行为，不是 RAG 代码回归。不要删除已有 `fastembed_cache` 后仍声称“离线冷启动通过”；删除 volume 会同时删除缓存，需要重新执行在线预热。下载端点受网络环境影响时，只能在 ignored 本地配置中设置经过授权的镜像，不能把第三方地址或凭据写入产品 Compose。
+
 ## 2. 一条命令验证三业务闭环和重启恢复
 
 保持在同一个 WSL 会话：
@@ -76,6 +95,8 @@ npm run dev
 4. 切换 approver，核对 binding 后批准；
 5. 确认 `completed`、唯一工单和完整审计时间线；
 6. 再次审批，预期得到冲突而不是第二张工单。
+
+若审批窗口过期，控制台应显示“审批已过期”及重新创建处置的操作建议，而不是统一报“审批未提交”。这是安全终态：数据库保持零审批或零新工单，Trace run 结束而不是继续显示 `running`。
 
 ## 4. MCP 故障实验
 

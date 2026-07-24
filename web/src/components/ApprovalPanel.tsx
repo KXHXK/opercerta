@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import type { ApprovalBinding } from "../api/client";
+import { ApiError, type ApprovalBinding } from "../api/client";
 import type { DemoRole } from "../session";
 
 type ApprovalPanelProps = {
@@ -33,8 +33,12 @@ export function ApprovalPanel({ role, binding, onDecision }: ApprovalPanelProps)
     try {
       await onDecision(decision);
       setHasDecided(true);
-    } catch {
-      setError("审批未提交，请读取最新处置状态后重试。");
+    } catch (submissionError) {
+      setError(
+        submissionError instanceof ApiError
+          ? submissionError.userMessage
+          : "审批未提交，请读取最新处置状态后重试。"
+      );
     } finally {
       setIsSubmitting(false);
     }

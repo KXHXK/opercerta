@@ -33,6 +33,10 @@ Task 10 新增文档防漂移测试后，最终本地复验为 `567 passed in 18
 
 远程 run [`29946792369`](https://github.com/KXHXK/opercerta/actions/runs/29946792369) 补齐该依据：完整后端 `573 passed in 61.77s`，三业务契约评测 `1 passed`，冻结 Agent 安全与恢复评测 `9/9`；repository-safety、python-quality、backend-tests、frontend 全部通过。`compose-smoke` 按 PR 工作流设计跳过，不可写成已运行。
 
+2026-07-23 规格一致性收口后的本地新鲜证据：unit `356 passed in 38.86s`；前端 17 文件/`51 passed`，TypeScript/Vite production build 成功；Ruff 通过、`182 files already formatted`、Mypy 76 个源文件。Mock Compose 三业务 Agent 验证退出码 0，且验证器强制要求批准路径按 `verify_current_facts → verify_approval_binding → execute_controlled_action` 排列；API/MCP 重启后的 recovery-only 验证退出码 0，API、MCP、PostgreSQL、Redis 均 healthy。该修改尚未 commit/push，因此没有新的远程 CI 证据。
+
+2026-07-24 在同一未提交工作树继续修复未知后端消息泄露和“审批已写入、刷新失败却误报未提交”两项前端边界。新鲜结果：前端 17 文件/`53 passed` 与 production build；unit `356 passed in 34.32s`；运行时随机凭据、结束即销毁的一次性 pgvector 数据库下完整后端 `579 passed in 376.68s`；Ruff、189 文件格式、Mypy 76 个源文件、114 包锁定和仓库安全通过。`scripts/verify_release_compose.sh` 以 Mock 模型重新构建并完成三业务、RAG/Trace、数据库事实、Caddy 路由及 API/MCP 重启恢复，退出码 0、约 132.5 秒。该结果不替代 Real Kimi，也没有新的远程 CI/main 证据。
+
 ### 冻结 Agent 轨迹评测
 
 ```bash
@@ -93,5 +97,7 @@ provider/图异常留下 `received` operation 的缺口已经修复：operation 
 2. Draft PR 尚未合并，合并后的 main `compose-smoke` 尚无新鲜证据；
 3. 公网可写 HTTPS API、生产 IAM/租户隔离、限流防滥用、秘密托管、备份、高可用、自动部署和 Release Tag 未完成；
 4. 用户尚需不依赖 Codex 完成一次人工闭环和口述复盘。
+
+另外，本轮规格一致性修改仍在本地工作树，需用户审查批准后才能 commit/push 到 Draft PR；在此之前不得把既有远程 run 写成这批修改的 CI 证据。
 
 因此只完成 OperCerta 本地 Agent 核心交付，不启动 ForenTrail。

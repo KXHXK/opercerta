@@ -291,6 +291,8 @@ class TraceRecorder:
         status: str,
         approval_cycle: int,
         approval: Mapping[str, object] | None,
+        verification: Mapping[str, object] | None,
+        verification_route: str | None,
         work_order: Mapping[str, object] | None,
         result: Mapping[str, object] | None,
         error_code: str | None,
@@ -298,18 +300,8 @@ class TraceRecorder:
         snapshot = await self._repository.load_snapshot(operation_id)
         run_id = snapshot.run.id
         if status in {"awaiting_approval", "needs_reapproval"}:
-            await self._append(
-                run_id,
-                semantic_key=f"human:approval_requested:{approval_cycle}",
-                event_type=AgentTraceEventType.HUMAN,
-                actor_type=AgentTraceActor.HUMAN,
-                node="request_approval",
-                status=AgentTraceStatus.WAITING,
-                safe_input={"approval_cycle": approval_cycle},
-                safe_output={"operation_status": status},
-            )
             run_status = AgentRunStatus.AWAITING_HUMAN
-        elif status == "completed":
+        elif status in {"completed", "rejected", "aborted", "expired"}:
             run_status = AgentRunStatus.COMPLETED
         elif status == "failed":
             run_status = AgentRunStatus.FAILED
@@ -330,6 +322,60 @@ class TraceRecorder:
                     "approver_id": approval.get("approver_id"),
                 },
             )
+        if verification is not None:
+            decision = str(verification.get("decision", "unknown"))
+            route = verification_route or "unknown"
+            verification_cycle = (
+                max(1, approval_cycle - 1) if status == "needs_reapproval" else approval_cycle
+            )
+            await self._append(
+                run_id,
+                semantic_key=f"model:verification:{verification_cycle}",
+                event_type=AgentTraceEventType.MODEL,
+                actor_type=AgentTraceActor.MODEL,
+                node="verify_current_facts",
+                safe_input={"approval_cycle": verification_cycle},
+                safe_output={
+                    "decision": decision,
+                    "route": route,
+                    "summary": "批准后已绕过缓存重新取证并完成 Verifier 复核。",
+                },
+                prompt_ref="verifier:v1",
+            )
+            await self._append(
+                run_id,
+                semantic_key=f"guardrail:binding_verification:{verification_cycle}",
+                event_type=AgentTraceEventType.GUARDRAIL,
+                actor_type=AgentTraceActor.POLICY,
+                node="verify_approval_binding",
+                status=(
+                    AgentTraceStatus.COMPLETED if route == "proceed" else AgentTraceStatus.BLOCKED
+                ),
+                safe_input={
+                    "approval_cycle": verification_cycle,
+                    "verifier_decision": decision,
+                },
+                safe_output={
+                    "binding_valid": route == "proceed",
+                    "route": route,
+                    "summary": (
+                        "审批绑定与最新事实一致。允许进入幂等写入。"
+                        if route == "proceed"
+                        else "最新事实未通过执行护栏。已阻止直接写入。"
+                    ),
+                },
+            )
+        if status in {"awaiting_approval", "needs_reapproval"}:
+            await self._append(
+                run_id,
+                semantic_key=f"human:approval_requested:{approval_cycle}",
+                event_type=AgentTraceEventType.HUMAN,
+                actor_type=AgentTraceActor.HUMAN,
+                node="request_approval",
+                status=AgentTraceStatus.WAITING,
+                safe_input={"approval_cycle": approval_cycle},
+                safe_output={"operation_status": status},
+            )
         if status == "completed":
             await self._append(
                 run_id,
@@ -343,7 +389,7 @@ class TraceRecorder:
                     "result_outcome": result.get("outcome") if result is not None else None,
                 },
             )
-        if status in {"completed", "failed"}:
+        if status in {"completed", "rejected", "aborted", "expired", "failed"}:
             await self._append(
                 run_id,
                 semantic_key="feedback:operation_terminal",
@@ -351,7 +397,7 @@ class TraceRecorder:
                 actor_type=AgentTraceActor.SYSTEM,
                 node="operation_terminal",
                 status=(
-                    AgentTraceStatus.COMPLETED if status == "completed" else AgentTraceStatus.FAILED
+                    AgentTraceStatus.FAILED if status == "failed" else AgentTraceStatus.COMPLETED
                 ),
                 safe_input={},
                 safe_output={"operation_status": status},

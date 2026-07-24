@@ -150,3 +150,56 @@ it("loads the redacted Agent Trace snapshot with the current role token", async 
     headers: { Authorization: "Bearer memory-only" }
   });
 });
+
+it("preserves a safe backend error envelope as an actionable ApiError", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(
+    new Response(JSON.stringify({ code: "approval_expired", message: "审批已过期。" }), {
+      status: 409,
+      headers: { "content-type": "application/json" }
+    })
+  );
+  vi.stubGlobal("fetch", fetchMock);
+  const client = new ApiClient(() => "Bearer memory-only");
+
+  const promise = client.submitApproval("operation-1", {
+    scenario: "inventory",
+    subject_evidence_id: "inventory-evidence",
+    policy_evidence_id: "policy-evidence",
+    rule_version: "rule-v1",
+    decision_facts_hash: "facts-hash",
+    plan_hash: "plan-hash",
+    parameters: { kind: "replenishment", recommended_quantity: 18 }
+  }, "approved");
+
+  await expect(promise).rejects.toEqual(expect.objectContaining({
+    name: "ApiError",
+    status: 409,
+    code: "approval_expired",
+    userMessage: "审批已过期。请由 operator 创建新的处置后再审批。"
+  }));
+});
+
+it("does not expose an unmapped backend message to the user", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(
+    new Response(
+      JSON.stringify({
+        code: "unexpected_backend_failure",
+        message: "Traceback: private provider detail"
+      }),
+      { status: 500, headers: { "content-type": "application/json" } }
+    )
+  );
+  vi.stubGlobal("fetch", fetchMock);
+  const client = new ApiClient(() => "Bearer memory-only");
+
+  const promise = client.getOperation("operation-1");
+
+  await expect(promise).rejects.toEqual(expect.objectContaining({
+    name: "ApiError",
+    status: 500,
+    code: "unexpected_backend_failure",
+    message: "服务返回了无法识别的安全错误响应。（HTTP 500）",
+    userMessage: "服务返回了无法识别的安全错误响应。（HTTP 500）"
+  }));
+  await expect(promise).rejects.not.toThrow(/private provider detail/);
+});
