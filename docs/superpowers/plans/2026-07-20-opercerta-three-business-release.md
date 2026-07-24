@@ -624,9 +624,9 @@ git commit -m "test: verify three-business release contracts"
 - Create after real execution: `docs/release-evidence/performance-cache-matrix.md`
 - Create: `deploy/Caddyfile`
 - Create: `compose.release.yaml`
-- Create: `docs/learning/OperCerta核心技术手册.md`
-- Create: `docs/learning/OperCerta手动实验手册.md`
-- Create: `docs/learning/OperCerta面试讲解.md`
+- Create: `docs/learning/opercerta-core-technical-guide.md`
+- Create: `docs/learning/opercerta-manual-experiment-guide.md`
+- Create: `docs/learning/opercerta-interview-guide.md`
 - Modify: `docs/development-log/interview-casebook.md`
 - Modify: `docs/development-log/learning-method.md`
 - Modify: `docs/demo-script.md`
@@ -656,8 +656,8 @@ def test_release_assets_keep_internal_services_private() -> None:
         assert "ports" not in compose["services"][service]
 
 def test_learning_pack_covers_manual_failure_and_interview_explanation() -> None:
-    manual = Path("docs/learning/OperCerta手动实验手册.md").read_text(encoding="utf-8")
-    interview = Path("docs/learning/OperCerta面试讲解.md").read_text(encoding="utf-8")
+    manual = Path("docs/learning/opercerta-manual-experiment-guide.md").read_text(encoding="utf-8")
+    interview = Path("docs/learning/opercerta-interview-guide.md").read_text(encoding="utf-8")
     assert "docker compose stop mcp" in manual
     assert "exactly-once" in interview
 ```

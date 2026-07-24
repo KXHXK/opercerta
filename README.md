@@ -35,7 +35,7 @@ OperCerta 是面向库存异常、设备告警和运营工单的智能运营处�
 - 用户授权的 Moonshot AI `kimi-k2.6` 代表性验证：三业务各 1 条 query 与 1 条批准路径，共 6 个 operation、3 条真实模型解释路径；报告不保存模型原文，token/成本因 adapter 未暴露 usage 而明确标记不可用。
 - 零成本展示门禁：前端 16 个测试文件/40 条测试、后端 430 条测试、Ruff、138 文件格式、mypy 62 个源码文件和仓库安全检查全部通过；Mock release Compose 从全新卷启动并完成 API/MCP 重启恢复；1440/768/390 三档浏览器检查无项目固定模块、横向溢出、坏图或控制台告警；新版专题和作品集已经两阶段 Netlify 发布并完成生产 HTTP/浏览器核验。
 
-三业务评测、Compose 与缓存证据见 [三业务发布前证据](docs/release-evidence/three-business-evaluation-compose.md)，真实模型结果见[真实模型代表性验证](docs/release-evidence/real-model-representative-validation.md)，可靠性内核与历史库存切片证据保留在 `docs/release-evidence/`。中文学习入口为 [核心技术手册](docs/learning/OperCerta核心技术手册.md)、[手动实验手册](docs/learning/OperCerta手动实验手册.md)和[面试讲解](docs/learning/OperCerta面试讲解.md)。这些不是生产 IAM、交互 HTTPS 后端或公开 API 完成声明。
+三业务评测、Compose 与缓存证据见 [三业务发布前证据](docs/release-evidence/three-business-evaluation-compose.md)，真实模型结果见[真实模型代表性验证](docs/release-evidence/real-model-representative-validation.md)，可靠性内核与历史库存切片证据保留在 `docs/release-evidence/`。中文学习入口为 [核心技术手册](docs/learning/opercerta-core-technical-guide.md)、[手动实验手册](docs/learning/opercerta-manual-experiment-guide.md)和[面试讲解](docs/learning/opercerta-interview-guide.md)。这些不是生产 IAM、交互 HTTPS 后端或公开 API 完成声明。
 
 ## 下一实施边界
 
@@ -48,7 +48,7 @@ OperCerta 是面向库存异常、设备告警和运营工单的智能运营处�
 按以下顺序阅读并实施：
 
 1. [AI Agent 四项目命名设计规格](docs/specs/2026-07-14-agent-project-naming-design.md)
-2. [AI Agent 四项目总体设计规格](docs/specs/AI_Agent四项目总体设计规格.md)
+2. [AI Agent 四项目总体设计规格](docs/specs/ai-agent-portfolio-overall-design.md)
 3. [AI Agent 四项目作品集组合设计](docs/specs/2026-07-14-agent-portfolio-design.md)
 4. [OperCerta 详细设计](docs/specs/2026-07-14-opercerta-design.md)
 

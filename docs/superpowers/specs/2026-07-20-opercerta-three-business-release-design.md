@@ -170,9 +170,9 @@ GitHub Actions 继续执行仓库安全、Python 静态检查、PostgreSQL 完�
 
 代码完成只是第一阶段。OperCerta 在开始 ForenTrail 前必须形成以简体中文为主、保留原生专业名词的学习包：
 
-- `docs/learning/OperCerta核心技术手册.md`：按请求数据流解释 Python、Pydantic、FastAPI、LangGraph、MCP/FastMCP、PostgreSQL、Redis、React/SSE、OpenTelemetry、Docker Compose、WSL2、Git 和 GitHub Actions；每项说明为什么需要、删除后失去什么、替代方案和当前限制。
-- `docs/learning/OperCerta手动实验手册.md`：从 WSL2 启动环境、运行测试、执行三业务、提交审批、查询数据库、重启服务、观察恢复、制造 Redis/MCP/模型故障到清理环境的逐步命令与预期现象。
-- `docs/learning/OperCerta面试讲解.md`：30 秒项目定位、3 分钟业务演示、10 分钟架构讲解、核心追问、真实故障案例和不能夸大的边界。
+- `docs/learning/opercerta-core-technical-guide.md`：按请求数据流解释 Python、Pydantic、FastAPI、LangGraph、MCP/FastMCP、PostgreSQL、Redis、React/SSE、OpenTelemetry、Docker Compose、WSL2、Git 和 GitHub Actions；每项说明为什么需要、删除后失去什么、替代方案和当前限制。
+- `docs/learning/opercerta-manual-experiment-guide.md`：从 WSL2 启动环境、运行测试、执行三业务、提交审批、查询数据库、重启服务、观察恢复、制造 Redis/MCP/模型故障到清理环境的逐步命令与预期现象。
+- `docs/learning/opercerta-interview-guide.md`：30 秒项目定位、3 分钟业务演示、10 分钟架构讲解、核心追问、真实故障案例和不能夸大的边界。
 - 更新 `docs/development-log/interview-casebook.md`：持续记录实施中真实出现的问题、根因、错误尝试、修复和验证。
 
 掌握标准不是“读过文档”或“复制过命令”，而是用户能够完成以下闭环：

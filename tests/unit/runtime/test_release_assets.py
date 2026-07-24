@@ -76,9 +76,9 @@ def test_real_model_smoke_loads_ignored_config_and_limits_the_representative_set
 
 
 def test_learning_pack_covers_three_business_manual_failure_and_interview_explanation() -> None:
-    handbook = (ROOT / "docs" / "learning" / "OperCerta核心技术手册.md").read_text(encoding="utf-8")
-    manual = (ROOT / "docs" / "learning" / "OperCerta手动实验手册.md").read_text(encoding="utf-8")
-    interview = (ROOT / "docs" / "learning" / "OperCerta面试讲解.md").read_text(encoding="utf-8")
+    handbook = (ROOT / "docs" / "learning" / "opercerta-core-technical-guide.md").read_text(encoding="utf-8")
+    manual = (ROOT / "docs" / "learning" / "opercerta-manual-experiment-guide.md").read_text(encoding="utf-8")
+    interview = (ROOT / "docs" / "learning" / "opercerta-interview-guide.md").read_text(encoding="utf-8")
 
     for scenario in ("库存补货", "设备维修", "作业异常恢复"):
         assert scenario in handbook

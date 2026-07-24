@@ -1966,7 +1966,7 @@ Next project permitted: no
 
 - [x] **Step 6: Synchronize repository and learning records**
 
-Update README, index, handoff, current state and daily log with actual commits and commands. Append relevant user questions and interview explanations to `C:\Users\Administrator\Desktop\agent术语.md` without adding the desktop file to Git.
+Update README, index, handoff, current state and daily log with actual commits and commands. Keep any personal interview notes in a private local file outside the repository.
 
 Do not mark future equipment, frontend, model or release work complete.
 
