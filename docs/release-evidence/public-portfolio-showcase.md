@@ -1,5 +1,16 @@
 # OperCerta 公开专题部署证据
 
+## 2026-07-27 单根 Agent 版本生产替换
+
+- 对应源码合并提交：`609f8f7dcbfbadb9d12f4371cf49815d48884a4e`；PR：[KXHXK/opercerta#8](https://github.com/KXHXK/opercerta/pull/8)。
+- 发布前本地契约：4 个发布相关测试文件、21 条测试通过；TypeScript/Vite production build 成功。
+- Preview deploy：`6a660a8f77aa692302ad00aa`；浏览器真实读取到三业务、受控 Agent 链路、可靠性证据与诚实边界。
+- Production deploy：`6a6631d24958714a43ddc508`；生产 URL：<https://opercerta-kxh.netlify.app>；[部署日志](https://app.netlify.com/projects/opercerta-kxh/deploys/6a6631d24958714a43ddc508)。
+- `GET /`、`GET /console`、独立 deploy 根页和 `GET /api/v1/auth/demo-token` 均返回 `200 text/html`，共同证明静态 SPA 可访问且没有伪装公开 API。
+- 线上 JS：`index-Ckvsq13U.js`；SHA-256：`dcd31a4d6e1c53f06c1a16cc6fb65f7f5d347926a078dc56fe08606c8052abb1`，与发布前本地候选完全一致。
+- 回滚目标：上一 production deploy `6a5e0bb5563acf4706a09c0d`。Netlify 保留不可变 deploy URL，无需改写 Git 历史。
+- 能力边界：本轮只替换公开静态专题；没有发布 FastAPI、LangGraph、MCP、PostgreSQL、Redis 或模型密钥，也没有把静态回退描述成业务接口。
+
 **核验日期：** 2026-07-18
 
 **证据范围：** 本地 WSL2 Ubuntu、Docker Compose、Vite 控制台、合成库存数据，以及 Netlify 静态生产部署

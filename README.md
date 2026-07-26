@@ -14,7 +14,7 @@ and audit-focused observability in a reproducible reference implementation.
 
 OperCerta 是面向库存异常、设备告警和运营工单的智能运营处置 Agent 独立作品仓库。
 
-> 当前状态：库存补货、设备维修、作业异常恢复三条 FastAPI + LangGraph + 最小 LangChain + FastMCP + PostgreSQL/pgvector 闭环、演示 JWT/RBAC、Agent Trace、本地 React 控制台和真实 FastEmbed RAG 已有自动化证据。Task 10 历史完整门禁为后端 567 条、前端 46 条、冻结 Agent 轨迹评测 9/9，以及 Compose 三业务/RAG/API-MCP 重启恢复；本轮已修复 Kimi replan 重复工具和 provider 异常 operation 原子收口，新鲜本地回归为 unit 352 条、关键 Agent 图集成 7 条，Draft PR run `29946792369` 完整后端 573 条、三业务评测与 Agent 评测 9/9 通过。Moonshot AI `kimi-k2.6` 完整 Compose 代表验证仍因外部依赖 30 秒有界超时返回安全 503，未回退 Mock 冒充成功。[Draft PR #8](https://github.com/KXHXK/opercerta/pull/8) 的快速 Actions 已全绿，review 与 main-only Compose 尚待完成。新版[零成本静态项目专题](https://opercerta-kxh.netlify.app)和[单页作品集](https://kxh-agent-portfolio.netlify.app)可只读访问；公开页面不提供后端写入口。生产身份、交互 HTTPS 后端、自动部署和公开 API 尚未完成，生产发布门禁：`CLOSED`。
+> 当前状态：库存补货、设备维修、作业异常恢复三条 FastAPI + 单根 LangGraph + 最小 LangChain + FastMCP + PostgreSQL/pgvector 闭环、演示 JWT/RBAC、Agent Trace、本地 React 控制台、Redis 只读证据缓存和真实 FastEmbed RAG 已有自动化证据。少量 Moonshot AI `kimi-k2.6` 代表验证覆盖三业务只读、库存批准写入和无效 provider fail-closed，未回退 Mock 冒充成功。[PR #8](https://github.com/KXHXK/opercerta/pull/8) 已合并为 `609f8f7`，对应 [main CI](https://github.com/KXHXK/opercerta/actions/runs/30203438564) 的仓库安全、Python 质量、完整后端、前端和 Compose 重启恢复全部通过。新版[零成本静态项目专题](https://opercerta-kxh.netlify.app)已于 2026-07-27 发布 deploy `6a6631d24958714a43ddc508`，[单页作品集](https://kxh-agent-portfolio.netlify.app)继续可只读访问；公开页面不提供后端写入口。生产身份、交互 HTTPS 后端、自动部署和公开 API 尚未完成，生产发布门禁：`CLOSED`。
 
 ## 当前已验证范围
 
@@ -40,7 +40,7 @@ OperCerta 是面向库存异常、设备告警和运营工单的智能运营处�
 
 ## 下一实施边界
 
-下一阶段仍只实施 OperCerta。重复工具规划与异常 operation 原子收口已完成并通过 Draft PR 快速 Actions，本地测试数据库密码也已轮换并用 Windows 原生 `psql` 安全验证；下一步完成用户手动演示/口述掌握检查和 PR 合并审批，再执行 main Compose。之后才决定是否建设公网可写 HTTPS 后端。生产 IAM、限流/防滥用、备份、高可用、自动部署和 Release Tag 仍待完成。生产发布门禁为 `CLOSED`，关闭前不启动其他项目。
+下一阶段仍只实施 OperCerta。单根 Agent 纠偏已经合并，main Compose 和新版静态专题生产发布均已通过；下一步完成用户手动演示、源码讲解与口述掌握检查，再整理 Release Tag、简历话术和五分钟演示材料。是否建设公网可写 HTTPS 后端仍需单独选择托管环境并审批成本与安全治理。生产 IAM、限流/防滥用、备份、高可用、自动部署和正式 Release Tag 仍待完成。生产发布门禁为 `CLOSED`，关闭前不启动其他项目。
 
 三业务收口规格与八项 TDD 主计划见 [设计](docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md)和[计划](docs/superpowers/plans/2026-07-20-opercerta-three-business-release.md)。历史库存切片设计仍作为可靠性内核演进记录保留。
 

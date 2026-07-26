@@ -2,6 +2,8 @@
 
 ## 当前检查点
 
+- 2026-07-27：[PR #8](https://github.com/KXHXK/opercerta/pull/8) 已合并为 `609f8f7`；[main run 30203438564](https://github.com/KXHXK/opercerta/actions/runs/30203438564) 五项门禁全绿，包含完整后端、三业务/Agent 评测和实际 Compose 重启恢复。新版静态专题已从 preview `6a660a8f77aa692302ad00aa` 提升为 production deploy `6a6631d24958714a43ddc508`，线上资源 `index-Ckvsq13U.js` 的 SHA-256 与本地产物一致；上一 production `6a5e0bb5563acf4706a09c0d` 是回滚点。公开站点仍无可写 API；生产 IAM、公网后端、限流、备份、高可用、自动部署和 Release Tag 未完成，门禁 `CLOSED`。下一步进入用户手动演示、源码讲解与面试掌握验收，不启动 ForenTrail。
+
 - 2026-07-26 单根 Agent Loop 与业务对象 case 工作台 Task 0–11 已在本地完成。production runtime 仅构造一个根 LangGraph，三业务共享 Model↔MCP Observation 循环、确定性 Policy、HITL、批准后刷新、Kimi Verifier、binding、幂等写入与 readback；历史图只用于回归/等价测试。最终单元 `395 passed`，受影响隔离 PostgreSQL 集成 `32 passed`；Task 9 完整集成 `260 passed`，前端 19 文件 `60 passed` 且 build，Ruff/format/Mypy（85 个源文件）和仓库安全通过；隔离 Compose 三业务、RAG、数据库和 API/MCP 重启恢复通过。少量真实 Moonshot `kimi-k2.6` 的三业务只读、库存批准写入和无效 provider fail-closed 已通过，修复模型/MCP timeout 耦合、thinking/tool-call 不兼容和 Final/Verifier structured output 波动。证据见 `docs/release-evidence/single-root-agent-loop-case-workspace.md`，事故见 `docs/development-log/incidents/2026-07-26-kimi-tool-loop-compatibility.md`。所有修改尚未 commit/push/merge；公网可写后端与生产 IAM/限流/备份/自动发布仍未完成，门禁 `CLOSED`，不启动 ForenTrail。
 
 - 2026-07-24 已继续收口两项端到端语义：未知后端错误使用固定安全 fallback，不向界面传播原始消息；审批写入成功而后置刷新失败时，UI 保留已提交事实、禁用重复决定并引导 auditor 读取。新鲜门禁为前端 `53 passed` + production build、unit `356 passed`、一次性 pgvector 测试库完整后端 `579 passed in 376.68s`、Ruff/189 文件格式/Mypy 76 个源文件/114 包锁定/仓库安全全绿，以及 Mock release Compose 三业务、Verifier 顺序、数据库事实和 API/MCP 重启恢复退出码 0。Windows `.env.local` 所指测试库未运行且旧凭据在失败 traceback 中再次回显，恢复该库前必须轮换并同步 ignored 配置。本轮修改仍未 commit/push；下一步停在用户审批原子提交，Real Kimi、PR 合并、main Compose 与生产发布未执行，门禁保持 `CLOSED`。

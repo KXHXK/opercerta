@@ -1,5 +1,14 @@
 # GitHub Actions 分层 CI：远程验证证据
 
+## 2026-07-27 PR #8 与 main 单根 Agent 总门禁
+
+- [PR #8](https://github.com/KXHXK/opercerta/pull/8) head `d22d247db2329f81f927866dde4ff3f59d5a2f8d` 在合并前状态为 `CLEAN`；PR run [30201946098](https://github.com/KXHXK/opercerta/actions/runs/30201946098) 的 `repository-safety`、`python-quality`、`backend-tests`、`frontend` 全部成功，`compose-smoke` 按 PR 条件跳过。
+- PR 以 merge commit `609f8f7dcbfbadb9d12f4371cf49815d48884a4e` 合入 `main`。
+- 对应 main push run [30203438564](https://github.com/KXHXK/opercerta/actions/runs/30203438564) 结论为 `success`；`repository-safety`、`python-quality`、`backend-tests`、`frontend`、`compose-smoke` 五个 job 全部成功。
+- `backend-tests` 实际依次通过完整后端、三业务契约评测和冻结 Agent 安全/恢复评测。
+- `compose-smoke` 实际依次通过隔离环境创建、服务构建启动、Agent 轨迹与数据库副作用验证、API/MCP 重启、重启后 Agent 恢复和无条件资源清理。失败诊断步骤因总流程成功而按条件跳过。
+- 以上是 GitHub Actions 新鲜远程事实，不用历史 run 或本地结果替代；它证明合并提交的单节点 CI/Compose 发布候选门禁，不代表生产高可用或公网写服务。
+
 ## 范围与仓库可见性
 
 - 核验时间：2026-07-18（Asia/Shanghai）。
