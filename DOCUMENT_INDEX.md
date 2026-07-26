@@ -1,16 +1,16 @@
 # OperCerta 文档总索引
 
-本索引分别登记 OperCerta 根工作树和 6 个 .worktrees/ 工作树中的项目 Markdown 文档，共 544 份。每个工作树使用独立表格和独立序号；路径均相对于仓库根目录；日期表示文档首次建立日期。Git 元数据、依赖目录、虚拟环境和工具缓存不属于项目文档登记范围。
+本索引分别登记 OperCerta 根工作树和 6 个 .worktrees/ 工作树中的项目 Markdown 文档，共 546 份。每个工作树使用独立表格和独立序号；路径均相对于仓库根目录；日期表示文档首次建立日期。Git 元数据、依赖目录、虚拟环境和工具缓存不属于项目文档登记范围。
 
-## 根工作树（89 份）
+## 根工作树（90 份）
 
 | 序号 | 文件名 | 路径 | 用途（详细） | 状态 | 日期 |
 | ---: | --- | --- | --- | --- | --- |
 | 1 | `README.md` | `README.md` | 项目总入口，说明三业务场景、核心技术栈、运行方式、演示边界、学习入口和发布门禁，供开发者、审阅者与面试官快速了解 OperCerta。 | 已同步三业务、本地发布候选、学习入口与剩余门禁 | 2026-07-14 |
 | 2 | `IMPLEMENTATION_HANDOFF.md` | `IMPLEMENTATION_HANDOFF.md` | 跨对话和上下文压缩后的实施交接文件，记录当前分支、已验证事实、未完成事项、下一步动作及禁止越过的发布边界。 | 已同步真实模型验证与公网发布下一边界 | 2026-07-14 |
-| 3 | `DOCUMENT_INDEX.md` | `DOCUMENT_INDEX.md` | OperCerta 全部项目文档的唯一总登记表，用于按文件名、路径、用途、状态和日期统一检索、复查与交接。 | 已按根工作树与 6 个 worktree 独立分表登记；总计 544 份项目 Markdown，排除依赖、虚拟环境和工具缓存 | 2026-07-15 |
+| 3 | `DOCUMENT_INDEX.md` | `DOCUMENT_INDEX.md` | OperCerta 全部项目文档的唯一总登记表，用于按文件名、路径、用途、状态和日期统一检索、复查与交接。 | 已按根工作树与 6 个 worktree 独立分表登记；总计 546 份项目 Markdown，排除依赖、虚拟环境和工具缓存 | 2026-07-15 |
 | 4 | `2026-07-14-agent-project-naming-design.md` | `docs/specs/2026-07-14-agent-project-naming-design.md` | 定义 OperCerta、ForenTrail、SiteVerum、Federune 四个项目的命名原则、语义边界与品牌一致性，防止项目职责和名称漂移。 | 已冻结为命名基线 | 2026-07-14 |
-| 5 | `ai-agent-portfolio-overall-design.md` | `docs/specs/ai-agent-portfolio-overall-design.md` | 规定四个 AI Agent 项目的整体定位、差异化业务范围、技术能力组合、实施顺序和共同约束，是项目组合的最高层设计依据。 | 已冻结为总体设计基线；文件路径已英文化 | 2026-07-14 |
+| 5 | `AI_Agent四项目总体设计规格.md` | `docs/specs/AI_Agent四项目总体设计规格.md` | 规定四个 AI Agent 项目的整体定位、差异化业务范围、技术能力组合、实施顺序和共同约束，是项目组合的最高层设计依据。 | 已冻结为总体设计基线 | 2026-07-14 |
 | 6 | `2026-07-14-agent-portfolio-design.md` | `docs/specs/2026-07-14-agent-portfolio-design.md` | 设计四项目如何组合成求职作品集，包括能力覆盖、展示顺序、共享基础设施边界和避免重复建设的原则。 | 已冻结为组合设计基线 | 2026-07-14 |
 | 7 | `2026-07-14-opercerta-design.md` | `docs/specs/2026-07-14-opercerta-design.md` | OperCerta 原始详细设计，定义业务对象、审批与工单闭环、可靠性要求、技术架构、交付范围和发布门禁，是后续规格审查的基准。 | 已冻结为 OperCerta 详细设计基线 | 2026-07-14 |
 | 8 | `2026-07-15-approval-domain-contract-design.md` | `docs/superpowers/specs/2026-07-15-approval-domain-contract-design.md` | 规定审批请求、业务事实绑定、审批状态转换、并发竞态处理和数据库原子性，防止重复审批或审批旧事实。 | 已确认并实施 | 2026-07-15 |
@@ -62,9 +62,9 @@
 | 54 | `2026-07-16-risk-based-review-and-progress-control.md` | `docs/development-log/decisions/2026-07-16-risk-based-review-and-progress-control.md` | 规定风险分级复核、进度百分比口径、关键节点审批和优先完成纵向业务闭环的项目控制方法。 | 已采用 | 2026-07-16 |
 | 55 | `interview-casebook.md` | `docs/development-log/interview-casebook.md` | 将真实实施问题整理为面试案例，按现象、根因、诊断、修复、验证和经验总结记录可讨论的工程话题。 | 已记录稳定哈希、路由、代理响应等案例并持续扩充 | 2026-07-17 |
 | 56 | `learning-method.md` | `docs/development-log/learning-method.md` | 规定源码阅读、手动命令、单变量实验、复述、故障演练和面试问答结合的项目掌握方法。 | 已加入三业务学习与手动闭环建议；需持续实践 | 2026-07-17 |
-| 57 | `opercerta-core-technical-guide.md` | `docs/learning/opercerta-core-technical-guide.md` | 从一次业务请求出发解释 FastAPI、LangGraph、MCP、PostgreSQL、审批、幂等、恢复、容器和可观测性的代码链路与底层思想。 | 本地学习材料已完成；文件路径已英文化，需结合源码实践 | 2026-07-20 |
-| 58 | `opercerta-manual-experiment-guide.md` | `docs/learning/opercerta-manual-experiment-guide.md` | 提供 WSL2/Compose 启停、三业务操作、数据库核对、MCP 调用、故障注入和恢复验证的可复制命令与观察点。 | 已记录命令；文件路径已英文化，用户掌握检查进行中 | 2026-07-20 |
-| 59 | `opercerta-interview-guide.md` | `docs/learning/opercerta-interview-guide.md` | 提供 30 秒、3 分钟、10 分钟项目介绍、架构解释、技术取舍、可靠性证据和常见追问回答框架。 | 材料已完成；文件路径已英文化，需口述演练和源码补强 | 2026-07-20 |
+| 57 | `OperCerta核心技术手册.md` | `docs/learning/OperCerta核心技术手册.md` | 从一次业务请求出发解释 FastAPI、LangGraph、MCP、PostgreSQL、审批、幂等、恢复、容器和可观测性的代码链路与底层思想。 | 本地学习材料已完成；需结合源码实践 | 2026-07-20 |
+| 58 | `OperCerta手动实验手册.md` | `docs/learning/OperCerta手动实验手册.md` | 提供 WSL2/Compose 启停、三业务操作、数据库核对、MCP 调用、故障注入和恢复验证的可复制命令与观察点。 | 已记录命令；用户掌握检查进行中 | 2026-07-20 |
+| 59 | `OperCerta面试讲解.md` | `docs/learning/OperCerta面试讲解.md` | 提供 30 秒、3 分钟、10 分钟项目介绍、架构解释、技术取舍、可靠性证据和常见追问回答框架。 | 材料已完成；需口述演练和基于源码补强 | 2026-07-20 |
 | 60 | `demo-script.md` | `docs/demo-script.md` | 规定面向 HR 与面试官的展示顺序、演示前检查、业务闭环操作、异常备用方案和诚实边界。 | 静态展示脚本可用；本地三业务演示需按环境复验 | 2026-07-18 |
 | 61 | `approval-atomicity.md` | `docs/release-evidence/approval-atomicity.md` | 保存 PostgreSQL 迁移、审批原子更新、并发批准竞态和业务事实绑定的实际测试命令与结果。 | 本地证据已归档；不代表生产发布 | 2026-07-15 |
 | 62 | `cache-tracing-model-adapter.md` | `docs/release-evidence/cache-tracing-model-adapter.md` | 保存 Redis 只读缓存、审批后绕过、OpenTelemetry 脱敏关联、严格真实模型适配器及未验证边界的阶段证据。 | 阶段证据已归档；真实模型另有独立证据 | 2026-07-20 |
@@ -95,6 +95,7 @@
 | 87 | `task-2-report.md` | `.superpowers/sdd/task-2-report.md` | Task 2 实现报告，记录迁移升降级、原子 Repository、并发一致性、审查修复、数据库回归和最终静态门禁。 | 历史 SDD 实施证据；Task 2 已完成 | 2026-07-16 |
 | 88 | `2026-07-25.md` | `docs/development-log/daily/2026-07-25.md` | 记录掌握检查第 1 关、本地端口排障、异常 signal 收件箱、三类规则发现、PowerShell UUID 422、首屏 JWT/历史信号修复，以及后续历史 signal/operation 启动对账、successor lineage、PostgreSQL 约束名限制、十路重试竞态、Compose 重启和浏览器谱系验证全过程。 | 异常信号、历史对账与后继调查本地门禁通过；新 operation 等待人工审批；未调用本轮 Real Kimi，未 commit/push，生产门禁保持 CLOSED | 2026-07-25 |
 | 89 | `2026-07-26.md` | `docs/development-log/daily/2026-07-26.md` | 记录单根 Agent Loop 纠偏从设计审计到 Task 0–11 的完整实施，覆盖 Agent 回合、统一 Observation、三业务策略、case 工作台、默认运行时、Mock/Compose 门禁、真实 Kimi 兼容故障与文档收口。 | Task 0–11 本地完成；未 commit/push/merge 或公开交互部署；生产门禁保持 CLOSED | 2026-07-26 |
+| 90 | `2026-07-27.md` | `docs/development-log/daily/2026-07-27.md` | 记录 PR #8 合并、main 五项远程门禁、Netlify Preview/Production 两阶段发布、线上资源指纹、静态 API 回退边界、回滚点和下一学习验收任务。 | 静态专题 production deploy `6a6631d24958714a43ddc508` 已通过；公网可写后端未发布，生产门禁保持 CLOSED | 2026-07-27 |
 
 ## Worktree：agent-core-architecture（82 份）
 
@@ -183,7 +184,7 @@
 | 81 | `IMPLEMENTATION_HANDOFF.md` | `.worktrees/agent-core-architecture/IMPLEMENTATION_HANDOFF.md` | 跨对话和上下文压缩后的实施交接文件，记录当前分支、已验证事实、未完成事项、下一步动作及禁止越过的发布边界。（本行登记 agent-core-architecture worktree 中的独立物理文件。） | worktree 分支版本，与根工作树文档存在差异；所属分支：agent-core-architecture | 2026-07-14 |
 | 82 | `README.md` | `.worktrees/agent-core-architecture/README.md` | 项目总入口，说明三业务场景、核心技术栈、运行方式、演示边界、学习入口和发布门禁，供开发者、审阅者与面试官快速了解 OperCerta。（本行登记 agent-core-architecture worktree 中的独立物理文件。） | worktree 分支版本，与根工作树文档存在差异；所属分支：agent-core-architecture | 2026-07-14 |
 
-## Worktree：agent-core-implementation（111 份）
+## Worktree：agent-core-implementation（112 份）
 
 | 序号 | 文件名 | 路径 | 用途（详细） | 状态 | 日期 |
 | ---: | --- | --- | --- | --- | --- |
@@ -298,6 +299,7 @@
 | 109 | `single-root-agent-loop-case-workspace.md` | `.worktrees/agent-core-implementation/docs/release-evidence/single-root-agent-loop-case-workspace.md` | 汇总单根生产入口、三业务新旧等价、后端/前端/静态/Compose 门禁、真实 Kimi 三查询与库存批准、provider 故障零写入及未上线边界。（本行登记 agent-core-implementation worktree 中的独立物理文件。） | 本地 Mock、Compose 与少量 Real 证据通过；Git 与生产发布待审批；所属分支：agent-core-implementation | 2026-07-26 |
 | 110 | `tool-loop-v1.md` | `.worktrees/agent-core-implementation/src/opercerta/prompts/tool-loop-v1.md` | 单根 Agent 每轮 Model↔Tool Observation 的版本化 Prompt，约束模型只能选择当前只读白名单工具或提交引用完整的 Final Analysis，并禁止写工具、对象漂移和隐藏推理输出。（本行登记 agent-core-implementation worktree 中的独立物理文件。） | 已接入 Mock 与真实模型 adapter 并通过代表验证；所属分支：agent-core-implementation | 2026-07-26 |
 | 111 | `2026-07-26.md` | `.worktrees/agent-core-implementation/docs/development-log/daily/2026-07-26.md` | 完整记录单根 Agent Loop 纠偏 Task 0–11、case 工作台、默认运行时、Mock/Compose/Real Kimi 门禁、provider 兼容事故、最终复验和 Git 发布前边界。（本行登记 agent-core-implementation worktree 中的独立物理文件。） | worktree 新增并已完成当日收口；所属分支：agent-core-implementation | 2026-07-26 |
+| 112 | `2026-07-27.md` | `.worktrees/agent-core-implementation/docs/development-log/daily/2026-07-27.md` | 记录 PR #8 合并、main 五项远程门禁、Netlify Preview/Production 两阶段发布、线上资源指纹、静态 API 回退边界、回滚点和下一学习验收任务。（本行登记 agent-core-implementation worktree 中的独立物理文件。） | 发布证据已固化；当前分支：docs/release-readiness-2026-07-27；生产门禁保持 CLOSED | 2026-07-27 |
 
 ## Worktree：github-actions-gate（56 份）
 

@@ -1,5 +1,13 @@
 # OperCerta 当前状态
 
+## 2026-07-27：PR #8、main Compose 与新版静态专题已发布
+
+单根 Agent Loop 与 case 工作台在 [PR #8](https://github.com/KXHXK/opercerta/pull/8) 合并为 `609f8f7dcbfbadb9d12f4371cf49815d48884a4e`。对应 [main run 30203438564](https://github.com/KXHXK/opercerta/actions/runs/30203438564) 的 `repository-safety`、`python-quality`、`backend-tests`、`frontend`、`compose-smoke` 全部成功；Compose 实际完成容器构建启动、Agent 轨迹与数据库副作用、API/MCP 重启、重启恢复和清理。
+
+已验证静态候选 deploy `6a660a8f77aa692302ad00aa`，随后经用户批准发布 production deploy `6a6631d24958714a43ddc508`：<https://opercerta-kxh.netlify.app>。生产根页、独立 deploy URL、`/console` 与 `/api/v1/auth/demo-token` 均为 `200 text/html`；JS 资源为 `index-Ckvsq13U.js`，线上 SHA-256 `dcd31a4d6e1c53f06c1a16cc6fb65f7f5d347926a078dc56fe08606c8052abb1` 与本地候选一致。`/api/*` 返回静态 SPA HTML 是刻意的无后端边界，不代表 API 上线。上一生产 deploy `6a5e0bb5563acf4706a09c0d` 保留为回滚点。
+
+当前完成的是“公开静态求职专题 + 本地可运行完整业务闭环”，不是公网可写生产系统。生产 IAM、公网 HTTPS API、托管 PostgreSQL/Redis、限流、防滥用、备份、高可用、自动部署和正式 Release Tag 仍未完成，发布门禁继续 `CLOSED`。下一步是用户手动运行与源码掌握验收、面试材料和 Release Tag 决策；未完成前不启动 ForenTrail。
+
 ## 2026-07-26 单根 Agent Loop 架构纠偏已批准，Task 0–3 完成
 
 用户在真实控制台复核中指出：当前 LLM 没有形成“决策 → 工具 → Observation → 再决策”的 Agent 核心循环；LangGraph 调查图、Python 包装器和三个场景图被串联使用，完整 operation 并非由一个根图拥有；Redis 也只包裹旧场景初读，没有进入统一的 MCP Observation 链路。前端同时把 predecessor/successor signal 平铺为主卡片，并用全局详情和 busy 状态驱动交互，造成多卡、串卡和业务谱系失真。
