@@ -1,4 +1,16 @@
-# OperCerta｜智能运营处置 Agent
+# OperCerta | Auditable Operations Agent
+
+OperCerta is a controlled AI operations agent for inventory exceptions,
+equipment alerts, and operational work orders. It combines FastAPI,
+LangGraph, FastMCP, PostgreSQL, approval checkpoints, idempotent tool calls,
+and audit-focused observability in a reproducible reference implementation.
+
+- [Project showcase](https://opercerta-kxh.netlify.app)
+- [Portfolio overview](https://kxh-agent-portfolio.netlify.app)
+- Status: engineering showcase; the public site is read-only and the
+  production release gate remains closed.
+
+## 中文说明
 
 OperCerta 是面向库存异常、设备告警和运营工单的智能运营处置 Agent 独立作品仓库。
 
@@ -24,7 +36,7 @@ OperCerta 是面向库存异常、设备告警和运营工单的智能运营处�
 - 冻结 Agent 轨迹评测 9/9，覆盖非法 schema、提示注入、未知工具、对象漂移、RAG 隔离、批准后事实漂移、审批竞态、幂等写入与关键重启；这不是生产准确率。
 - 零成本展示门禁：前端 16 个测试文件/40 条测试、后端 430 条测试、Ruff、138 文件格式、mypy 62 个源码文件和仓库安全检查全部通过；Mock release Compose 从全新卷启动并完成 API/MCP 重启恢复；1440/768/390 三档浏览器检查无项目固定模块、横向溢出、坏图或控制台告警；新版专题和作品集已经两阶段 Netlify 发布并完成生产 HTTP/浏览器核验。
 
-新 Agent 核心的本地通过项与 Real Kimi 失败边界见 [Agent 核心架构交付证据](docs/release-evidence/agent-core-architecture.md)。旧三业务评测、Compose、缓存与解释型模型证据保留为历史阶段证据，不能替代新架构验证。中文学习入口为 [核心技术手册](docs/learning/OperCerta核心技术手册.md)、[手动实验手册](docs/learning/OperCerta手动实验手册.md)和[面试讲解](docs/learning/OperCerta面试讲解.md)。这些不是生产 IAM、交互 HTTPS 后端或公开 API 完成声明。
+新 Agent 核心的本地通过项与 Real Kimi 失败边界见 [Agent 核心架构交付证据](docs/release-evidence/agent-core-architecture.md)。旧三业务评测、Compose、缓存与解释型模型证据保留为历史阶段证据，不能替代新架构验证。中文学习入口为 [核心技术手册](docs/learning/opercerta-core-technical-guide.md)、[手动实验手册](docs/learning/opercerta-manual-experiment-guide.md)和[面试讲解](docs/learning/opercerta-interview-guide.md)。这些不是生产 IAM、交互 HTTPS 后端或公开 API 完成声明。
 
 ## 下一实施边界
 
@@ -37,7 +49,7 @@ OperCerta 是面向库存异常、设备告警和运营工单的智能运营处�
 按以下顺序阅读并实施：
 
 1. [AI Agent 四项目命名设计规格](docs/specs/2026-07-14-agent-project-naming-design.md)
-2. [AI Agent 四项目总体设计规格](docs/specs/AI_Agent四项目总体设计规格.md)
+2. [AI Agent 四项目总体设计规格](docs/specs/ai-agent-portfolio-overall-design.md)
 3. [AI Agent 四项目作品集组合设计](docs/specs/2026-07-14-agent-portfolio-design.md)
 4. [OperCerta 详细设计](docs/specs/2026-07-14-opercerta-design.md)
 
@@ -47,5 +59,4 @@ OperCerta 是面向库存异常、设备告警和运营工单的智能运营处�
 
 - 本仓库包含从零实现的可靠性内核代码、测试、设计、计划、开发日志、本地证据和公开静态专题；尚不包含可公开写入的完整生产应用。
 - 代码、接口、数据和展示材料均从零实现，只使用公开或合成数据，不复制或依赖任何原单位资产。
-- 性能、准确率、成本和稳定性数字只能引用可复现评测的实测结果；未通过发布门禁前不宣称已经上线。
-- 只完成并发布 OperCerta 后，才开始下一个项目 ForenTrail。
+- 性能、准确率、成本和稳定性数字只能引用可复现评测的实测结果。

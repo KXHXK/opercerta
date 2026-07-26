@@ -199,7 +199,7 @@ Expected: 输出 Task 1 的 `docs: initialize development log` commit 短哈希�
 | `README.md` | 项目概览与使用边界 | 需要随最小纵向闭环同步 | `a0564b1` | 2 |
 | `IMPLEMENTATION_HANDOFF.md` | 会话交接与下一动作 | 需要在 PostgreSQL 环境验证后同步 | `a0564b1` | 3 |
 | `docs/specs/2026-07-14-agent-project-naming-design.md` | 命名设计 | 已冻结基线 | `c7fa618` | 4 |
-| `docs/specs/AI_Agent四项目总体设计规格.md` | 总体设计 | 已冻结基线 | `48d299c` | 5 |
+| `docs/specs/ai-agent-portfolio-overall-design.md` | 总体设计 | 已冻结基线 | `48d299c` | 5 |
 | `docs/specs/2026-07-14-agent-portfolio-design.md` | 组合设计 | 已冻结基线 | `48d299c` | 5 |
 | `docs/specs/2026-07-14-opercerta-design.md` | OperCerta 详细设计 | 已冻结基线 | `48d299c` | 4 |
 | `docs/superpowers/specs/2026-07-15-windows-native-postgres-environment-design.md` | 本机数据库环境决策 | 已确认 | `51c1583` | 4 |

@@ -22,7 +22,7 @@ Agent Task 8 证据：`docs/release-evidence/agent-workspace.md`（有限表单�
 
 新增缓存矩阵独立证据：`docs/release-evidence/performance-cache-matrix.md`（12 格、60 次 query 的实际 MCP/cache hit 与本机延迟，明确小样本不构成生产性能承诺）。
 
-新增中文学习包：`docs/learning/OperCerta核心技术手册.md`、`docs/learning/OperCerta手动实验手册.md`、`docs/learning/OperCerta面试讲解.md`（请求全链路、手动故障实验与 30 秒/3 分钟/10 分钟面试表达）。
+新增中文学习包：`docs/learning/opercerta-core-technical-guide.md`、`docs/learning/opercerta-manual-experiment-guide.md`、`docs/learning/opercerta-interview-guide.md`（请求全链路、手动故障实验与 30 秒/3 分钟/10 分钟面试表达）。
 
 新增阶段证据：`docs/release-evidence/three-business-evaluation-compose.md`（42 条三业务固定评测、Compose 三业务/重启恢复，以及 12 格真实缓存矩阵；明确本机小样本边界）。三业务主计划 Task 7 已执行，Task 8 本地阶段随后完成。
 
@@ -84,7 +84,7 @@ Agent 核心架构阶段证据：`docs/release-evidence/agent-verifier-reapprova
 | `docs/superpowers/plans/2026-07-20-opercerta-zero-cost-showcase-engineering-walkthrough.md` | 零成本展示与工程详解八项 TDD 计划 | Task 1--8 已执行；主线与 Netlify 同步完成 | 本次提交 | 1 |
 | `docs/release-evidence/zero-cost-showcase-engineering-walkthrough.md` | 新版展示、工程详解、Mock Compose、响应式和远程/生产证据 | PR #6、main Compose 与两个 Netlify 生产站已验证 | 本次提交 | 1 |
 | `docs/specs/2026-07-14-agent-project-naming-design.md` | 命名设计 | 已冻结基线 | `c7fa618` | 4 |
-| `docs/specs/AI_Agent四项目总体设计规格.md` | 总体设计 | 已冻结基线 | `48d299c` | 5 |
+| `docs/specs/ai-agent-portfolio-overall-design.md` | 总体设计 | 已冻结基线 | `48d299c` | 5 |
 | `docs/specs/2026-07-14-agent-portfolio-design.md` | 组合设计 | 已冻结基线 | `48d299c` | 5 |
 | `docs/specs/2026-07-14-opercerta-design.md` | OperCerta 详细设计 | 已冻结基线 | `48d299c` | 4 |
 | `docs/superpowers/specs/2026-07-15-windows-native-postgres-environment-design.md` | 本机数据库环境决策 | 已确认 | `51c1583` | 4 |
@@ -120,9 +120,9 @@ Agent 核心架构阶段证据：`docs/release-evidence/agent-verifier-reapprova
 | `docs/development-log/daily/2026-07-24.md` | 前端安全 fallback、审批写入/读取分层、一次性 pgvector 完整门禁和凭据回显复盘 | 本地 579 后端、53 前端及 Mock release Compose 通过；待提交审批 | 本次提交 | 1 |
 | `docs/development-log/audits/2026-07-23-spec-conformance-audit.md` | 四份原始设计、Agent 核心修订与当前实现的偏差矩阵 | 主线对齐；本轮偏差已修，生产扩展待审批 | 本次提交 | 1 |
 | `docs/development-log/learning-method.md` | 学习掌握、单变量实验与面试训练方法 | 已加入三业务学习包和手动闭环建议 | `a3994ef` | 1 |
-| `docs/learning/OperCerta核心技术手册.md` | 一次请求的全技术链路、可靠性设计与技术边界 | 本地学习交付已完成；需用户实践 | `a3994ef` | 1 |
-| `docs/learning/OperCerta手动实验手册.md` | WSL2/Compose/业务/规则/MCP 故障的手动实验 | 命令已记录；用户掌握检查待执行 | `a3994ef` | 1 |
-| `docs/learning/OperCerta面试讲解.md` | 30 秒、3 分钟、10 分钟表达和常见追问 | 材料已完成；需用户口述训练 | `a3994ef` | 1 |
+| `docs/learning/opercerta-core-technical-guide.md` | 一次请求的全技术链路、可靠性设计与技术边界 | 本地学习交付已完成；需用户实践 | `a3994ef` | 1 |
+| `docs/learning/opercerta-manual-experiment-guide.md` | WSL2/Compose/业务/规则/MCP 故障的手动实验 | 命令已记录；用户掌握检查待执行 | `a3994ef` | 1 |
+| `docs/learning/opercerta-interview-guide.md` | 30 秒、3 分钟、10 分钟表达和常见追问 | 材料已完成；需用户口述训练 | `a3994ef` | 1 |
 | `docs/release-evidence/agent-core-architecture.md` | Agent 核心 Task 9 新鲜本地门禁、Mock/Real/RAG 边界与 blocker | replan/异常收口及快速 CI 通过；Real Kimi 完整 Compose、review/main Compose 未完成 | `221fe3d` + 本次提交 | 1 |
 | `docs/development-log/daily/2026-07-15.md` | 当日过程记录 | 已初始化 | `f70411f` | 2 |
 | `docs/development-log/daily/2026-07-16.md` | 当日过程记录 | 已记录库存补货 Task 1–9 实施、调试与验证 | 本次提交 | 2 |

@@ -25,7 +25,7 @@
 - ForenTrail 详细设计：由 forentrail 独立仓库保存，使用 CrewAI Flows 驱动安全事件证据研判。
 - SiteVerum 详细设计：由 siteverum 独立仓库保存，使用 LlamaIndex Workflows 驱动多模态巡检。
 - Federune 详细设计：由 federune 独立仓库保存，使用 PydanticAI 构建受控联邦实验工程平台。
-- 总体设计规格：本仓库副本位于 docs/specs/AI_Agent四项目总体设计规格.md。
+- 总体设计规格：本仓库副本位于 docs/specs/ai-agent-portfolio-overall-design.md。
 
 ## 4. 四项目差异化
 

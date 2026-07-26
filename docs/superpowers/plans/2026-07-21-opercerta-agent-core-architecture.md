@@ -614,9 +614,9 @@ git commit -m "test: gate OperCerta agent trajectories"
 - Modify: `README.md`
 - Modify: `IMPLEMENTATION_HANDOFF.md`
 - Modify: `DOCUMENT_INDEX.md`
-- Modify: `docs/learning/OperCerta核心技术手册.md`
-- Modify: `docs/learning/OperCerta手动实验手册.md`
-- Modify: `docs/learning/OperCerta面试讲解手册.md`
+- Modify: `docs/learning/opercerta-core-technical-guide.md`
+- Modify: `docs/learning/opercerta-manual-experiment-guide.md`
+- Modify: `docs/learning/opercerta-interview-guide.md`
 - Modify/Create: `docs/development-log/daily/*.md`
 - Create only after fresh evidence: `docs/release-evidence/agent-core-architecture.md`
 - Modify: `docs/demo-script.md`
