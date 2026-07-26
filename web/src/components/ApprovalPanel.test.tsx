@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 
+import { ApiError } from "../api/client";
 import { ApprovalPanel } from "./ApprovalPanel";
 
 const binding = {
@@ -30,4 +31,17 @@ it("shows approval only to approver and disables a second decision", async () =>
 
   expect(onDecision).toHaveBeenCalledWith("approved");
   expect(approve).toBeDisabled();
+});
+
+it("shows the actionable safe API error instead of swallowing an expired approval", async () => {
+  const onDecision = vi.fn().mockRejectedValue(
+    new ApiError(409, "approval_expired")
+  );
+  render(<ApprovalPanel role="approver" binding={binding} onDecision={onDecision} />);
+
+  fireEvent.click(screen.getByRole("button", { name: "批准" }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "审批已过期。请由 operator 创建新的处置后再审批。"
+  );
 });

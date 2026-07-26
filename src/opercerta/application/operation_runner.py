@@ -11,7 +11,7 @@ from opercerta.application.approval_expiry import ApprovalExpiryService
 from opercerta.application.scenario_registry import ScenarioRegistry
 from opercerta.domain.approvals import BoundApprovalCommand
 from opercerta.domain.contracts import OperationRequest
-from opercerta.domain.errors import RecoveryStateConflict
+from opercerta.domain.errors import DependencyUnavailable, RecoveryStateConflict
 from opercerta.domain.replenishment import OperationError
 from opercerta.infrastructure.db.approval_repository import ApprovalRepository
 from opercerta.infrastructure.db.operation_repository import OperationRepository
@@ -49,10 +49,28 @@ class OperationRunner:
 
     async def start(self, request: OperationRequest) -> UUID:
         operation_id = await self._operations.create(request)
-        await self._graph.ainvoke(
-            self._initial_state(operation_id, request),
-            config=self._config(operation_id),
-        )
+        try:
+            await self._graph.ainvoke(
+                self._initial_state(operation_id, request),
+                config=self._config(operation_id),
+            )
+        except Exception:
+            try:
+                await self._operations.mark_failed(
+                    operation_id,
+                    OperationError(
+                        code=DependencyUnavailable.code,
+                        message=(
+                            "Operation dependency failed before the workflow reached a safe state."
+                        ),
+                    ),
+                )
+            except Exception:
+                LOGGER.error(
+                    "operation failure transition unavailable",
+                    extra={"operation_id": str(operation_id)},
+                )
+            raise
         return operation_id
 
     async def submit_approval(

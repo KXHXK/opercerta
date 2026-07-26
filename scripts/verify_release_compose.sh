@@ -25,9 +25,9 @@ docker compose up --build -d
 python3 -c "from scripts.verify_compose import wait_for_ready; wait_for_ready(60)"
 
 curl --fail --silent --show-error "${OPERCERTA_API_URL}/" | grep --quiet "OperCerta"
-python3 scripts/verify_compose.py
+python3 scripts/verify_agent_compose.py
 docker compose restart api mcp
-python3 scripts/verify_compose.py --recovery-only
+python3 scripts/verify_agent_compose.py --recovery-only
 
 metrics_content_type="$(curl --fail --silent --show-error --head "${OPERCERTA_API_URL}/metrics" | tr -d '\r' | grep -i '^Content-Type:')"
 [[ "$metrics_content_type" == *"text/html"* ]]

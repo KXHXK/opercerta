@@ -2,16 +2,16 @@
 
 ## 30 秒版本
 
-“OperCerta 是我用 FastAPI、LangGraph、FastMCP、PostgreSQL、Redis 和 React 实现的可恢复运营处置 Agent。它跑通库存补货、设备维修、作业异常恢复三条闭环：Agent 取证和评估，人工审批绑定证据快照，批准后重新复核，再幂等写工单。项目用数据库竞态测试、重启恢复、42 条固定评测和 Docker Compose smoke 证明关键可靠性，并用 Kimi K2.6 跑通三条真实模型解释路径；当前公开的是静态专题，公网交互后端仍按发布门禁建设。”
+“OperCerta 是我用 FastAPI、LangGraph、最小 LangChain、FastMCP、PostgreSQL/pgvector、Redis 和 React 实现的可恢复运营处置 Agent。它跑通库存补货、设备维修、作业异常恢复三条闭环：Plan-and-Execute Agent 受控取证，人工审批绑定快照，批准后重新复核，再幂等写工单。567 条后端测试、9/9 Agent 冻结评测和真实 Compose 重启证明本地可靠性；真实 Kimi Tool Calling 的新端到端路径目前未通过严格规划契约，我把它保留为兼容性问题，没有用 Mock 冒充。公网可写后端仍未上线。”
 
 ## 3 分钟版本
 
 1. **业务问题：** 运营异常不能让模型直接执行高风险写操作，需要证据、规则、审批和审计。
-2. **架构：** React 调 FastAPI；Runner 创建 operation；LangGraph 执行三种类型化图；MCP 读取合成状态/规则并创建工单；PostgreSQL 保存业务事实和 checkpoint；Redis 只缓存初次只读证据；SSE 回放审计。
+2. **六层 Agent 架构：** React/FastAPI 感知有限表单；LLM 编码 Goal；LangGraph 做有界规划；四类 Memory 分别承载状态、checkpoint、业务事实与 pgvector SOP；MCP 执行白名单工具；审批、复核、工单和 Trace 形成反馈循环。
 3. **可靠性：** 非法输入在边界失败；审批用行锁保证一个胜者；审批绑定包含证据/规则/事实/计划哈希；批准后绕过缓存重读 MCP；工单用确定性幂等键和唯一约束保证重放不多写。
 4. **恢复：** 业务 operation UUID 同时作为 LangGraph thread ID。启动扫描非终态业务表，再从 checkpoint 继续；业务表是真相，checkpoint 是执行进度。
-5. **证据：** 三业务 42 条固定合成评测、Compose 三场景和重启 smoke、缓存 2×2 调用矩阵、完整自动化门禁。自建评测继承原 30 条不可漂移库存基线，并检查实际工具与数据库事实。
-6. **边界：** 本地单节点、静态公网展示和真实模型代表性运行已验证；生产 IAM、公开 HTTPS 后端、高可用和 Release Tag 尚未完成。
+5. **证据：** 原三业务 42 条固定合成评测之外，新增 9 类 Agent 轨迹评测，覆盖非法 schema、提示注入、未知工具、对象漂移、RAG 隔离、审批后漂移、竞态、幂等和重启；Compose 使用真实 FastEmbed/pgvector RAG。
+6. **边界：** 本地 Mock Agent 闭环和真实 RAG 已验证；新 Agent 核心的 Kimi Tool Calling 集成未通过。生产 IAM、公开 HTTPS 后端、高可用和 Release Tag 尚未完成。
 
 ## 10 分钟深挖提纲
 
@@ -58,6 +58,30 @@ request ID 和 W3C trace context 关联 API/MCP；span 跨 LangGraph、Redis、S
 - 性能矩阵 HTTP 全成功却 MCP 指标为 0；对比源码/镜像/实例发现复用旧镜像，强制 `--build` 后不变量恢复。
 
 还可以讲 WSL 生命周期使 Docker 正常退出、Netlify worktree 部署错产物、失败测试污染共享数据库等案例。
+
+### 11. 为什么是 Plan-and-Execute，而不是开放 ReAct
+
+业务动作只有查询和创建三类受控工单，开放聊天会放大提示注入、对象漂移和越权工具风险。模型先把固定表单编码成 Goal，再提出只读工具计划；ToolPolicy/Harness 校验后执行，确定性规则和人工审批才允许进入写路径。需要重规划时最多一次，不允许无限自治循环。
+
+### 12. 真实 Kimi Tool Calling 兼容问题怎么讲
+
+“Mock 回归全绿后，真实 Kimi 首轮仍安全返回 503。我通过 checkpoint 阶段和安全错误分类定位到三类 provider 边界：LLM 错用了 MCP 的 2 秒 timeout；Kimi K2.6 的强制工具调用在当前 Moonshot 配置下要求关闭 thinking；最终分析和 Verifier 的 structured output 还有波动。我把模型 timeout 独立为 90 秒，在 adapter 配置边界关闭 thinking，并让最终分析/Verifier 使用两个内部原生提交工具。随后三业务只读、库存批准写入和无效 provider 零写入验证全部通过。整个过程没有回退 Mock，也没有把一次成功夸大为生产 SLA。”
+
+这说明 Mock 用于确定性契约回归，Real 用于供应商协议兼容；两类证据都必要但不能互相替代。
+
+## 更新后的 30 秒讲法
+
+OperCerta 不是把聊天框贴到工单系统上，而是解决仓储异常调查跨系统、证据易过期、审批与执行容易脱节的问题。确定性监控先发现库存、设备和任务异常；单根 LangGraph 让 LLM 在受控 ToolPolicy 下通过 MCP 循环取证，结合 pgvector SOP 给建议，再由确定性规则和人工审批决定是否执行。批准后系统绕过 Redis 重新取证，由 Verifier 和审批 binding 双重校验，最后通过 PostgreSQL 唯一约束幂等写工单，并把 Trace、审计与恢复证据反馈到 React 工作台。
+
+## 更新后的 3 分钟讲法
+
+先讲业务痛点：传统工单的难点不是表单录入，而是异常事实分散、调查步骤依赖经验、审批等待期间事实变化，以及重试可能重复落单。OperCerta 因此把“可解释调查”交给 LLM，把“能否写入”留给确定性安全内核。
+
+请求经 FastAPI 做身份和严格输入校验后进入唯一根 LangGraph。模型每轮只能在当前场景的只读工具白名单里选择 MCP 工具；Observation 会回到下一轮模型，证据齐全才结束循环。RAG 只提供带版本引用的 SOP，不代替 SQL/MCP 业务事实。Policy 用类型化规则形成 action plan，需要写入时 LangGraph 原生 interrupt 等待人工审批。
+
+恢复后不是直接执行：系统绕过 Redis 重新读取权威事实，LLM Verifier 给 `proceed/abort/escalate` 建议，确定性 binding 再比较事实哈希、规则版本、计划哈希和参数。只有两层都允许，才调用受控写工具；PostgreSQL 行锁解决审批竞态，唯一键和事务保证业务副作用 effectively-once，写后读再确认结果。checkpoint 记图位置，业务表记长期事实，二者共同支持重启恢复。
+
+验证分三层：Mock 冻结轨迹、真实 PostgreSQL/MCP/Compose 的数据库与重启断言、少量真实 Kimi 兼容调用。当前本地闭环完整，但公网可写后端、生产 IAM、限流、备份和高可用没有上线，因此发布门禁仍是 `CLOSED`。
 
 ## 高频追问
 

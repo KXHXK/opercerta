@@ -1,0 +1,12 @@
+{
+  "executed_at": "2026-07-26T10:58:02.171063+00:00",
+  "mode": "real",
+  "scenario": "inventory",
+  "provider_state": "unavailable",
+  "http_status": 503,
+  "operation_status": "failed",
+  "error_code": "dependency_unavailable",
+  "approvals": 0,
+  "work_orders": 0,
+  "secret_or_provider_text_persisted": false
+}

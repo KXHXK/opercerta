@@ -3,12 +3,14 @@
 import argparse
 import json
 import os
+import re
 import subprocess
 import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from scripts.verify_agent_compose import assert_agent_trace
 from scripts.verify_compose import (
     assert_database_counts,
     demo_headers,
@@ -22,6 +24,38 @@ SCENARIOS = (
     ("equipment", "EQ-PUMP-001", "repair"),
     ("task", "TASK-BLOCKED-001", "task_recovery"),
 )
+
+SAFE_SLUG = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
+
+
+class RepresentativeValidationError(AssertionError):
+    """A validation failure containing only bounded, non-sensitive evidence."""
+
+    def __init__(
+        self,
+        *,
+        stage: str,
+        http_status: int | None = None,
+        error_code: str | None = None,
+        operation_status: str | None = None,
+    ) -> None:
+        detail: dict[str, Any] = {"stage": stage}
+        if http_status is not None:
+            detail["http_status"] = http_status
+        if error_code is not None and SAFE_SLUG.fullmatch(error_code):
+            detail["error_code"] = error_code
+        if operation_status is not None and SAFE_SLUG.fullmatch(operation_status):
+            detail["operation_status"] = operation_status
+        self.detail = detail
+        super().__init__("representative_validation_failed")
+
+
+def _safe_error_code(payload: object) -> str | None:
+    if not isinstance(payload, dict):
+        return None
+    nested_error = payload.get("error")
+    candidate = nested_error.get("code") if isinstance(nested_error, dict) else payload.get("code")
+    return candidate if isinstance(candidate, str) and SAFE_SLUG.fullmatch(candidate) else None
 
 
 def summarize_explanation(plan: dict[str, Any]) -> dict[str, int]:
@@ -76,6 +110,146 @@ def assert_real_model_runtime() -> None:
         raise AssertionError("API container is not configured for real model mode")
 
 
+def _trace_summary(trace: dict[str, Any]) -> dict[str, object]:
+    events = trace["events"]
+    return {
+        "event_types": sorted({event["event_type"] for event in events}),
+        "citation_count": sum(len(event.get("citations", [])) for event in events),
+        "model_mode": trace["run"]["model_mode"],
+    }
+
+
+def build_real_report(
+    *,
+    provider: str,
+    model: str,
+    results: list[dict[str, Any]],
+) -> dict[str, object]:
+    operations = sum(
+        int(
+            result.get(
+                "operations_attempted",
+                2 if "query" in result and "approved_path" in result else 1,
+            )
+        )
+        for result in results
+    )
+    return {
+        "executed_at": datetime.now(UTC).isoformat(),
+        "provider": provider,
+        "model": model,
+        "mode": "real",
+        "representative_operations": operations,
+        "results": results,
+    }
+
+
+def run_representative_scenario(
+    *,
+    object_type: str,
+    object_id: str,
+    expected_kind: str,
+    operator_headers: dict[str, str],
+    approver_headers: dict[str, str],
+    query_runner: Any = None,
+    approved_runner: Any = None,
+) -> dict[str, Any]:
+    active_query_runner = query_runner or run_query
+    active_approved_runner = approved_runner or run_approved_path
+    try:
+        query_result = active_query_runner(object_type, object_id, operator_headers)
+    except Exception as error:
+        failure: dict[str, Any] = {
+            "scenario": object_type,
+            "status": "failed",
+            "failure_stage": "query",
+            "error_type": type(error).__name__,
+            "operations_attempted": 1,
+        }
+        if isinstance(error, RepresentativeValidationError):
+            failure["failure_detail"] = error.detail
+        return failure
+    try:
+        approved_result = active_approved_runner(
+            object_type,
+            object_id,
+            expected_kind,
+            operator_headers,
+            approver_headers,
+        )
+    except Exception as error:
+        return {
+            "scenario": object_type,
+            "status": "failed",
+            "failure_stage": "approved_path",
+            "error_type": type(error).__name__,
+            "operations_attempted": 2,
+            "query": query_result,
+        }
+    return {
+        "scenario": object_type,
+        "status": "passed",
+        "operations_attempted": 2,
+        "query": query_result,
+        "approved_path": approved_result,
+    }
+
+
+def run_representative_path(
+    *,
+    path: str,
+    object_type: str,
+    object_id: str,
+    expected_kind: str,
+    operator_headers: dict[str, str],
+    approver_headers: dict[str, str],
+    query_runner: Any = None,
+    approved_runner: Any = None,
+) -> dict[str, Any]:
+    """Run one bounded path so real-provider evidence uses the fewest calls needed."""
+
+    if path == "full":
+        return run_representative_scenario(
+            object_type=object_type,
+            object_id=object_id,
+            expected_kind=expected_kind,
+            operator_headers=operator_headers,
+            approver_headers=approver_headers,
+            query_runner=query_runner,
+            approved_runner=approved_runner,
+        )
+    runner = query_runner or run_query if path == "query" else approved_runner or run_approved_path
+    try:
+        result = (
+            runner(object_type, object_id, operator_headers)
+            if path == "query"
+            else runner(
+                object_type,
+                object_id,
+                expected_kind,
+                operator_headers,
+                approver_headers,
+            )
+        )
+    except Exception as error:
+        failure: dict[str, Any] = {
+            "scenario": object_type,
+            "status": "failed",
+            "failure_stage": path,
+            "error_type": type(error).__name__,
+            "operations_attempted": 1,
+        }
+        if isinstance(error, RepresentativeValidationError):
+            failure["failure_detail"] = error.detail
+        return failure
+    return {
+        "scenario": object_type,
+        "status": "passed",
+        "operations_attempted": 1,
+        path: result,
+    }
+
+
 def run_query(
     object_type: str,
     object_id: str,
@@ -94,28 +268,67 @@ def run_query(
         operator_headers,
     )
     elapsed_ms = round((time.monotonic() - started) * 1000, 3)
-    assert status == 202, (object_type, status, created)
+    if status != 202:
+        raise RepresentativeValidationError(
+            stage="create_operation",
+            http_status=status,
+            error_code=_safe_error_code(created),
+        )
     operation_id = created["operation_id"]
     detail_status, detail = request(
         "GET",
         f"/api/v1/operations/{operation_id}",
         headers=operator_headers,
     )
-    assert detail_status == 200
-    assert detail["status"] == "completed"
+    if detail_status != 200:
+        raise RepresentativeValidationError(
+            stage="load_operation",
+            http_status=detail_status,
+            error_code=_safe_error_code(detail),
+        )
+    if detail["status"] != "completed":
+        raise RepresentativeValidationError(
+            stage="operation_terminal",
+            operation_status=detail.get("status"),
+            error_code=_safe_error_code(detail),
+        )
     assert detail["result"]["outcome"] == "query_completed"
     assert detail["plan"] is None
     assert detail["approval_binding"] is None
     assert detail["approval"] is None
     assert detail["work_order"] is None
     assert_database_counts(operation_id, approvals=0, work_orders=0)
+    trace_status, trace = request(
+        "GET",
+        f"/api/v1/operations/{operation_id}/agent-trace",
+        headers=operator_headers,
+    )
+    if trace_status != 200:
+        raise RepresentativeValidationError(
+            stage="load_agent_trace",
+            http_status=trace_status,
+            error_code=_safe_error_code(trace),
+        )
+    if trace.get("run", {}).get("model_mode") != "real":
+        raise RepresentativeValidationError(stage="agent_trace_model_mode")
+    try:
+        assert_agent_trace(
+            trace,
+            expected_scenario=object_type,
+            expected_status="completed",
+            require_approval=False,
+            require_citations=True,
+        )
+    except AssertionError as error:
+        raise RepresentativeValidationError(stage="agent_trace_contract") from error
     return {
         "operation_id": operation_id,
         "status": detail["status"],
         "elapsed_ms": elapsed_ms,
-        "model_expected": False,
+        "model_expected": True,
         "approvals": 0,
         "work_orders": 0,
+        "trace": _trace_summary(trace),
     }
 
 
@@ -127,16 +340,25 @@ def run_approved_path(
     approver_headers: dict[str, str],
 ) -> dict[str, Any]:
     started = time.monotonic()
+    scan_status, scan = request(
+        "POST",
+        "/api/v1/signals/scan",
+        headers=operator_headers,
+    )
+    assert scan_status == 200, (object_type, scan_status, scan)
+    matching_signals = [
+        signal
+        for signal in scan["signals"]
+        if signal["object_type"] == object_type and signal["object_id"] == object_id
+    ]
+    assert len(matching_signals) == 1
+    signal_status = matching_signals[0]["status"]
+    assert signal_status in {"open", "attention_required"}
+    action = "investigate" if signal_status == "open" else "retry"
     status, created = request(
         "POST",
-        "/api/v1/operations",
-        {
-            "message": f"representative real-model controlled action for {object_type}",
-            "requested_action": "create_work_order",
-            "object_type": object_type,
-            "object_id": object_id,
-        },
-        operator_headers,
+        f"/api/v1/signals/{matching_signals[0]['id']}/{action}",
+        headers=operator_headers,
     )
     create_elapsed_ms = round((time.monotonic() - started) * 1000, 3)
     assert status == 202, (object_type, status, created)
@@ -174,6 +396,20 @@ def run_approved_path(
     )
     assert actual_kind == expected_kind
     assert_database_counts(operation_id, approvals=1, work_orders=1)
+    trace_status, trace = request(
+        "GET",
+        f"/api/v1/operations/{operation_id}/agent-trace",
+        headers=operator_headers,
+    )
+    assert trace_status == 200
+    assert trace["run"]["model_mode"] == "real"
+    assert_agent_trace(
+        trace,
+        expected_scenario=object_type,
+        expected_status="completed",
+        require_approval=True,
+        require_citations=True,
+    )
     return {
         "operation_id": operation_id,
         "status": final["status"],
@@ -183,6 +419,7 @@ def run_approved_path(
         "approvals": 1,
         "work_orders": 1,
         "work_order_kind": actual_kind,
+        "trace": _trace_summary(trace),
     }
 
 
@@ -194,6 +431,12 @@ def main() -> None:
         "--scenario",
         choices=("all", "inventory", "equipment", "task"),
         default="all",
+    )
+    parser.add_argument(
+        "--path",
+        choices=("full", "query", "approved_path"),
+        default="full",
+        help="Run both paths, only the read-only query, or only one approved write path.",
     )
     args = parser.parse_args()
 
@@ -207,46 +450,38 @@ def main() -> None:
     ]
     for object_type, object_id, work_order_kind in selected:
         results.append(
-            {
-                "scenario": object_type,
-                "query": run_query(object_type, object_id, operator_headers),
-                "approved_path": run_approved_path(
-                    object_type,
-                    object_id,
-                    work_order_kind,
-                    operator_headers,
-                    approver_headers,
-                ),
-            }
+            run_representative_path(
+                path=args.path,
+                object_type=object_type,
+                object_id=object_id,
+                expected_kind=work_order_kind,
+                operator_headers=operator_headers,
+                approver_headers=approver_headers,
+            )
         )
 
-    report = {
-        "executed_at": datetime.now(UTC).isoformat(),
-        "provider": args.provider,
-        "model": os.environ.get("OPERCERTA_MODEL_NAME", "configured-model"),
-        "mode": "real",
-        "representative_operations": len(selected) * 2,
-        "expected_model_calls": len(selected),
-        "token_usage_available": False,
-        "token_usage": None,
-        "cost_available": False,
-        "cost": None,
-        "results": results,
-    }
+    report = build_real_report(
+        provider=args.provider,
+        model=os.environ.get("OPERCERTA_MODEL_NAME", "configured-model"),
+        results=results,
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
         json.dumps(report, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
+    passed = all(result["status"] == "passed" for result in results)
     print(
         json.dumps(
             {
-                "status": "passed",
-                "operations": len(selected) * 2,
-                "model_paths": len(selected),
+                "status": "passed" if passed else "failed",
+                "operations": report["representative_operations"],
+                "model_paths": sum(result["status"] == "passed" for result in results),
             }
         )
     )
+    if not passed:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

@@ -8,9 +8,11 @@ import httpx
 import pytest
 from mcp.types import CallToolResult, TextContent
 
+from opercerta.domain.agent import ReadToolName
 from opercerta.domain.errors import (
     EquipmentNotFound,
     EvidenceUnavailable,
+    InvalidAgentToolArguments,
     InvalidInventoryEvidence,
     InventoryNotFound,
     UnknownTool,
@@ -185,6 +187,38 @@ async def test_real_gateway_reads_task_and_recovery_policy(
     assert task.task_id == policy.task_id == "TASK-BLOCKED-001"
     assert task.state == "blocked"
     assert policy.rule_version == "task-recovery-v1"
+
+
+@pytest.mark.asyncio
+async def test_agent_read_dispatcher_returns_typed_evidence(
+    mcp_server: McpServerHarness,
+) -> None:
+    gateway = McpToolGateway(mcp_server.url, timeout_seconds=2)
+
+    inventory = await gateway.read_agent_tool(
+        ReadToolName.INVENTORY_SNAPSHOT,
+        {"sku": "SKU-LOW-001"},
+    )
+
+    assert isinstance(inventory, InventoryEvidence)
+    assert inventory.sku == "SKU-LOW-001"
+
+
+@pytest.mark.asyncio
+async def test_agent_read_dispatcher_rejects_unvalidated_arguments() -> None:
+    no_network = NoNetworkSessionFactory()
+    gateway = McpToolGateway(
+        "http://127.0.0.1:1/mcp",
+        timeout_seconds=2,
+        session_factory=no_network,
+    )
+
+    with pytest.raises(InvalidAgentToolArguments, match="invalid_agent_tool_arguments"):
+        await gateway.read_agent_tool(
+            ReadToolName.INVENTORY_SNAPSHOT,
+            {"sku": "SKU-LOW-001", "include_secret": True},
+        )
+    assert no_network.calls == 0
 
 
 @pytest.mark.asyncio

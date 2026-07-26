@@ -1,5 +1,6 @@
 from enum import StrEnum
 from typing import Annotated, Self
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, StringConstraints, model_validator
 
@@ -38,6 +39,7 @@ class OperationRequest(BaseModel):
         ]
         | None
     ) = None
+    trigger_signal_id: UUID | None = None
 
     @model_validator(mode="after")
     def require_complete_object_reference(self) -> Self:

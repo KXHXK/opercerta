@@ -18,6 +18,9 @@ from opercerta.domain.errors import (
     OperationNotFound,
     OperationTransitionConflict,
     RecoveryStateConflict,
+    SignalAlreadyClaimed,
+    SignalNotFound,
+    SignalObjectMismatch,
 )
 from opercerta.domain.maintenance import (
     MaintenanceAssessment,
@@ -40,6 +43,7 @@ from opercerta.domain.replenishment import (
     build_approval_binding,
 )
 from opercerta.domain.scenarios import ApprovalBinding
+from opercerta.domain.signals import SignalStatus, signal_status_for_operation_terminal
 from opercerta.domain.task_recovery import (
     TaskRecoveryAssessment,
     TaskRecoveryEvidenceBundle,
@@ -56,6 +60,7 @@ from opercerta.infrastructure.db.schema import (
     approvals,
     audit_events,
     evidence,
+    operational_signals,
     operations,
     work_orders,
 )
@@ -85,6 +90,7 @@ class ApprovalRowView:
     reason: str
     created_at: datetime
     binding: ApprovalBinding | None
+    approval_cycle: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -96,6 +102,7 @@ class OperationDetail:
     result: OperationResult | None
     error: OperationError | None
     approval_expires_at: datetime | None
+    approval_cycle: int
     evidence: tuple[EvidenceRecord, ...]
     approval: ApprovalRowView | None
     work_order: WorkOrderRecord | None
@@ -212,6 +219,29 @@ class ReplenishmentOperationRepository:
         )
         event_payload: dict[str, JsonValue] = {"request": request_payload}
         async with self._engine.begin() as connection:
+            if request.trigger_signal_id is not None:
+                signal = (
+                    (
+                        await connection.execute(
+                            select(operational_signals)
+                            .where(operational_signals.c.id == request.trigger_signal_id)
+                            .with_for_update()
+                        )
+                    )
+                    .mappings()
+                    .one_or_none()
+                )
+                if signal is None:
+                    raise SignalNotFound(request.trigger_signal_id)
+                if (
+                    request.object_type is None
+                    or request.object_id is None
+                    or signal["object_type"] != request.object_type.value
+                    or signal["object_id"] != request.object_id
+                ):
+                    raise SignalObjectMismatch(request.trigger_signal_id)
+                if signal["status"] != "open" or signal["operation_id"] is not None:
+                    raise SignalAlreadyClaimed(request.trigger_signal_id)
             await connection.execute(
                 insert(operations).values(
                     id=operation_id,
@@ -233,6 +263,16 @@ class ReplenishmentOperationRepository:
                     created_at=created_at,
                 )
             )
+            if request.trigger_signal_id is not None:
+                await connection.execute(
+                    update(operational_signals)
+                    .where(operational_signals.c.id == request.trigger_signal_id)
+                    .values(
+                        status="investigating",
+                        operation_id=operation_id,
+                        updated_at=created_at,
+                    )
+                )
         return operation_id
 
     async def mark_gathering_evidence(self, operation_id: UUID) -> None:
@@ -367,6 +407,88 @@ class ReplenishmentOperationRepository:
             },
             snapshot_builder=bind,
             approval_expires_at=approval_expires_at,
+            approval_cycle=1,
+        )
+
+    async def mark_needs_reapproval(
+        self,
+        operation_id: UUID,
+        approval_id: UUID,
+        bundle: EvidenceBundle | MaintenanceEvidenceBundle | TaskRecoveryEvidenceBundle,
+        assessment: ReplenishmentAssessment | MaintenanceAssessment | TaskRecoveryAssessment,
+        plan: ReplenishmentPlan | MaintenancePlan | TaskRecoveryPlan,
+        binding: ApprovalBinding,
+        approval_expires_at: datetime,
+        reason: str,
+    ) -> None:
+        self._require_timezone(approval_expires_at)
+        bundle_payload = cast(dict[str, JsonValue], bundle.model_dump(mode="json"))
+        assessment_payload = cast(dict[str, JsonValue], assessment.model_dump(mode="json"))
+        plan_payload = cast(dict[str, JsonValue], plan.model_dump(mode="json"))
+        binding_payload = cast(dict[str, JsonValue], binding.model_dump(mode="json"))
+
+        def replace_approved_facts(snapshot: OperationSnapshot) -> OperationSnapshot:
+            next_snapshot = OperationSnapshot(
+                schema_version=1,
+                request=snapshot.request,
+                risk={
+                    **snapshot.risk,
+                    "evidence": bundle_payload,
+                    "assessment": assessment_payload,
+                    "approval_binding": binding_payload,
+                },
+                plan=plan_payload,
+                work_order_payload=self._work_order_payload(plan),
+            )
+            self._require_binding_matches_snapshot(next_snapshot, binding)
+            return next_snapshot
+
+        async def validate_approval(connection: AsyncConnection) -> None:
+            await self._require_approval_locator(
+                connection,
+                operation_id,
+                approval_id,
+                ApprovalDecision.APPROVED,
+            )
+
+        await self._transition(
+            operation_id,
+            allowed=frozenset({OperationStatus.RESUMING}),
+            target=OperationStatus.NEEDS_REAPPROVAL,
+            event_type="reapproval_requested",
+            payload={
+                "approval_id": str(approval_id),
+                "reason": reason,
+                **binding_payload,
+            },
+            snapshot_builder=replace_approved_facts,
+            transaction_validator=validate_approval,
+            approval_expires_at=approval_expires_at,
+            increment_approval_cycle=True,
+        )
+
+    async def mark_verifier_aborted(
+        self,
+        operation_id: UUID,
+        approval_id: UUID,
+        reason: str,
+    ) -> None:
+        async def validate_approval(connection: AsyncConnection) -> None:
+            await self._require_approval_locator(
+                connection,
+                operation_id,
+                approval_id,
+                ApprovalDecision.APPROVED,
+            )
+
+        await self._transition(
+            operation_id,
+            allowed=frozenset({OperationStatus.RESUMING}),
+            target=OperationStatus.ABORTED,
+            event_type="verification_aborted",
+            payload={"approval_id": str(approval_id), "reason": reason},
+            transaction_validator=validate_approval,
+            approval_expires_at=None,
         )
 
     async def mark_executing(self, operation_id: UUID, approval_id: UUID) -> None:
@@ -493,7 +615,12 @@ class ReplenishmentOperationRepository:
         self._require_timezone(now)
         return await self._transition(
             operation_id,
-            allowed=frozenset({OperationStatus.AWAITING_APPROVAL}),
+            allowed=frozenset(
+                {
+                    OperationStatus.AWAITING_APPROVAL,
+                    OperationStatus.NEEDS_REAPPROVAL,
+                }
+            ),
             target=OperationStatus.EXPIRED,
             event_type="approval_expired",
             payload={},
@@ -533,7 +660,10 @@ class ReplenishmentOperationRepository:
             approval = (
                 (
                     await connection.execute(
-                        select(approvals).where(approvals.c.operation_id == operation_id)
+                        select(approvals).where(
+                            approvals.c.operation_id == operation_id,
+                            approvals.c.approval_cycle == int(operation["approval_cycle"]),
+                        )
                     )
                 )
                 .mappings()
@@ -581,6 +711,7 @@ class ReplenishmentOperationRepository:
             result=result,
             error=error,
             approval_expires_at=cast(datetime | None, operation["approval_expires_at"]),
+            approval_cycle=int(operation["approval_cycle"]),
             evidence=tuple(self._evidence_repository._record(row) for row in evidence_rows),
             approval=self._approval_view(
                 operation_id,
@@ -613,7 +744,12 @@ class ReplenishmentOperationRepository:
                 await connection.execute(
                     select(operations.c.id)
                     .where(
-                        operations.c.status == OperationStatus.AWAITING_APPROVAL.value,
+                        operations.c.status.in_(
+                            [
+                                OperationStatus.AWAITING_APPROVAL.value,
+                                OperationStatus.NEEDS_REAPPROVAL.value,
+                            ]
+                        ),
                         operations.c.approval_expires_at.is_not(None),
                         operations.c.approval_expires_at <= now,
                     )
@@ -637,6 +773,8 @@ class ReplenishmentOperationRepository:
         result_payload: dict[str, JsonValue] | None | object = _UNSET,
         error_code: str | None | object = _UNSET,
         approval_expires_at: datetime | None | object = _UNSET,
+        approval_cycle: int | object = _UNSET,
+        increment_approval_cycle: bool = False,
         due_at: datetime | None = None,
     ) -> bool:
         async with self._engine.begin() as connection:
@@ -652,8 +790,6 @@ class ReplenishmentOperationRepository:
                 if due_at < expires_at:
                     return False
                 payload = {"approval_expires_at": expires_at.isoformat()}
-            if transaction_validator is not None:
-                await transaction_validator(connection)
             if current is target:
                 await self._require_matching_event(
                     connection,
@@ -662,6 +798,8 @@ class ReplenishmentOperationRepository:
                     payload=payload,
                 )
                 return False
+            if transaction_validator is not None:
+                await transaction_validator(connection)
             if current not in allowed:
                 raise OperationTransitionConflict(
                     operation_id,
@@ -689,9 +827,28 @@ class ReplenishmentOperationRepository:
                 values["error_code"] = error_code
             if approval_expires_at is not _UNSET:
                 values["approval_expires_at"] = approval_expires_at
+            if approval_cycle is not _UNSET and increment_approval_cycle:
+                raise ValueError("approval cycle update is ambiguous")
+            if approval_cycle is not _UNSET:
+                values["approval_cycle"] = approval_cycle
+            elif increment_approval_cycle:
+                values["approval_cycle"] = int(operation["approval_cycle"]) + 1
             await connection.execute(
                 update(operations).where(operations.c.id == operation_id).values(**values)
             )
+            signal_status = signal_status_for_operation_terminal(target)
+            if signal_status is not None:
+                signal_values: dict[str, object] = {
+                    "status": signal_status.value,
+                    "updated_at": changed_at,
+                }
+                if signal_status is SignalStatus.RESOLVED:
+                    signal_values["resolved_at"] = changed_at
+                await connection.execute(
+                    update(operational_signals)
+                    .where(operational_signals.c.operation_id == operation_id)
+                    .values(**signal_values)
+                )
             await connection.execute(
                 insert(audit_events).values(
                     id=uuid4(),
@@ -735,7 +892,16 @@ class ReplenishmentOperationRepository:
                     select(
                         approvals.c.operation_id,
                         approvals.c.decision,
-                    ).where(approvals.c.id == approval_id)
+                        approvals.c.approval_cycle,
+                        operations.c.approval_cycle.label("current_approval_cycle"),
+                    )
+                    .select_from(
+                        approvals.join(
+                            operations,
+                            approvals.c.operation_id == operations.c.id,
+                        )
+                    )
+                    .where(approvals.c.id == approval_id)
                 )
             )
             .mappings()
@@ -747,6 +913,8 @@ class ReplenishmentOperationRepository:
             raise RecoveryStateConflict(operation_id, "approval_operation_mismatch")
         if row["decision"] != expected_decision.value:
             raise RecoveryStateConflict(operation_id, "approval_decision_mismatch")
+        if row["approval_cycle"] != row["current_approval_cycle"]:
+            raise RecoveryStateConflict(operation_id, "stale_approval_cycle")
 
     async def _require_work_order_locator(
         self,
@@ -992,7 +1160,11 @@ class ReplenishmentOperationRepository:
                 )
             return None, error
 
-        if status in {OperationStatus.REJECTED, OperationStatus.EXPIRED}:
+        if status in {
+            OperationStatus.REJECTED,
+            OperationStatus.ABORTED,
+            OperationStatus.EXPIRED,
+        }:
             if payload is not None or error_code is not None:
                 raise RecoveryStateConflict(
                     operation_id,
@@ -1102,6 +1274,7 @@ class ReplenishmentOperationRepository:
             reason=str(row["reason"]),
             created_at=cast(datetime, row["created_at"]),
             binding=binding,
+            approval_cycle=int(row["approval_cycle"]),
         )
 
     def _work_order_view(

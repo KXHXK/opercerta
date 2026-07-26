@@ -1,7 +1,5 @@
-import json
 from collections.abc import Awaitable, Callable
 from datetime import datetime
-from hashlib import sha256
 from typing import Any, Protocol, cast
 from uuid import UUID
 
@@ -9,14 +7,25 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.types import Command
 from pydantic import BaseModel
 
+from opercerta.agent.tool_executor import ReadToolGateway
+from opercerta.agent.trace_recorder import TraceRecorder
 from opercerta.application.scenario_registry import ScenarioRegistry
+from opercerta.domain.agent import AgentAnalysis
 from opercerta.domain.contracts import ObjectType, OperationRequest
-from opercerta.domain.model_gateway import ModelGateway
+from opercerta.domain.model_gateway import AgentModelGateway, ModelGateway
+from opercerta.domain.replenishment import OperationError
 from opercerta.domain.work_orders import WorkOrderCommand, WorkOrderRecord, WorkOrderWriteResult
-from opercerta.infrastructure.cache import EvidenceCache, NullEvidenceCache
+from opercerta.infrastructure.cache import EvidenceCache, NullEvidenceCache, evidence_cache_key
 from opercerta.infrastructure.db.evidence_repository import EvidenceRepository
 from opercerta.infrastructure.db.operation_repository import OperationRepository
+from opercerta.infrastructure.observation_gateway import CachedReadToolGateway
+from opercerta.infrastructure.traced_tool_gateway import TracedControlledEvidenceGateway
 from opercerta.observability.tracing import NOOP_TRACING, Tracing
+from opercerta.workflow.agent_controlled_action_graph import (
+    AgentInvestigationGraph,
+    build_agent_investigation_graph,
+    build_agent_investigation_initial_state,
+)
 from opercerta.workflow.equipment_maintenance_graph import (
     EquipmentMaintenanceGraph,
     MaintenanceGateway,
@@ -38,52 +47,14 @@ from opercerta.workflow.task_recovery_graph import (
 ControlledActionState = ReplenishmentState
 
 
-class ControlledEvidenceGateway(EvidenceGateway, MaintenanceGateway, TaskGateway, Protocol):
+class ControlledEvidenceGateway(
+    EvidenceGateway,
+    MaintenanceGateway,
+    TaskGateway,
+    ReadToolGateway,
+    Protocol,
+):
     pass
-
-
-class TracedControlledEvidenceGateway:
-    def __init__(self, delegate: ControlledEvidenceGateway, tracing: Tracing) -> None:
-        self._delegate = delegate
-        self._tracing = tracing
-
-    async def _read(self, loader: Callable[[], Awaitable[object]]) -> object:
-        with self._tracing.span(
-            "mcp.call",
-            {"component": "mcp", "operation": "read"},
-        ):
-            return await loader()
-
-    async def get_inventory(self, sku: str) -> object:
-        return await self._read(lambda: self._delegate.get_inventory(sku))
-
-    async def get_policy(self, sku: str) -> object:
-        return await self._read(lambda: self._delegate.get_policy(sku))
-
-    async def get_equipment(self, equipment_id: str) -> object:
-        return await self._read(lambda: self._delegate.get_equipment(equipment_id))
-
-    async def get_maintenance_policy(self, equipment_id: str) -> object:
-        return await self._read(lambda: self._delegate.get_maintenance_policy(equipment_id))
-
-    async def get_task(self, task_id: str) -> object:
-        return await self._read(lambda: self._delegate.get_task(task_id))
-
-    async def get_task_recovery_policy(self, task_id: str) -> object:
-        return await self._read(lambda: self._delegate.get_task_recovery_policy(task_id))
-
-    async def create_work_order(
-        self, command: WorkOrderCommand, *, plan_hash: str
-    ) -> WorkOrderWriteResult:
-        with self._tracing.span(
-            "mcp.call",
-            {"component": "mcp", "operation": "write"},
-        ):
-            return await self._delegate.create_work_order(command, plan_hash=plan_hash)
-
-    async def get_work_order(self, work_order_id: UUID) -> WorkOrderRecord:
-        result = await self._read(lambda: self._delegate.get_work_order(work_order_id))
-        return cast(WorkOrderRecord, result)
 
 
 class CachedControlledEvidenceGateway:
@@ -101,15 +72,7 @@ class CachedControlledEvidenceGateway:
 
     @staticmethod
     def _key(kind: str, object_id: str) -> str:
-        parameters_hash = sha256(
-            json.dumps(
-                {"kind": kind, "object_id": object_id},
-                ensure_ascii=True,
-                separators=(",", ":"),
-                sort_keys=True,
-            ).encode("utf-8")
-        ).hexdigest()
-        return f"opercerta:evidence:v1:{kind}:{parameters_hash}"
+        return evidence_cache_key(kind, object_id)
 
     async def _get(self, key: str, loader: Callable[[], Awaitable[object]]) -> object:
         with self._tracing.span("redis.evidence", {"component": "redis", "operation": "get"}):
@@ -183,18 +146,53 @@ class ControlledActionGraph:
         task: TaskRecoveryGraph,
         operations: OperationRepository,
         tracing: Tracing,
+        agent: AgentInvestigationGraph | None = None,
+        trace_recorder: TraceRecorder | None = None,
     ) -> None:
         self._inventory = inventory
         self._equipment = equipment
         self._task = task
         self._operations = operations
         self._tracing = tracing
+        self._agent = agent
+        self._trace_recorder = trace_recorder
 
     async def ainvoke(
         self,
         value: ControlledActionState | Command[Any] | None,
         config: RunnableConfig,
     ) -> dict[str, Any]:
+        if self._agent is not None and isinstance(value, dict) and "request" in value:
+            request = OperationRequest.model_validate(value["request"])
+            agent_config: RunnableConfig = {
+                "configurable": {
+                    **config.get("configurable", {}),
+                    "checkpoint_ns": "agent",
+                }
+            }
+            agent_result = await self._agent.ainvoke(
+                build_agent_investigation_initial_state(request),
+                config=agent_config,
+            )
+            operation_id = UUID(str(value["operation_id"]))
+            if self._trace_recorder is not None:
+                await self._trace_recorder.capture_investigation(
+                    operation_id,
+                    request,
+                    agent_result,
+                )
+            if agent_result["status"] != "completed":
+                error = OperationError(
+                    code=agent_result["error_code"] or "agent_investigation_failed",
+                    message="Agent investigation failed before deterministic execution.",
+                )
+                await self._operations.mark_failed(operation_id, error)
+                return {**value, "error": error.model_dump(mode="json")}
+            analysis = AgentAnalysis.model_validate(agent_result["analysis"])
+            value = cast(
+                ControlledActionState,
+                {**value, "agent_analysis": analysis.model_dump(mode="json")},
+            )
         graph = await self._graph(value, config)
         scenario = (
             "inventory"
@@ -213,7 +211,45 @@ class ControlledActionGraph:
                 "operation_id": thread_id,
             },
         ):
-            return cast(dict[str, Any], await graph.ainvoke(value, config=config))
+            result = cast(dict[str, Any], await graph.ainvoke(value, config=config))
+        if self._trace_recorder is not None and thread_id:
+            operation_id = UUID(thread_id)
+            detail = await self._operations.load_detail(operation_id)
+            approval_payload = (
+                {
+                    "id": str(detail.approval.id),
+                    "approver_id": detail.approval.approver_id,
+                    "decision": detail.approval.decision.value,
+                }
+                if detail.approval is not None
+                else None
+            )
+            await self._trace_recorder.capture_operation_outcome(
+                operation_id,
+                status=detail.status.value,
+                approval_cycle=detail.approval_cycle,
+                approval=approval_payload,
+                verification=(
+                    cast(dict[str, object], result["verification"])
+                    if isinstance(result.get("verification"), dict)
+                    else None
+                ),
+                verification_route=(
+                    str(result["verification_route"])
+                    if result.get("verification_route") is not None
+                    else None
+                ),
+                work_order=(
+                    detail.work_order.model_dump(mode="json")
+                    if detail.work_order is not None
+                    else None
+                ),
+                result=(
+                    detail.result.model_dump(mode="json") if detail.result is not None else None
+                ),
+                error_code=detail.error.code if detail.error is not None else None,
+            )
+        return result
 
     async def aget_state(self, config: RunnableConfig) -> Any:
         graph = await self._graph(None, config)
@@ -274,6 +310,10 @@ def build_controlled_action_graph(
     tracing: Tracing = NOOP_TRACING,
     parallel_evidence_reads: bool = True,
     approval_ttl_seconds: int = 300,
+    agent_model_gateway: AgentModelGateway | None = None,
+    knowledge_enabled: bool = False,
+    knowledge_required: bool = False,
+    trace_recorder: TraceRecorder | None = None,
 ) -> ControlledActionGraph:
     traced_gateway = TracedControlledEvidenceGateway(gateway, tracing)
     initial_gateway = CachedControlledEvidenceGateway(
@@ -293,6 +333,7 @@ def build_controlled_action_graph(
         tracing=tracing,
         parallel_evidence_reads=parallel_evidence_reads,
         approval_ttl_seconds=approval_ttl_seconds,
+        agent_model_gateway=agent_model_gateway,
     )
     equipment = build_equipment_maintenance_graph(
         checkpointer,  # type: ignore[arg-type]
@@ -305,6 +346,7 @@ def build_controlled_action_graph(
         tracing=tracing,
         parallel_evidence_reads=parallel_evidence_reads,
         approval_ttl_seconds=approval_ttl_seconds,
+        agent_model_gateway=agent_model_gateway,
     )
     task = build_task_recovery_graph(
         checkpointer,  # type: ignore[arg-type]
@@ -317,6 +359,33 @@ def build_controlled_action_graph(
         tracing=tracing,
         parallel_evidence_reads=parallel_evidence_reads,
         approval_ttl_seconds=approval_ttl_seconds,
+        agent_model_gateway=agent_model_gateway,
     )
-    del registry
-    return ControlledActionGraph(inventory, equipment, task, operations, tracing)
+    agent_gateway = CachedReadToolGateway(
+        traced_gateway,
+        cache or NullEvidenceCache(),
+        ttl_seconds=cache_ttl_seconds,
+        tracing=tracing,
+    )
+    agent = (
+        build_agent_investigation_graph(
+            agent_model_gateway,
+            agent_gateway,
+            checkpointer=checkpointer,
+            registry=registry,
+            clock=clock,
+            knowledge_enabled=knowledge_enabled,
+            knowledge_required=knowledge_required,
+        )
+        if agent_model_gateway is not None
+        else None
+    )
+    return ControlledActionGraph(
+        inventory,
+        equipment,
+        task,
+        operations,
+        tracing,
+        agent,
+        trace_recorder,
+    )

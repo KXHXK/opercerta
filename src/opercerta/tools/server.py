@@ -15,10 +15,17 @@ from opercerta.domain.errors import (
     EvidenceUnavailable,
     IdempotencyConflict,
     InventoryNotFound,
+    KnowledgeInsufficient,
+    KnowledgeUnavailable,
     TaskNotFound,
     WorkOrderNotFound,
     WorkOrderStorageFailed,
     WriteNotAuthorized,
+)
+from opercerta.domain.knowledge import (
+    KnowledgeSearchEvidence,
+    KnowledgeSearchQuery,
+    TextEmbeddingGateway,
 )
 from opercerta.domain.maintenance import EquipmentEvidence, RepairWorkOrderPayload
 from opercerta.domain.replenishment import InventoryEvidence
@@ -29,10 +36,12 @@ from opercerta.domain.work_orders import (
     WorkOrderWriteResult,
     derive_idempotency_key,
 )
+from opercerta.infrastructure.db.knowledge_repository import KnowledgeRepository
 from opercerta.infrastructure.db.work_order_repository import WorkOrderRepository
 from opercerta.tools.catalog import SyntheticCatalog
 
 LOGGER = logging.getLogger(__name__)
+KNOWLEDGE_MIN_SCORE = 0.5
 
 
 def log_safe_tool_failure(tool_name: str, error: Exception) -> None:
@@ -49,6 +58,7 @@ def build_mcp_server(
     engine: AsyncEngine,
     clock: Callable[[], datetime],
     *,
+    embedding_gateway: TextEmbeddingGateway | None = None,
     host: str = "127.0.0.1",
     port: int = 8001,
 ) -> FastMCP:
@@ -148,6 +158,41 @@ def build_mcp_server(
         except Exception as error:
             log_safe_tool_failure("policy.list_constraints", error)
             raise ToolError(EvidenceUnavailable.code) from None
+
+    @server.tool(name="knowledge.search_sop", structured_output=True)
+    async def knowledge_search_sop(
+        scenario: Literal["inventory", "equipment", "task"],
+        query: str,
+        version: str | None = None,
+        limit: int = 3,
+    ) -> KnowledgeSearchEvidence:
+        if embedding_gateway is None:
+            raise ToolError(KnowledgeUnavailable.code)
+        try:
+            vectors = await embedding_gateway.embed_documents((query,))
+            results = await KnowledgeRepository(engine).search(
+                KnowledgeSearchQuery(
+                    scenario=scenario,
+                    query_embedding=vectors[0],
+                    version=version,
+                    limit=limit,
+                )
+            )
+            results = tuple(result for result in results if result.score >= KNOWLEDGE_MIN_SCORE)
+            if not results:
+                raise KnowledgeInsufficient
+            return KnowledgeSearchEvidence(
+                evidence_id=uuid4(),
+                scenario=scenario,
+                query=query,
+                embedding_model=embedding_gateway.model_id,
+                results=results,
+            )
+        except KnowledgeInsufficient as error:
+            raise ToolError(error.code) from error
+        except Exception as error:
+            log_safe_tool_failure("knowledge.search_sop", error)
+            raise ToolError(KnowledgeUnavailable.code) from None
 
     @server.tool(name="work_order.create", structured_output=True)
     async def work_order_create(

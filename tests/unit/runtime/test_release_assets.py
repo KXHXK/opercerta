@@ -53,7 +53,7 @@ def test_release_smoke_runs_only_through_caddy_and_always_cleans_up() -> None:
     assert "COMPOSE_FILE=compose.release.yaml" in script
     assert 'OPERCERTA_API_URL="http://localhost:' in script
     assert "docker compose up --build -d" in script
-    assert "scripts/verify_compose.py" in script
+    assert "scripts/verify_agent_compose.py" in script
     assert "docker compose restart api mcp" in script
     assert "docker compose down -v --remove-orphans" in script
 
@@ -70,15 +70,26 @@ def test_real_model_smoke_loads_ignored_config_and_limits_the_representative_set
     for object_type in ("inventory", "equipment", "task"):
         assert object_type in verifier
     assert '"query"' in verifier
-    assert '"create_work_order"' in verifier
+    assert '"/api/v1/signals/scan"' in verifier
+    assert 'action = "investigate" if signal_status == "open" else "retry"' in verifier
+    assert "f\"/api/v1/signals/{matching_signals[0]['id']}/{action}\"" in verifier
+    assert 'signal_status in {"open", "attention_required"}' in verifier
     assert "raw_model_output" not in verifier
-    assert "token_usage_available" in verifier
+    assert "token_usage_available" not in verifier
+    assert "cost_available" not in verifier
+    assert "assert_agent_trace" in verifier
 
 
 def test_learning_pack_covers_three_business_manual_failure_and_interview_explanation() -> None:
-    handbook = (ROOT / "docs" / "learning" / "opercerta-core-technical-guide.md").read_text(encoding="utf-8")
-    manual = (ROOT / "docs" / "learning" / "opercerta-manual-experiment-guide.md").read_text(encoding="utf-8")
-    interview = (ROOT / "docs" / "learning" / "opercerta-interview-guide.md").read_text(encoding="utf-8")
+    handbook = (ROOT / "docs" / "learning" / "opercerta-core-technical-guide.md").read_text(
+        encoding="utf-8"
+    )
+    manual = (ROOT / "docs" / "learning" / "opercerta-manual-experiment-guide.md").read_text(
+        encoding="utf-8"
+    )
+    interview = (ROOT / "docs" / "learning" / "opercerta-interview-guide.md").read_text(
+        encoding="utf-8"
+    )
 
     for scenario in ("库存补货", "设备维修", "作业异常恢复"):
         assert scenario in handbook
@@ -104,3 +115,56 @@ def test_release_documents_keep_verified_boundaries_truthful() -> None:
     assert "CLOSED" in readme
     assert "真实模型代表性" in state
     assert "尚未" in state
+
+
+def test_agent_delivery_documents_cover_architecture_learning_and_truthful_evidence() -> None:
+    handbook = (ROOT / "docs" / "learning" / "opercerta-core-technical-guide.md").read_text(
+        encoding="utf-8"
+    )
+    manual = (ROOT / "docs" / "learning" / "opercerta-manual-experiment-guide.md").read_text(
+        encoding="utf-8"
+    )
+    interview = (ROOT / "docs" / "learning" / "opercerta-interview-guide.md").read_text(
+        encoding="utf-8"
+    )
+    evidence = (ROOT / "docs" / "release-evidence" / "agent-core-architecture.md").read_text(
+        encoding="utf-8"
+    )
+
+    for phrase in (
+        "LangGraph + 最小 LangChain",
+        "不是聊天框",
+        "感知层",
+        "语义理解与目标编码",
+        "推理与规划",
+        "Memory 的四种含义",
+        "RAG 与 SQL/MCP 的边界",
+        "Tool Calling 如何校验",
+        "批准后为什么重新取证",
+        "Agent Trace、audit 与 OpenTelemetry",
+        "仍未上线",
+    ):
+        assert phrase in handbook
+
+    for phrase in ("输入", "预期", "为什么", "常见错误", "面试怎么讲"):
+        assert phrase in manual
+    assert "scripts/verify_agent_compose.py" in manual
+    assert "scripts/run_agent_evaluation.py" in manual
+    assert "agent-trace" in manual
+
+    assert "Plan-and-Execute" in interview
+    assert "六层 Agent" in interview
+    assert "真实 Kimi Tool Calling" in interview
+    assert "未通过" in interview
+
+    for phrase in (
+        "642d3ba",
+        "566 passed",
+        "9/9",
+        "tmp/evals/opercerta-agent-v1-mock-report.json",
+        "tmp/real-model-agent-v1-report.json",
+        "Kimi",
+        "failed",
+        "CLOSED",
+    ):
+        assert phrase in evidence

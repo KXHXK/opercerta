@@ -5,6 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, JsonValue, StrictInt, StringConstraints, model_validator
 
 from opercerta.api.auth import DemoAccount
+from opercerta.domain.agent_trace import AgentRunRecord, AgentTraceEventRecord
 from opercerta.domain.approvals import (
     ApprovalDecision,
     ApprovalReason,
@@ -22,6 +23,7 @@ from opercerta.domain.replenishment import (
     Version,
 )
 from opercerta.domain.scenarios import ApprovalBinding as ScenarioApprovalBinding
+from opercerta.domain.signals import OperationalSignal, SignalCaseView
 from opercerta.domain.task_recovery import TaskRecoveryAssessment, TaskRecoveryPlan
 from opercerta.domain.work_orders import WorkOrderRecord
 
@@ -123,6 +125,31 @@ class OperationDetailResponse(BaseModel):
     result: OperationResult | None
     error: OperationError | None
     last_audit_sequence: int
+
+
+class AgentTraceSnapshotResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    run: AgentRunRecord
+    events: tuple[AgentTraceEventRecord, ...]
+
+
+class SignalScanIssueResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    object_type: str
+    object_id: str
+    code: str
+
+
+class SignalScanResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    signals: tuple[OperationalSignal, ...]
+    affected_cases: tuple[SignalCaseView, ...] = ()
+    issues: tuple[SignalScanIssueResponse, ...]
+    scanned_count: int
+    scanned_at: datetime
 
 
 class ErrorResponse(BaseModel):

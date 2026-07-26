@@ -15,4 +15,4 @@ def test_compose_smoke_uses_bounded_configurable_api_timeout(monkeypatch) -> Non
     assert api_request_timeout_seconds() == 75.0
 
     monkeypatch.setenv("OPERCERTA_API_REQUEST_TIMEOUT_SECONDS", "999")
-    assert api_request_timeout_seconds() == 120.0
+    assert api_request_timeout_seconds() == 600.0

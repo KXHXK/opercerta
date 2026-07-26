@@ -1,0 +1,42 @@
+{
+  "executed_at": "2026-07-26T10:55:26.911021+00:00",
+  "provider": "moonshot-openai-compatible",
+  "model": "kimi-k2.6",
+  "mode": "real",
+  "representative_operations": 1,
+  "results": [
+    {
+      "scenario": "inventory",
+      "status": "passed",
+      "operations_attempted": 1,
+      "approved_path": {
+        "operation_id": "ff2980e3-8a57-4265-8cd9-b9c0db4b8ae6",
+        "status": "completed",
+        "create_operation_elapsed_ms": 21195.864,
+        "model_expected": true,
+        "explanation": {
+          "summary_characters": 331,
+          "rationale_characters": 263
+        },
+        "approvals": 1,
+        "work_orders": 1,
+        "work_order_kind": "replenishment",
+        "trace": {
+          "event_types": [
+            "execution",
+            "feedback",
+            "guardrail",
+            "human",
+            "model",
+            "perception",
+            "rag",
+            "rule",
+            "tool"
+          ],
+          "citation_count": 3,
+          "model_mode": "real"
+        }
+      }
+    }
+  ]
+}

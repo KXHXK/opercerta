@@ -10,12 +10,14 @@ from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 from mcp.types import CallToolResult, TextContent
 from opentelemetry.propagate import inject
-from pydantic import ValidationError
+from pydantic import BaseModel, JsonValue, ValidationError
 
+from opercerta.domain.agent import ReadToolName
 from opercerta.domain.errors import (
     EquipmentNotFound,
     EvidenceUnavailable,
     IdempotencyConflict,
+    InvalidAgentToolArguments,
     InvalidEquipmentEvidence,
     InvalidInventoryEvidence,
     InvalidMaintenancePolicyEvidence,
@@ -23,6 +25,8 @@ from opercerta.domain.errors import (
     InvalidTaskEvidence,
     InvalidTaskRecoveryPolicyEvidence,
     InventoryNotFound,
+    KnowledgeInsufficient,
+    KnowledgeUnavailable,
     OperationNotFound,
     TaskNotFound,
     UnknownTool,
@@ -30,8 +34,10 @@ from opercerta.domain.errors import (
     WorkOrderStorageFailed,
     WriteNotAuthorized,
 )
+from opercerta.domain.knowledge import KnowledgeSearchEvidence
 from opercerta.domain.maintenance import EquipmentEvidence, MaintenancePolicyEvidence
 from opercerta.domain.replenishment import InventoryEvidence, PolicyEvidence
+from opercerta.domain.scenarios import ScenarioKind
 from opercerta.domain.task_recovery import TaskEvidence, TaskRecoveryPolicyEvidence
 from opercerta.domain.work_orders import (
     WorkOrderCommand,
@@ -44,6 +50,7 @@ ALLOWED_TOOLS = frozenset(
     {
         "equipment.get_status",
         "inventory.get_snapshot",
+        "knowledge.search_sop",
         "policy.list_constraints",
         "task.get_status",
         "work_order.create",
@@ -176,6 +183,74 @@ class McpToolGateway:
             return TaskRecoveryPolicyEvidence.model_validate(result.structuredContent)
         except ValidationError:
             raise InvalidTaskRecoveryPolicyEvidence from None
+
+    async def search_knowledge(
+        self,
+        scenario: ScenarioKind,
+        query: str,
+    ) -> KnowledgeSearchEvidence:
+        arguments: dict[str, object] = {
+            "scenario": scenario.value,
+            "query": query,
+        }
+        result = await self.call_raw("knowledge.search_sop", arguments)
+        self._raise_tool_error("knowledge.search_sop", arguments, result)
+        try:
+            return KnowledgeSearchEvidence.model_validate(result.structuredContent)
+        except ValidationError:
+            raise KnowledgeUnavailable from None
+
+    async def read_agent_tool(
+        self,
+        name: ReadToolName,
+        arguments: dict[str, JsonValue],
+    ) -> BaseModel:
+        if name is ReadToolName.INVENTORY_SNAPSHOT:
+            return await self.get_inventory(self._only_string(arguments, "sku"))
+        if name is ReadToolName.EQUIPMENT_STATUS:
+            return await self.get_equipment(self._only_string(arguments, "equipment_id"))
+        if name is ReadToolName.TASK_STATUS:
+            return await self.get_task(self._only_string(arguments, "task_id"))
+        if name is ReadToolName.POLICY_CONSTRAINTS:
+            action = arguments.get("action")
+            if action == "replenish_inventory":
+                return await self.get_policy(
+                    self._only_string(arguments, "sku", extra_key="action")
+                )
+            if action == "repair_equipment":
+                return await self.get_maintenance_policy(
+                    self._only_string(arguments, "equipment_id", extra_key="action")
+                )
+            if action == "recover_task":
+                return await self.get_task_recovery_policy(
+                    self._only_string(arguments, "task_id", extra_key="action")
+                )
+        if name is ReadToolName.KNOWLEDGE_SEARCH:
+            if set(arguments) != {"scenario", "query"}:
+                raise InvalidAgentToolArguments
+            scenario = arguments.get("scenario")
+            query = arguments.get("query")
+            if not isinstance(scenario, str) or not isinstance(query, str):
+                raise InvalidAgentToolArguments
+            try:
+                scenario_kind = ScenarioKind(scenario)
+            except ValueError:
+                raise InvalidAgentToolArguments from None
+            return await self.search_knowledge(scenario_kind, query)
+        raise InvalidAgentToolArguments
+
+    @staticmethod
+    def _only_string(
+        arguments: dict[str, JsonValue],
+        key: str,
+        *,
+        extra_key: str | None = None,
+    ) -> str:
+        expected_keys = {key} if extra_key is None else {key, extra_key}
+        value = arguments.get(key)
+        if set(arguments) != expected_keys or not isinstance(value, str):
+            raise InvalidAgentToolArguments
+        return value
 
     async def create_work_order(
         self,
@@ -313,6 +388,10 @@ class McpToolGateway:
             raise WorkOrderNotFound
         if code == WorkOrderStorageFailed.code:
             raise WorkOrderStorageFailed
+        if code == KnowledgeInsufficient.code:
+            raise KnowledgeInsufficient
+        if code == KnowledgeUnavailable.code:
+            raise KnowledgeUnavailable
 
         operation_id_value = arguments.get("operation_id")
         if code == OperationNotFound.code and operation_id_value is not None:

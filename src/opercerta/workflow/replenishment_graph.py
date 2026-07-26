@@ -9,6 +9,7 @@ from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import interrupt
 from pydantic import JsonValue, ValidationError
 
+from opercerta.domain.agent import AgentAnalysis, VerificationDecision
 from opercerta.domain.contracts import ActionType, ObjectType, OperationRequest
 from opercerta.domain.errors import (
     ApprovalSnapshotMismatch,
@@ -22,7 +23,7 @@ from opercerta.domain.errors import (
     WorkOrderStorageFailed,
     WorkOrderVerificationFailed,
 )
-from opercerta.domain.model_gateway import ModelGateway
+from opercerta.domain.model_gateway import AgentModelGateway, ModelGateway
 from opercerta.domain.operation_state import ApprovalResume
 from opercerta.domain.replenishment import (
     ApprovalBinding,
@@ -38,6 +39,7 @@ from opercerta.domain.replenishment import (
     build_approval_binding,
     build_plan,
 )
+from opercerta.domain.scenarios import ApprovalBinding as ScenarioApprovalBinding
 from opercerta.domain.work_orders import (
     WorkOrderCommand,
     WorkOrderRecord,
@@ -48,6 +50,10 @@ from opercerta.infrastructure.db.replenishment_operation_repository import (
     ReplenishmentOperationRepository,
 )
 from opercerta.observability.tracing import NOOP_TRACING, Tracing, trace_async_node
+from opercerta.workflow.agent_controlled_action_graph import (
+    build_verification_context,
+    choose_verification_route,
+)
 
 if TYPE_CHECKING:
     from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -84,6 +90,9 @@ class ReplenishmentState(TypedDict):
     result: dict[str, JsonValue] | None
     error: dict[str, JsonValue] | None
     replayed: bool
+    agent_analysis: dict[str, JsonValue] | None
+    verification: dict[str, JsonValue] | None
+    verification_route: str | None
 
 
 ReplenishmentGraph = CompiledStateGraph[
@@ -110,6 +119,9 @@ def build_replenishment_initial_state(
         result=None,
         error=None,
         replayed=False,
+        agent_analysis=None,
+        verification=None,
+        verification_route=None,
     )
 
 
@@ -125,6 +137,7 @@ def build_replenishment_graph(
     tracing: Tracing = NOOP_TRACING,
     parallel_evidence_reads: bool = True,
     approval_ttl_seconds: int = 300,
+    agent_model_gateway: AgentModelGateway | None = None,
 ) -> ReplenishmentGraph:
     if approval_ttl_seconds < 1:
         raise ValueError("approval_ttl_seconds must be positive")
@@ -303,7 +316,14 @@ def build_replenishment_graph(
 
     async def explain_plan(state: ReplenishmentState) -> dict[str, object]:
         try:
-            explanation = await model_gateway.explain_plan(assessment(state))
+            if state.get("agent_analysis") is not None:
+                agent_analysis = AgentAnalysis.model_validate(state["agent_analysis"])
+                explanation = ModelPlanExplanation(
+                    summary=agent_analysis.summary,
+                    rationale=agent_analysis.recommendation,
+                )
+            else:
+                explanation = await model_gateway.explain_plan(assessment(state))
         except Exception:
             return error_update(DependencyUnavailable.code)
         return {"plan": explanation.model_dump(mode="json")}
@@ -413,7 +433,19 @@ def build_replenishment_graph(
                 clock(),
             )
             if not refreshed_assessment.replenishment_required:
-                raise ApprovalSnapshotMismatch
+                if agent_model_gateway is None:
+                    raise ApprovalSnapshotMismatch
+                decision = await agent_model_gateway.verify(
+                    build_verification_context(
+                        original_plan,
+                        evidence(state),
+                        refreshed_bundle,
+                    )
+                )
+                return {
+                    "verification": decision.model_dump(mode="json"),
+                    "verification_route": "abort",
+                }
             refreshed_plan = build_plan(
                 refreshed_assessment,
                 ModelPlanExplanation(
@@ -426,7 +458,7 @@ def build_replenishment_graph(
                 refreshed_bundle,
                 refreshed_plan,
             )
-            if (
+            binding_matches = (
                 refreshed_binding.rule_version,
                 refreshed_binding.decision_facts_hash,
                 refreshed_binding.plan_hash,
@@ -436,8 +468,38 @@ def build_replenishment_graph(
                 original_binding.decision_facts_hash,
                 original_binding.plan_hash,
                 original_binding.recommended_quantity,
-            ):
+            )
+            binding_matches = not binding_matches
+            if agent_model_gateway is None and not binding_matches:
                 raise ApprovalSnapshotMismatch
+            if agent_model_gateway is None:
+                return {}
+            decision = await agent_model_gateway.verify(
+                build_verification_context(
+                    original_plan,
+                    evidence(state),
+                    refreshed_bundle,
+                )
+            )
+            route = choose_verification_route(
+                decision,
+                original_plan,
+                binding_matches=binding_matches,
+            )
+            update: dict[str, object] = {
+                "verification": decision.model_dump(mode="json"),
+                "verification_route": route,
+            }
+            if route == "reapproval":
+                update.update(
+                    {
+                        "evidence": refreshed_bundle.model_dump(mode="json"),
+                        "assessment": refreshed_assessment.model_dump(mode="json"),
+                        "plan": refreshed_plan.model_dump(mode="json"),
+                        "approval_binding": refreshed_binding.model_dump(mode="json"),
+                    }
+                )
+            return update
         except Exception as exception:
             if isinstance(
                 exception,
@@ -452,6 +514,50 @@ def build_replenishment_graph(
             ):
                 return error_update(code_for(exception))
             return error_update(ApprovalSnapshotMismatch.code)
+        return {}
+
+    def route_verification(state: ReplenishmentState) -> str:
+        if state["error"] is not None:
+            return "failure"
+        return state["verification_route"] or "proceed"
+
+    async def mark_needs_reapproval(state: ReplenishmentState) -> dict[str, object]:
+        decision = VerificationDecision.model_validate(state["verification"])
+        await operations.mark_needs_reapproval(
+            operation_id(state),
+            approval(state).approval_id,
+            evidence(state),
+            assessment(state),
+            plan(state),
+            ScenarioApprovalBinding.model_validate(approval_binding(state)),
+            clock() + timedelta(seconds=approval_ttl_seconds),
+            decision.reason,
+        )
+        return {"approval": None}
+
+    async def request_reapproval(state: ReplenishmentState) -> dict[str, object]:
+        resumed = interrupt(
+            {
+                "operation_id": state["operation_id"],
+                "assessment": state["assessment"],
+                "plan": state["plan"],
+                "approval_binding": state["approval_binding"],
+                "status": "needs_reapproval",
+            }
+        )
+        try:
+            parsed = ApprovalResume.model_validate(resumed)
+        except ValidationError:
+            return error_update(DependencyUnavailable.code)
+        return {"approval": parsed.model_dump(mode="json")}
+
+    async def mark_verifier_aborted(state: ReplenishmentState) -> dict[str, object]:
+        decision = VerificationDecision.model_validate(state["verification"])
+        await operations.mark_verifier_aborted(
+            operation_id(state),
+            approval(state).approval_id,
+            decision.reason,
+        )
         return {}
 
     async def mark_executing(state: ReplenishmentState) -> dict[str, object]:
@@ -545,6 +651,9 @@ def build_replenishment_graph(
         "request_approval": request_approval,
         "mark_rejected": mark_rejected,
         "revalidate_evidence": revalidate_evidence,
+        "mark_needs_reapproval": mark_needs_reapproval,
+        "request_reapproval": request_reapproval,
+        "mark_verifier_aborted": mark_verifier_aborted,
         "mark_executing": mark_executing,
         "execute_work_order": execute_work_order,
         "mark_verifying": mark_verifying,
@@ -611,8 +720,24 @@ def build_replenishment_graph(
     builder.add_edge("mark_rejected", END)
     builder.add_conditional_edges(
         "revalidate_evidence",
-        route_error,
-        {"continue": "mark_executing", "failure": "mark_failed"},
+        route_verification,
+        {
+            "proceed": "mark_executing",
+            "abort": "mark_verifier_aborted",
+            "reapproval": "mark_needs_reapproval",
+            "failure": "mark_failed",
+        },
+    )
+    builder.add_edge("mark_verifier_aborted", END)
+    builder.add_edge("mark_needs_reapproval", "request_reapproval")
+    builder.add_conditional_edges(
+        "request_reapproval",
+        route_approval,
+        {
+            "approved": "revalidate_evidence",
+            "rejected": "mark_rejected",
+            "failure": "mark_failed",
+        },
     )
     builder.add_edge("mark_executing", "execute_work_order")
     builder.add_conditional_edges(

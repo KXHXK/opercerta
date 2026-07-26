@@ -1,6 +1,7 @@
 from typing import cast
 
 import pytest
+from fastapi import FastAPI
 from pydantic import SecretStr
 from pydantic_core import ValidationError
 
@@ -66,6 +67,43 @@ def test_mcp_main_binds_all_container_interfaces(monkeypatch) -> None:
     assert calls == [(application, "0.0.0.0", 8001)]
 
 
+def test_mcp_runtime_wires_the_fixed_embedding_gateway(monkeypatch, tmp_path) -> None:
+    events: list[tuple[str, object]] = []
+    gateway = object()
+
+    class FakeEngine:
+        sync_engine = object()
+
+        async def dispose(self) -> None:
+            pass
+
+    monkeypatch.setattr(mcp, "create_async_engine", lambda *args, **kwargs: FakeEngine())
+    monkeypatch.setattr(mcp, "instrument_sqlalchemy_engine", lambda *args: None)
+    monkeypatch.setattr(mcp, "configure_tracing", lambda **kwargs: (object(), None))
+    monkeypatch.setattr(
+        mcp,
+        "FastEmbedGateway",
+        lambda cache_dir: events.append(("cache_dir", cache_dir)) or gateway,
+    )
+
+    def fake_create_mcp_app(*args, embedding_gateway, **kwargs):
+        del args, kwargs
+        events.append(("embedding_gateway", embedding_gateway))
+        return FastAPI()
+
+    monkeypatch.setattr(mcp, "create_mcp_app", fake_create_mcp_app)
+    settings = mcp.McpSettings.model_validate(
+        {
+            "OPERCERTA_DATABASE_URL": "postgresql://user:secret@db/opercerta",
+            "OPERCERTA_EMBEDDING_CACHE_DIR": tmp_path,
+        }
+    )
+
+    mcp.create_mcp_runtime_app(settings)
+
+    assert events == [("cache_dir", tmp_path), ("embedding_gateway", gateway)]
+
+
 def test_bootstrap_runs_migration_before_checkpoint_setup(monkeypatch) -> None:
     events: list[str] = []
     settings = bootstrap.BootstrapSettings(
@@ -115,6 +153,20 @@ def test_mock_model_treats_empty_optional_model_settings_as_unset() -> None:
     assert settings.model_base_url is None
     assert settings.model_name is None
     assert settings.model_api_key is None
+
+
+def test_rag_is_enabled_but_not_required_by_default() -> None:
+    settings = ProductionSettings.model_validate(production_values())
+
+    assert settings.knowledge_enabled is True
+    assert settings.knowledge_required is False
+
+
+def test_model_timeout_is_separate_from_the_short_mcp_timeout() -> None:
+    settings = ProductionSettings.model_validate(production_values())
+
+    assert settings.mcp_timeout_seconds == 2
+    assert settings.model_timeout_seconds == 90
 
 
 def test_production_secrets_are_redacted_from_representation() -> None:

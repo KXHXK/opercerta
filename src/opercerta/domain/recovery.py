@@ -11,11 +11,13 @@ class OperationStatus(StrEnum):
     VALIDATING = "validating"
     REPORTING = "reporting"
     AWAITING_APPROVAL = "awaiting_approval"
+    NEEDS_REAPPROVAL = "needs_reapproval"
     RESUMING = "resuming"
     EXECUTING = "executing"
     VERIFYING = "verifying"
     COMPLETED = "completed"
     REJECTED = "rejected"
+    ABORTED = "aborted"
     EXPIRED = "expired"
     FAILED = "failed"
 
@@ -40,6 +42,7 @@ TERMINAL_STATUSES = frozenset(
     {
         OperationStatus.COMPLETED,
         OperationStatus.REJECTED,
+        OperationStatus.ABORTED,
         OperationStatus.EXPIRED,
         OperationStatus.FAILED,
     }

@@ -33,8 +33,10 @@ export type OperationDetail = {
   status: string;
   request: {
     message: string;
+    requested_action?: "query" | "create_work_order";
     object_type: "inventory" | "equipment" | "task";
     object_id: string;
+    trigger_signal_id?: string | null;
   };
   evidence: Record<string, unknown>[];
   assessment: Record<string, unknown> | null;
@@ -45,4 +47,90 @@ export type OperationDetail = {
   result: OperationResult | null;
   error: { code: string; message: string } | null;
   last_audit_sequence: number;
+};
+
+export type OperationalSignal = {
+  id: string;
+  dedup_key: string;
+  signal_type: "inventory_shortage" | "equipment_attention" | "task_blocked";
+  object_type: "inventory" | "equipment" | "task";
+  object_id: string;
+  source: string;
+  severity: "low" | "medium" | "high";
+  reason_code: string;
+  facts_hash: string;
+  facts: Record<string, unknown>;
+  status: "open" | "investigating" | "resolved" | "attention_required";
+  operation_id: string | null;
+  predecessor_signal_id: string | null;
+  detected_at: string;
+  updated_at: string;
+  resolved_at: string | null;
+};
+
+export type SignalCaseView = {
+  case_key: string;
+  object_type: OperationalSignal["object_type"];
+  object_id: string;
+  current_signal: OperationalSignal;
+  current_operation: { operation_id: string; status: string } | null;
+  history_count: number;
+  lineage: OperationalSignal[];
+};
+
+export type SignalScanResult = {
+  signals: OperationalSignal[];
+  affected_cases?: SignalCaseView[];
+  issues: Array<{ object_type: string; object_id: string; code: string }>;
+  scanned_count: number;
+  scanned_at: string;
+};
+
+export type TraceValue = null | boolean | number | string | TraceValue[] | {
+  [key: string]: TraceValue;
+};
+
+export type AgentTraceCitation = {
+  id: string;
+  event_id: string;
+  document_id: string;
+  chunk_id: string;
+  version: string;
+  rank: number;
+  score: number;
+};
+
+export type AgentTraceEvent = {
+  id: string;
+  run_id: string;
+  sequence: number;
+  semantic_key: string;
+  event_type: "perception" | "model" | "tool" | "rag" | "rule" | "human" | "execution" | "feedback" | "guardrail";
+  actor_type: "user" | "agent" | "model" | "tool" | "policy" | "human" | "system";
+  node: string;
+  status: "started" | "completed" | "failed" | "blocked" | "waiting";
+  safe_input: Record<string, TraceValue>;
+  safe_output: Record<string, TraceValue>;
+  prompt_ref: string | null;
+  tool_ref: string | null;
+  error_code: string | null;
+  citations: AgentTraceCitation[];
+  started_at: string;
+  ended_at: string | null;
+};
+
+export type AgentTraceSnapshot = {
+  run: {
+    id: string;
+    operation_id: string;
+    run_key: string;
+    scenario: "inventory" | "equipment" | "task";
+    status: "running" | "awaiting_human" | "completed" | "failed";
+    model_mode: "mock" | "real";
+    initiated_by: string | null;
+    next_sequence: number;
+    started_at: string;
+    ended_at: string | null;
+  };
+  events: AgentTraceEvent[];
 };

@@ -3,7 +3,7 @@ from enum import StrEnum
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, StringConstraints, field_validator
+from pydantic import BaseModel, ConfigDict, PositiveInt, StringConstraints, field_validator
 
 from opercerta.domain.scenarios import ApprovalBinding
 
@@ -38,6 +38,7 @@ class BoundApprovalCommand(ApprovalCommand):
 class ApprovalRecord(ApprovalCommand):
     id: UUID
     created_at: datetime
+    approval_cycle: PositiveInt = 1
 
     @field_validator("created_at")
     @classmethod

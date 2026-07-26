@@ -244,3 +244,159 @@
 - `docs/release-evidence/performance-cache-matrix.md`
 - `docs/release-evidence/real-model-representative-validation.md`
 - `docs/release-evidence/zero-cost-showcase-engineering-walkthrough.md`
+- `docs/release-evidence/agent-pgvector-rag.md`
+
+## 案例：固定 embedding 模型直连失败与可审计降级
+
+- **现象：** `BAAI/bge-small-zh-v1.5` 首次初始化访问官方 Hugging Face，约 150 秒后报 `Network is unreachable`；没有生成向量，也没有写知识表。
+- **根因：** WSL 主机直连官方域名同样超时，问题在外部网络路径，不在 Docker DNS、FastEmbed 合同或 pgvector。
+- **处理：** 先探测可达端点，只在 ignored 本地 `.env.compose` 临时配置 `HF_ENDPOINT`；产品 Compose 不硬编码第三方镜像。缓存完成后以 `local_files_only=True` 验证 512 维有限向量，并运行三场景真实检索。
+- **证据边界：** 记录固定模型、维度、文档版本、chunk 和实际 cosine 分数；不把小规模合成语料包装成准确率。
+- **面试表达：** “我把下载、向量生成、数据库写入分层验证。网络失败时系统没有写半成品；缓存成功后我用离线模式证明模型和检索链路独立可用。”
+
+## 案例：Codex 自动化 WSL 会话停止 Docker service
+
+- **现象：** 新镜像构建和服务健康成功，但完整 smoke 到数据库计数断言时，Compose 返回 `service "postgres" is not running`。
+- **诊断：** Docker journal 显示 service 被正常 `terminated`，容器均退出 0；轮询 Docker、持续 `docker events` 和前台 Compose 三种 keepalive 都在约 43--49 秒复现。
+- **决策：** 连续三次同根因后停止 workaround，不改产品代码掩盖环境问题；保留 535+4 测试、新镜像健康和失败日志，把完整 restart smoke 作为 Task 9 稳定交互式 WSL 门禁。
+- **面试表达：** “我区分产品失败与执行宿主失败。三次最小假设都未改变结果后停止试错，避免为了绿色结果篡改业务验证脚本。”
+
+## 27. 迁移测试不能依赖数据库碰巧已经升级
+
+- **问题：** Task 6 在已有开发卷上通过，但新建空 pgvector 卷时迁移往返测试第一步失败，结果为 1 failed/74 passed。
+- **根因：** 测试只声明原始 `database_url` fixture，却直接执行从 head 降到 `0004_approval_cycles`；旧开发卷碰巧已迁移到 head，掩盖了隐式前置条件。
+- **修复：** 不改生产迁移，让测试显式依赖负责升级到 head 的 `migrated_database_url`；随后验证 downgrade→upgrade→downgrade→upgrade。
+- **验证：** 单条迁移测试 `1 passed`；新建空卷的完整聚焦门禁 `75 passed in 36.33s`。
+- **面试表达：** “迁移测试必须自己建立起点，不能借用开发机历史状态。空数据库是更强的隔离门禁，它把偶然通过变成可重复证明。”
+
+## 28. 工具失败后盲目 replan 会掩盖原始业务错误
+
+- **问题：** 查询不存在的库存对象时，主体工具已经返回 `inventory_not_found`，流程却继续 replan；Mock planner 没有剩余步骤，最终触发空计划校验并由 API 返回 503。
+- **根因：** 图路由只看“工具调用结束”，没有区分可重试观察与主体/策略事实不存在；二次规划覆盖了更有价值的原始错误。
+- **修复：** 主体事实或策略工具失败时立即安全终止，向外传播第一个结构化 observation error code；只有允许替代路径的失败才进入 replan。
+- **验证：** 缺失对象 API 回归恢复为稳定 422，Agent Trace 定向与全量产品测试通过。
+- **面试表达：** “Agent 不是失败后都让模型再想一次。业务主体不存在属于确定性终止条件，我让图保留原始错误，避免模型层把可解释的 422 变成基础设施 503。”
+
+## 29. 新架构测试开关不能污染冻结评测基线
+
+- **问题：** 为 Trace API 测试全局启用 Agent runner 后，历史冻结用例 `RPL-024` 的预期 failed 变成 aborted。
+- **根因：** 不是产品行为回归，而是测试 harness 把新执行语义扩散到所有旧评测；同一输入在不同 runner 下允许有不同安全终态。
+- **修复：** harness 默认保持旧确定性基线，只有 Agent Trace 新用例显式 `agent_trace_enabled=True`；两套语义分别测试、分别声明。
+- **验证：** 冻结用例与 Trace 用例同时通过，随后产品测试 545 条全绿。
+- **面试表达：** “兼容性不只是 API 字段，也包括评测语义。我没有为了全绿修改旧期望，而是收窄测试开关作用域，让旧基线和新 Agent 路径各自可复现。”
+
+## 30. Windows 与 WSL 不能共用同一个虚拟环境
+
+- **问题：** Windows `uv` 指向 worktree 的 Linux `.venv`，识别到跨平台结构后报拒绝访问，但已部分移除 Linux 可执行目录。
+- **根因：** 虚拟环境含平台专属解释器、路径、动态库和入口脚本；同名目录不具备跨操作系统可移植性。
+- **修复：** 由 WSL `uv sync --frozen` 严格按锁文件重建 Linux `.venv`；需要 Windows 解释器时使用独立 `.venv-windows`，不得让两个平台写同一目录。
+- **验证：** WSL 环境重新安装锁定依赖，Task 7 定向 8 条通过。
+- **面试表达：** “锁文件可以跨环境复现依赖选择，虚拟环境目录本身不能跨平台复用。我把依赖声明与环境产物分开管理，损坏后从 lock 重建而不是手工修补。”
+
+## 31. Agent Trace、审计日志与 OTel 必须分层
+
+- **问题：** 如果直接把审计事件或 OpenTelemetry span 显示成 Agent Trace，页面无法解释模型建议、工具事实和 RAG 引用，也可能把异常正文或秘密带给业务用户。
+- **设计：** Agent Trace 保存脱敏业务解释；审计日志保存状态变更事实；OTel 保存低基数调用链和耗时。Trace 不记录隐藏思维链，只记录模型输出合同、真实 observation 和 citation reference。
+- **验证：** 禁止字段、边界截断、RAG 正文隔离、恢复去重、RBAC 与 SSE snapshot 均有自动化测试；证据见 `docs/release-evidence/agent-trace-rbac.md`。
+- **面试表达：** “三套记录的受众和保留策略不同。我单独建模 Agent Trace，是为了让业务可解释性、合规审计和系统可观测性互不污染。”
+
+## 32. 角色权限变化不能让前端丢失业务结果
+
+- **问题：** approver 在等待审批时可读 Trace，但提交审批后 operation 进入 completed，按 RBAC 不再允许 approver 读取终态 Trace。如果页面把详情、Trace、audit 当成一个全成全败请求，审批成功后反而会显示“读取失败”。
+- **设计：** 业务详情是主结果，Trace 作为独立权限资源加载；同一 operation 的 Trace 读取被拒绝时保留已加载安全快照，并提示切换 auditor 完成终态核验。读取另一个无权 operation 时不沿用旧 Trace。
+- **验证：** API 权限测试证明 approver 只读待审批状态；前端角色引导和 App 编排测试通过。
+- **面试表达：** “RBAC 不只是隐藏按钮，还会改变请求组合方式。我让核心业务结果与可解释轨迹独立失败，并用角色接力完成最小授权下的完整演示。”
+
+## 33. CI 数据库镜像必须具备迁移声明的 extension
+
+- **问题：** Agent 核心 Draft PR 首次 Actions 中，三个快速 job 通过，backend-tests 在 Alembic 的 `CREATE EXTENSION vector` 处失败。
+- **根因：** 本地 Compose 已迁移到 pgvector 镜像，CI backend service 仍是普通 PostgreSQL 18，导致运行环境和数据库迁移合同漂移。
+- **修复：** 先新增 CI 资产 RED，要求固定 `pgvector/pgvector:0.8.2-pg18-trixie` 且禁止 `postgres:18`；再修改工作流，未跳过迁移或 RAG 测试。
+- **验证：** 定向 CI/容器资产测试 12 条通过；修复提交 `ba53e70` 后，最新基线 Actions run `29937375023` 的仓库安全、Python 质量、后端和前端全部通过。
+- **面试表达：** “数据库 extension 是部署依赖，不只是 Python 包。我用可执行资产测试约束 CI 镜像与 Compose 一致，避免本地绿、远端红的基础设施漂移。”
+
+## 34. Agent replan 应缩小行动空间，而不是重复展示全部工具
+
+- **问题：** Kimi 在第一轮已完成 inventory 与 knowledge 工具后，第二轮仍重复选择已完成工具，Harness 正确拒绝重复调用，但 policy 证据因此缺失。
+- **根因：** Graph 已计算缺失证据，却仍把完整工具集交给模型；Prompt 提醒不能消除概率性重复。
+- **修复：** 从持久化 observation 计算已完成工具，replan 只暴露 missing tools；同时保留 Harness 的未知工具、重复调用和对象漂移硬拒绝。
+- **验证：** RED 证明第二轮错误暴露 inventory + policy；GREEN 后 16 条定向测试通过，真实 Kimi + RAG 图 probe 依次完成 inventory、knowledge、policy。
+- **面试表达：** “我把 LLM 当受约束决策器。Graph 用状态收窄可选集合，Harness 守住最终边界；这样既不依赖 Prompt 运气，也不会因为安全拦截直接失去任务进度。”
+
+## 35. provider 异常必须让 operation 进入可解释终态
+
+- **问题：** operation 已创建后，模型或图抛异常会留下 `received`，重启恢复只能把它改成 `recovery_state_conflict`，丢失原始失败语义。
+- **根因：** API 创建记录与图执行之间存在异常窗口，旧 runner 没有业务终态补偿。
+- **修复：** runner 捕获异常并调用 operation state repository 写入固定 `dependency_unavailable`；若收口写入自身失败，记录固定安全日志并重新抛出原始异常。
+- **验证：** 测试覆盖终态写入、provider 文本不持久化、二次失败仍保留原始异常；本地 unit 352 条与关键图集成 7 条通过。
+- **面试表达：** “可恢复系统不能只依赖重启扫描兜底。异常发生当下就应把业务记录收口为安全终态，恢复协调器处理的是进程中断，不应替代正常异常处理。”
+
+## 36. 真实模型验证失败也要产生安全、可行动证据
+
+- **问题：** 完整 Compose 代表调用失败时，报告只有 `AssertionError`，既不能定位边界，也存在把响应正文写入异常的泄露风险。
+- **设计：** 验证器只允许 stage、HTTP 状态、固定错误码和 operation 状态进入报告；模型原文、Prompt、响应正文、凭据、token 和未返回的成本全部禁止记录。
+- **验证：** 单元测试证明敏感异常文本不进入报告；最终 Kimi 代表调用被定位为 `create_operation / 503 / dependency_unavailable`，没有回退 Mock。
+- **限制：** 该证据只说明失败被正确分类和收口，不等于真实模型端到端通过；一次约 21 秒完成和一次约 30 秒超时也不能被包装为 SLA。
+- **面试表达：** “失败报告的价值是回答‘在哪一层、以什么安全类别失败’，而不是倾倒完整上下文。我用 allowlist 证据定位外部依赖超时，同时避免诊断系统成为新的泄露面。”
+
+## 37. 后端安全错误不能在前端退化成同一句“请重试”
+
+- **问题：** API 已返回 401/403/409/422/503 的稳定 `code + message`，React 客户端却只抛 `api_status_N`，审批组件再吞成通用提示。
+- **影响：** 用户无法区分令牌过期、权限不足、审批过期、binding 变化和依赖故障；面试演示也看不到后端安全契约。
+- **修复：** 引入类型化 `ApiError`，只解析安全 envelope，并把固定错误码映射为可执行中文动作；未知代理响应仍用固定兜底，不显示原始正文。
+- **验证：** RED/GREEN 覆盖 409 过期审批、422 非法请求、403 审计读取及审批组件展示。
+- **面试表达：** “错误处理也是端到端契约。后端分类再完整，如果前端统一吞掉，用户恢复路径和安全证据都会丢失。”
+
+## 38. 后端执行了 Verifier，不等于产品能证明执行了 Verifier
+
+- **问题：** 三业务图已在批准后绕过缓存重新取证并调用 Verifier，但 Agent Trace 只显示一个 `execute_controlled_action`。
+- **风险：** UI 看起来仍像普通审批工单；模型复核、确定性授权和数据库写入三个责任边界无法解释。
+- **修复：** 在产品 Trace 中按顺序投影 `verify_current_facts`、`verify_approval_binding`、`execute_controlled_action`，只保存 decision/route/固定摘要，不保存隐藏推理或原始证据正文。
+- **验证：** 单元和数据库集成契约锁定事件语义键、顺序、binding 结果及终态；恢复重放继续依赖 semantic key 去重。
+- **面试表达：** “Agent 能力既要真实执行，也要有不泄露思维链的产品证据。我把模型建议、确定性授权和副作用拆成三类可审计事件。”
+
+## 39. 离线复验必须先区分冷缓存与热缓存
+
+- **问题：** 新建空 FastEmbed volume 后直接设置 `HF_HUB_OFFLINE=true`，MCP 无法加载固定 embedding 模型。
+- **根因：** 离线模式只禁止联网，不会凭空提供模型文件；之前成功的离线重启依赖已有命名 volume。
+- **修复：** 手册明确首次在线预热并确认 MCP healthy，再以同一 volume 离线重建；删除 volume 后必须重新预热。
+- **边界：** 这证明“已缓存后的离线可运行”，不声称“空机器完全离线安装”。第三方下载镜像只允许存在于 ignored 本地配置。
+- **面试表达：** “我会明确冷启动、热缓存和离线运行三种状态，避免把开发机历史缓存当成可部署性证据。”
+
+## 40. 写入成功与后置读取失败必须分开建模
+
+- **问题：** 审批 API 已返回 204，但 approver 在 operation 完成后因 RBAC 无权读取终态；旧前端把整个回调判为失败，显示“审批未提交”并重新启用按钮。
+- **风险：** 用户可能重复提交已经完成的原子决定；界面描述与数据库事实相反，破坏审批竞态和幂等设计的可信度。
+- **修复：** 以审批响应作为写入提交边界，只让写入失败拒绝回调；后置刷新独立捕获，明确提示已提交但未读取最新状态，并保持决定按钮禁用。
+- **验证：** 测试固定“审批 204 → 刷新 403”的顺序，断言提示、禁用状态和请求次数；完整前端 53 条通过。
+- **面试表达：** “分布式 UI 不能把 command 和 query 当成一次原子操作。写入成功后查询失败属于状态未知的读取问题，不代表命令回滚；我让界面以服务端提交事实为准并阻止重复副作用。”
+
+## 41. 安全 envelope 仍需在客户端按 allowlist 消费
+
+- **问题：** 后端错误采用 `code + message` JSON envelope，但未知错误码时前端仍把原始 `message` 拼入提示，可能暴露 provider、代理或堆栈细节。
+- **根因：** “结构化 JSON”不等于“内容可信”；客户端错误码映射之外的文本仍是非可信输入。
+- **修复：** 已知 code 映射为固定可执行动作；未知 code 只显示固定安全文案与 HTTP 状态，不使用原始正文。
+- **验证：** RED 用包含私有 provider 细节的未映射消息证明泄露；GREEN 后 `Error.message` 与 `userMessage` 均不含该文本。
+- **面试表达：** “错误 envelope 是传输合同，不是展示白名单。我在前后端两侧都做最小披露，让诊断信息留在受控日志，而不是进入业务用户界面。”
+
+## 42. 本地集成测试也要使用短生命周期凭据
+
+- **问题：** ignored `.env.local` 指向已停止数据库时，连接 traceback 展开了本地角色凭据；完整套件先表现为超时，拆分后才确认是端口拒绝。
+- **处置：** 不把连接错误冒充产品 RED；旧值按已暴露处理。新鲜门禁使用仅绑定 loopback、运行时随机密码的一次性 pgvector 容器，测试结束自动销毁。
+- **改进：** 恢复长期 Windows 测试库前轮换角色密码并同步 ignored 配置；测试 harness 应进一步缩短连接超时并确保异常永不呈现完整 DSN。
+- **面试表达：** “开发测试环境同样是供应链的一部分。我把长期凭据改成一次性门禁凭据，并用 trap 保证失败也清理；同时区分基础设施不可用和业务断言失败。”
+
+## 43. Mock 全绿不代表真实模型协议兼容
+
+- **问题：** 单元、集成和 Mock Compose 全绿后，Kimi K2.6 的真实 Agent 请求仍统一 503。
+- **根因：** production factory 复用了 MCP 的 2 秒 timeout；强制 tool calling 与默认 thinking mode 不兼容；最终分析和 Verifier 的通用 structured output 存在供应商波动。
+- **修复：** 把模型 timeout 独立为 90 秒；仅在 Moonshot/Kimi adapter 配置关闭 thinking；最终分析与 Verifier 使用两个内部原生提交工具，再由本地 schema 校验。
+- **验证：** 三业务真实只读、库存批准写入均通过；无效 provider 仍是 503、failed、零审批和零工单，没有回退 Mock。
+- **面试表达：** “Mock 证明我的确定性契约，Real 证明供应商协议兼容。我把差异留在 adapter 边界，并同时保留修复前失败和修复后成功证据。”
+
+## 44. 协议依赖不能共用一个超时语义
+
+- **问题：** MCP 本地请求的 2 秒 timeout 被无意传给远程 LLM，造成正常生成被误判依赖故障。
+- **风险：** 配置项名字与实际作用不一致，排障时会误以为网络或模型不可用；继续提高统一 timeout 又会拖慢 MCP 故障发现。
+- **修复：** 分离 `OPERCERTA_MCP_TIMEOUT_SECONDS` 和 `OPERCERTA_MODEL_TIMEOUT_SECONDS`，并用 factory 单元测试锁定 2 秒与 90 秒分别进入对应 adapter。
+- **面试表达：** “timeout 不是全系统通用数字，而是协议预算。远程生成、本地工具和数据库各有不同延迟与失败语义。”

@@ -227,6 +227,7 @@ async def test_bound_approval_atomically_records_binding_and_resumes(
         assert facts.event_types[-1] == "approval_recorded"
         assert facts.last_event_payload == {
             "approval_id": str(record.id),
+            "approval_cycle": 1,
             "decision": record.decision.value,
         }
     finally:

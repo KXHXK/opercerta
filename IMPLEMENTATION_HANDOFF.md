@@ -2,6 +2,23 @@
 
 ## 当前检查点
 
+- 2026-07-26 单根 Agent Loop 与业务对象 case 工作台 Task 0–11 已在本地完成。production runtime 仅构造一个根 LangGraph，三业务共享 Model↔MCP Observation 循环、确定性 Policy、HITL、批准后刷新、Kimi Verifier、binding、幂等写入与 readback；历史图只用于回归/等价测试。最终单元 `395 passed`，受影响隔离 PostgreSQL 集成 `32 passed`；Task 9 完整集成 `260 passed`，前端 19 文件 `60 passed` 且 build，Ruff/format/Mypy（85 个源文件）和仓库安全通过；隔离 Compose 三业务、RAG、数据库和 API/MCP 重启恢复通过。少量真实 Moonshot `kimi-k2.6` 的三业务只读、库存批准写入和无效 provider fail-closed 已通过，修复模型/MCP timeout 耦合、thinking/tool-call 不兼容和 Final/Verifier structured output 波动。证据见 `docs/release-evidence/single-root-agent-loop-case-workspace.md`，事故见 `docs/development-log/incidents/2026-07-26-kimi-tool-loop-compatibility.md`。所有修改尚未 commit/push/merge；公网可写后端与生产 IAM/限流/备份/自动发布仍未完成，门禁 `CLOSED`，不启动 ForenTrail。
+
+- 2026-07-24 已继续收口两项端到端语义：未知后端错误使用固定安全 fallback，不向界面传播原始消息；审批写入成功而后置刷新失败时，UI 保留已提交事实、禁用重复决定并引导 auditor 读取。新鲜门禁为前端 `53 passed` + production build、unit `356 passed`、一次性 pgvector 测试库完整后端 `579 passed in 376.68s`、Ruff/189 文件格式/Mypy 76 个源文件/114 包锁定/仓库安全全绿，以及 Mock release Compose 三业务、Verifier 顺序、数据库事实和 API/MCP 重启恢复退出码 0。Windows `.env.local` 所指测试库未运行且旧凭据在失败 traceback 中再次回显，恢复该库前必须轮换并同步 ignored 配置。本轮修改仍未 commit/push；下一步停在用户审批原子提交，Real Kimi、PR 合并、main Compose 与生产发布未执行，门禁保持 `CLOSED`。
+
+- 2026-07-23 已完成规格一致性审计和本地收口：四份原始设计、三业务修订与 Agent 核心规格对照后确认主线未偏离；前端安全错误 envelope、Verifier/绑定护栏 Trace、安全终态、复审周期、三角色和 FastEmbed 冷/热缓存说明已修复。新鲜门禁为 unit `356 passed`、前端 `51 passed` + production build、Ruff/182 文件格式/Mypy 76 个源文件、Mock Compose 三业务和 API/MCP 重启恢复退出码 0，四服务 healthy。当前修改只在本地工作树，尚未 commit/push；Real Kimi、PR 合并、main Compose 与生产发布未执行。详见 `docs/development-log/audits/2026-07-23-spec-conformance-audit.md`，生产门禁保持 `CLOSED`。
+
+- 2026-07-23 `feat/agent-core-implementation` 已推送并创建 [Draft PR #8](https://github.com/KXHXK/opercerta/pull/8)。首次 run `29936292055` 暴露 backend-tests 的普通 PostgreSQL 镜像不含 vector extension；按 RED/GREEN 新增 CI 资产契约并提交 `ba53e70 fix: use pgvector in backend CI` 后，最新基线 run `29937375023` 的 repository-safety、python-quality、backend-tests、frontend 全绿。PR 的 `compose-smoke` 按设计跳过；review、合并和 main-only Compose 尚未完成。过程见 `docs/development-log/daily/2026-07-23.md`，生产发布门禁保持 `CLOSED`。
+
+- 2026-07-23 Agent 核心后续修复：Kimi + RAG replan 改为只暴露尚缺工具，provider/图异常会把 operation 原子收口为固定 `dependency_unavailable`；真实图 probe 已完成 inventory → knowledge → policy。新鲜本地证据为 unit 352 条、关键 Agent 图集成 7 条、Ruff/188 文件格式/Mypy 76 个源文件；Draft PR run `29946792369` 为完整后端 `573 passed`、三业务评测 1 条与 Agent 评测 9/9，四个快速 job 全绿。完整 Compose Real Kimi 仍未稳定通过，最终安全报告为 create operation 503 `dependency_unavailable`。测试 traceback 曾展开的本地数据库凭据已轮换，主仓库与 worktree ignored 配置一致，并由 Windows 原生 `psql` 执行 `SELECT 1` 安全验证。证据见 `docs/release-evidence/agent-core-architecture.md`，生产门禁保持 `CLOSED`。
+- 2026-07-22 Agent 核心 Task 9 已提交为 `642d3ba`：新增 9 类冻结 Agent 轨迹评测、真实 Agent Compose/RAG/数据库/重启验证、CI 门禁和安全 Real 报告。新鲜证据为后端 `566 passed in 179.66s`、前端 17 文件/46 条、Ruff/187 文件格式/Mypy 76 个源文件、Agent 评测 9/9、Compose 三业务与 API/MCP 重启退出码 0。Real Moonshot/Kimi `kimi-k2.6` 新 Agent 代表 query 为 failed，未回退 Mock。证据见 `docs/release-evidence/agent-core-architecture.md`。
+
+- 2026-07-22 Agent 核心 Task 8 已完成 React 单页 Agent 工作台：有限三业务表单、结构化 Goal、真实 Trace、MCP/RAG 证据、模型建议/确定性计划对照、审批 binding、Verifier 说明、工单回读和 operator→approver→auditor 引导已接入；audit 与 Trace 继续分层。前端 17 个测试文件/46 条测试及生产构建通过；1440/1024/390 浏览器检查无横向溢出，应用内无 fixed/sticky。Task 9 真实 Compose 浏览器 E2E、重启和 Kimi Trace 尚未完成，发布门禁保持 `CLOSED`。证据见 `docs/release-evidence/agent-workspace.md`。
+
+- 2026-07-22 Agent 核心 Task 7 已完成：`0006_agent_trace`、run/event/citation 持久化、稳定序列与语义去重、递归脱敏、真实 LangGraph 调查/审批/执行/反馈投影、RAG citation reference、Trace snapshot/SSE API 和 operation 级 RBAC 均已接入。产品代码全量测试 `545 passed`；最新 RBAC 补强后 Task 7 定向 `8 passed`，WSL Git 安全 `4 passed`。失败 traceback 展开的 Windows 本地测试凭据已轮换；Windows 原生 PostgreSQL 无 pgvector，因此 Task 6 之后的完整集成门禁使用 Compose pgvector。Task 8 Agent 工作台与 Task 9 完整 Compose/真实模型 Trace 尚未完成，发布门禁保持 `CLOSED`。证据见 `docs/release-evidence/agent-trace-rbac.md`。
+
+- 2026-07-22 Agent 核心 Task 6 已完成本地代码与真实检索证据：`0005_agent_knowledge`、pgvector 512 维/HNSW、三份合成中文 SOP、FastEmbed、MCP `knowledge.search_sop`、场景/版本过滤、0.5 最小分数、LangGraph citations、可选降级与强制失败关闭均已接入。新建空卷容器网络聚焦 `75 passed`、产品 `535 passed`、WSL Git 安全 `4 passed`，Ruff/173 文件格式/mypy 73 个源文件/114 包锁定依赖/安全扫描通过；真实三场景入库、幂等 replay 与代表查询已完成。空卷门禁修复了迁移测试依赖预迁移数据库的隐式前置条件。新镜像构建和启动健康已观察；额外完整 Compose smoke 因 Codex 自动化 WSL 会话外层在约 43--49 秒停止 Docker service 未完成，留待 Task 9 在稳定交互式终端重跑。Task 7 Agent Trace/API/SSE/RBAC 未实施，生产门禁保持 `CLOSED`。证据见 `docs/release-evidence/agent-pgvector-rag.md`。
+
 - 2026-07-20 零成本求职展示与本地工程详解 Task 1--8 已完成：PR #6 以 merge commit `e483665` 合并，`main` run `29738863357` 的 repository-safety、python-quality、frontend、backend-tests、compose-smoke 全部通过。OperCerta production deploy `6a5e0bb5563acf4706a09c0d` 与作品集 production deploy `6a5e1b8824ba2290cf63c897` 均已完成 HTTP/浏览器核验；作品集四项目顺序、三业务文案、技术栈、联系方式和专题入口正确，桌面/移动端无横向溢出或 fixed/sticky 元素。公开页面仍为只读静态展示，公网可写后端未部署，生产门禁保持 `CLOSED`。证据见 `docs/release-evidence/zero-cost-showcase-engineering-walkthrough.md`。
 
 - 2026-07-20 已完成用户授权的 Moonshot AI `kimi-k2.6` 三业务代表性验证：每个业务执行 1 条 query 与 1 条批准路径，共 6 个 operation、3 条真实模型解释路径，三种唯一工单均落库。实现提交 `b517ab8`；随后完整后端 `429 passed in 110.61s`、Ruff/138 文件格式/mypy 62 个源文件/92 个锁定包/安全扫描通过，Mock release Compose 新鲜退出码 0。报告不保存模型原文，adapter 未暴露 token/cost usage，因此不估算。公网交互 HTTPS、生产治理、用户掌握、当前远程 CI 与 Release Tag 仍未完成，生产门禁保持 `CLOSED`。证据见 `docs/release-evidence/real-model-representative-validation.md`。
@@ -46,7 +63,7 @@
 ## 新对话必须先做
 
 1. 先阅读 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md` 和最近每日日志，再阅读相关设计、计划、交接和 Git 状态。
-2. 只实施 OperCerta；零成本展示 PR、`main` compose-smoke、Netlify 静态专题和作品集同步均已完成。下一步执行用户手动演示/口述掌握检查，并决定是否建设公网可写 HTTPS 后端；生产门禁关闭前不启动其他项目。
+2. 只实施 OperCerta；规格一致性本地修复尚未 commit/push，下一步先由用户审查并批准提交，再运行 Draft PR 快速 Actions；之后才进入用户掌握检查、合并审批和 main Compose。生产门禁关闭前不启动其他项目。
 3. 运行集成测试前，以不回显方式从已忽略 `.env.local` 加载 `OPERCERTA_DATABASE_URL`；不得提交该文件或任何凭据。
 4. 每个效果数字都保留基线、测试数据、测量脚本和结果证据；指标未测出前使用目标值或空值，不写成已实现结果。
 5. 使用公开或合成数据，从零编写全部代码和文档，不导入任何原单位源码、数据、截图、模型、品牌或内部规则。
@@ -60,4 +77,4 @@
 
 ## 可复制到新对话的启动语
 
-> 工作目录为本 OperCerta 仓库根目录。请先读取 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md`、最近每日日志、`README.md`、`IMPLEMENTATION_HANDOFF.md`、`docs/specs/` 下的四份设计文件及当前相关规格、计划和证据；零成本展示 PR、`main` Compose、Netlify 专题和作品集同步已经完成。下一步优先执行用户手动演示/口述掌握检查，再决定公网可写 HTTPS 后端范围。公开根路径只读、`/engineering` 仅 localhost、`/console` 仅本地真实演示；不复用旧公司材料，不虚构指标，不启动其他项目。
+> 工作目录为本 OperCerta 仓库根目录。请先读取 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md`、最近每日日志、`README.md`、`IMPLEMENTATION_HANDOFF.md`、`docs/specs/` 下的四份设计文件及当前相关规格、计划和证据；Agent 核心 Draft PR #8 既有快速 Actions 已全绿，规格一致性本地修复尚未 commit/push，Real Kimi 完整 Compose 路径仍为 failed。下一步先审查并批准本地修复提交，再跑 PR CI、用户手动演示/口述掌握检查、合并审批和 main Compose。公开根路径只读、`/engineering` 仅 localhost、`/console` 仅本地真实演示；不复用旧公司材料，不虚构指标，不启动其他项目。

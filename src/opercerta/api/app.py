@@ -6,11 +6,10 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from time import monotonic_ns
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Protocol
 from urllib.parse import urlsplit, urlunsplit
 from uuid import UUID
 
-import httpx
 from fastapi import Depends, FastAPI, Header, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
@@ -34,6 +33,7 @@ from starlette.datastructures import MutableHeaders
 from starlette.requests import Request
 from starlette.types import ASGIApp, Lifespan, Message, Receive, Scope, Send
 
+from opercerta.agent.trace_recorder import TraceRecorder
 from opercerta.api.auth import (
     AuthenticatedActor,
     AuthenticationRequired,
@@ -51,6 +51,7 @@ from opercerta.api.health import (
     not_ready_report,
 )
 from opercerta.api.models import (
+    AgentTraceSnapshotResponse,
     ApprovalRequest,
     ApprovalResponse,
     DemoTokenRequest,
@@ -58,10 +59,14 @@ from opercerta.api.models import (
     ErrorResponse,
     OperationAccepted,
     OperationDetailResponse,
+    SignalScanResponse,
 )
 from opercerta.application.approval_expiry import ApprovalExpiryService
-from opercerta.application.operation_runner import OperationRunner
+from opercerta.application.controlled_agent_root_runner import (
+    ControlledAgentRootRunner,
+)
 from opercerta.application.scenario_registry import build_default_scenario_registry
+from opercerta.application.signal_detection import SignalDetector
 from opercerta.domain.approvals import BoundApprovalCommand
 from opercerta.domain.contracts import (
     ActionType,
@@ -74,22 +79,35 @@ from opercerta.domain.errors import (
     ApprovalSnapshotMismatch,
     DependencyUnavailable,
     OperationNotFound,
+    SignalAlreadyClaimed,
+    SignalNotFound,
+    SignalObjectMismatch,
+    SignalRetryNotAllowed,
 )
-from opercerta.domain.model_gateway import MockModelGateway, ModelGateway
+from opercerta.domain.model_gateway import (
+    AgentLoopModelGateway,
+    MockAgentModelGateway,
+)
+from opercerta.domain.signals import OperationalSignal, SignalCaseView
 from opercerta.infrastructure.cache import (
     EvidenceCache,
     NullEvidenceCache,
     RedisEvidenceCache,
 )
 from opercerta.infrastructure.checkpoints import open_checkpointer
+from opercerta.infrastructure.db.agent_trace_repository import AgentTraceRepository
 from opercerta.infrastructure.db.approval_repository import ApprovalRepository
-from opercerta.infrastructure.db.evidence_repository import EvidenceRepository
 from opercerta.infrastructure.db.operation_repository import OperationRepository
 from opercerta.infrastructure.db.replenishment_operation_repository import (
     OperationDetail,
 )
+from opercerta.infrastructure.db.signal_repository import SignalRepository
+from opercerta.infrastructure.langchain_model_gateway import (
+    LangChainOpenAIModelGateway,
+)
 from opercerta.infrastructure.mcp_gateway import McpToolGateway
-from opercerta.infrastructure.model_gateway import OpenAICompatibleModelGateway
+from opercerta.infrastructure.observation_gateway import CachedReadToolGateway
+from opercerta.infrastructure.traced_tool_gateway import TracedControlledEvidenceGateway
 from opercerta.observability.context import new_request_id, request_context
 from opercerta.observability.logging import log_event
 from opercerta.observability.metrics import ApiMetrics
@@ -99,9 +117,11 @@ from opercerta.observability.tracing import (
     configure_tracing,
     instrument_sqlalchemy_engine,
 )
-from opercerta.workflow.controlled_action_graph import build_controlled_action_graph
-from opercerta.workflow.controlled_action_recovery import (
-    ControlledActionRecoveryCoordinator,
+from opercerta.workflow.controlled_agent_root_recovery import (
+    ControlledAgentRootRecoveryCoordinator,
+)
+from opercerta.workflow.inventory_agent_root_graph import (
+    build_controlled_agent_root_graph,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -111,12 +131,28 @@ class ApiRequestValidationFailed(ValueError):
     pass
 
 
+class OperationApplicationRunner(Protocol):
+    async def start(self, request: OperationRequest) -> UUID: ...
+
+    async def submit_approval(
+        self,
+        command: BoundApprovalCommand,
+        now: datetime | None = None,
+    ) -> UUID: ...
+
+    async def recover_all(self) -> list[UUID]: ...
+
+
 @dataclass(frozen=True, slots=True)
 class AppRuntime:
-    runner: OperationRunner
+    runner: OperationApplicationRunner
     operations: OperationRepository
     authenticator: JwtAuthenticator | None = None
     readiness: ReadinessProbe = field(default_factory=UnavailableReadinessProbe)
+    traces: AgentTraceRepository | None = None
+    signal_detector: SignalDetector | None = None
+    signals: SignalRepository | None = None
+    demo_admin_enabled: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -250,6 +286,10 @@ class ProductionSettings(BaseSettings):
     model_thinking_mode: Literal["default", "disabled"] = Field(
         default="default", validation_alias="OPERCERTA_MODEL_THINKING_MODE"
     )
+    model_timeout_seconds: PositiveFloat = Field(
+        default=90,
+        validation_alias="OPERCERTA_MODEL_TIMEOUT_SECONDS",
+    )
     otlp_enabled: bool = Field(default=False, validation_alias="OPERCERTA_OTLP_ENABLED")
     otlp_endpoint: AnyHttpUrl | None = Field(
         default=None, validation_alias="OPERCERTA_OTLP_ENDPOINT"
@@ -262,6 +302,14 @@ class ProductionSettings(BaseSettings):
     metrics_enabled: bool = Field(
         default=False,
         validation_alias="OPERCERTA_METRICS_ENABLED",
+    )
+    knowledge_enabled: bool = Field(
+        default=True,
+        validation_alias="OPERCERTA_KNOWLEDGE_ENABLED",
+    )
+    knowledge_required: bool = Field(
+        default=False,
+        validation_alias="OPERCERTA_KNOWLEDGE_REQUIRED",
     )
 
     @field_validator("model_base_url", "model_name", "model_api_key", mode="before")
@@ -329,6 +377,8 @@ def create_production_app(
             ) as runtime:
                 active_runtime = runtime
                 await runtime.runner.recover_all()
+                if runtime.signals is not None:
+                    await runtime.signals.reconcile_terminal_links(clock())
                 yield
         finally:
             active_runtime = None
@@ -359,7 +409,6 @@ async def _open_production_runtime(
         os.environ["PGPASSWORD"] = parsed_url.password
     engine: AsyncEngine | None = None
     redis_client: Redis | None = None
-    model_client: httpx.AsyncClient | None = None
     try:
         engine = create_async_engine(
             parsed_url.set(password=None),
@@ -368,6 +417,12 @@ async def _open_production_runtime(
         instrument_sqlalchemy_engine(engine.sync_engine, tracing)
         async with open_checkpointer(settings.database_url) as saver:
             operations = OperationRepository(engine)
+            trace_repository = AgentTraceRepository(engine)
+            trace_recorder = TraceRecorder(
+                trace_repository,
+                clock=clock,
+                model_mode=settings.model_mode,
+            )
             registry = build_default_scenario_registry()
             active_cache: EvidenceCache = NullEvidenceCache()
             if settings.cache_enabled and settings.redis_url is not None:
@@ -383,45 +438,61 @@ async def _open_production_runtime(
                     or settings.model_api_key is None
                 ):
                     raise ValueError("real model settings are incomplete")
-                model_client = httpx.AsyncClient()
-                model_gateway: ModelGateway = OpenAICompatibleModelGateway(
-                    client=model_client,
-                    base_url=str(settings.model_base_url),
-                    model=settings.model_name,
-                    api_key=settings.model_api_key,
-                    timeout_seconds=float(settings.mcp_timeout_seconds),
-                    disable_thinking=settings.model_thinking_mode == "disabled",
+                agent_model_gateway: AgentLoopModelGateway = (
+                    LangChainOpenAIModelGateway.from_openai_compatible(
+                        base_url=str(settings.model_base_url),
+                        model_name=settings.model_name,
+                        api_key=settings.model_api_key,
+                        timeout_seconds=float(settings.model_timeout_seconds),
+                        disable_thinking=settings.model_thinking_mode == "disabled",
+                    )
                 )
             else:
-                model_gateway = MockModelGateway()
-            graph = build_controlled_action_graph(
-                saver,
-                operations,
-                EvidenceRepository(engine),
-                McpToolGateway(
-                    str(settings.mcp_url),
-                    timeout_seconds=float(settings.mcp_timeout_seconds),
-                    on_tool_call=(metrics or ApiMetrics.create()).count_mcp_tool_call,
-                ),
-                model_gateway,
-                clock,
-                registry,
-                cache=active_cache,
-                cache_ttl_seconds=int(settings.cache_ttl_seconds),
-                tracing=tracing,
-                parallel_evidence_reads=settings.tool_mode == "parallel",
-                approval_ttl_seconds=int(settings.approval_ttl_seconds),
+                agent_model_gateway = MockAgentModelGateway()
+            tool_gateway = McpToolGateway(
+                str(settings.mcp_url),
+                timeout_seconds=float(settings.mcp_timeout_seconds),
+                on_tool_call=(metrics or ApiMetrics.create()).count_mcp_tool_call,
             )
-            recovery = ControlledActionRecoveryCoordinator(graph, operations)
-            runner = OperationRunner(
+            traced_gateway = TracedControlledEvidenceGateway(tool_gateway, tracing)
+            agent_gateway = CachedReadToolGateway(
+                traced_gateway,
+                active_cache,
+                ttl_seconds=int(settings.cache_ttl_seconds),
+                tracing=tracing,
+            )
+            refresh_gateway = CachedReadToolGateway(
+                traced_gateway,
+                active_cache,
+                ttl_seconds=int(settings.cache_ttl_seconds),
+                tracing=tracing,
+                bypass_cache=True,
+            )
+            graph = build_controlled_agent_root_graph(
+                agent_model_gateway,
+                agent_gateway,
+                clock=clock,
+                registry=registry,
+                checkpointer=saver,
+                enabled=True,
+                operations=operations,
+                action_gateway=traced_gateway,
+                refresh_gateway=refresh_gateway,
+                approval_ttl_seconds=int(settings.approval_ttl_seconds),
+                knowledge_enabled=settings.knowledge_enabled,
+                knowledge_required=settings.knowledge_required,
+            )
+            recovery = ControlledAgentRootRecoveryCoordinator(graph, operations)
+            runner = ControlledAgentRootRunner(
                 graph,
                 ApprovalRepository(engine),
                 operations,
                 recovery,
                 ApprovalExpiryService(operations, clock),
                 clock,
-                registry,
+                trace_recorder=trace_recorder,
             )
+            signal_repository = SignalRepository(engine)
             yield AppRuntime(
                 runner=runner,
                 operations=operations,
@@ -440,10 +511,12 @@ async def _open_production_runtime(
                     mcp_health_url=mcp_health_url(settings.mcp_url),
                     timeout_seconds=float(settings.mcp_timeout_seconds),
                 ),
+                traces=trace_repository,
+                signal_detector=SignalDetector(tool_gateway, signal_repository),
+                signals=signal_repository,
+                demo_admin_enabled=settings.demo_token_enabled,
             )
     finally:
-        if model_client is not None:
-            await model_client.aclose()
         if redis_client is not None:
             await redis_client.aclose()
         if engine is not None:
@@ -540,6 +613,54 @@ def _build_app(
             status.HTTP_404_NOT_FOUND,
             OperationNotFound.code,
             "未找到指定操作。",
+        )
+
+    @app.exception_handler(SignalNotFound)
+    async def signal_not_found_handler(
+        request: Request,
+        error: SignalNotFound,
+    ) -> JSONResponse:
+        del request, error
+        return error_response(
+            status.HTTP_404_NOT_FOUND,
+            SignalNotFound.code,
+            "未找到指定业务异常信号。",
+        )
+
+    @app.exception_handler(SignalAlreadyClaimed)
+    async def signal_already_claimed_handler(
+        request: Request,
+        error: SignalAlreadyClaimed,
+    ) -> JSONResponse:
+        del request, error
+        return error_response(
+            status.HTTP_409_CONFLICT,
+            SignalAlreadyClaimed.code,
+            "该异常信号已经进入调查流程; 请读取最新状态。",
+        )
+
+    @app.exception_handler(SignalObjectMismatch)
+    async def signal_object_mismatch_handler(
+        request: Request,
+        error: SignalObjectMismatch,
+    ) -> JSONResponse:
+        del request, error
+        return error_response(
+            status.HTTP_409_CONFLICT,
+            SignalObjectMismatch.code,
+            "处置对象与异常信号绑定对象不一致。",
+        )
+
+    @app.exception_handler(SignalRetryNotAllowed)
+    async def signal_retry_not_allowed_handler(
+        request: Request,
+        error: SignalRetryNotAllowed,
+    ) -> JSONResponse:
+        del request, error
+        return error_response(
+            status.HTTP_409_CONFLICT,
+            SignalRetryNotAllowed.code,
+            "只有需要人工关注的异常信号可以重新调查。",
         )
 
     @app.exception_handler(ApprovalAlreadyDecided)
@@ -673,7 +794,6 @@ def _build_app(
         operation_request: OperationRequest,
         actor: Annotated[AuthenticatedActor, Depends(require_roles(Role.OPERATOR))],
     ) -> OperationAccepted:
-        del actor
         if (
             operation_request.requested_action
             not in {ActionType.QUERY, ActionType.CREATE_WORK_ORDER}
@@ -683,9 +803,246 @@ def _build_app(
         ):
             raise ApiRequestValidationFailed
         runtime = runtime_provider()
+        if (
+            runtime.signals is not None
+            and operation_request.requested_action is ActionType.CREATE_WORK_ORDER
+            and operation_request.trigger_signal_id is None
+        ):
+            raise ApiRequestValidationFailed
         operation_id = await runtime.runner.start(operation_request)
+        if runtime.traces is not None:
+            claimed = await runtime.traces.claim_owner(operation_id, actor.subject)
+            if not claimed:
+                raise PermissionDenied
         detail = await runtime.operations.load_detail(operation_id)
         return accepted_response(detail)
+
+    @app.post(
+        "/api/v1/signals/scan",
+        response_model=SignalScanResponse,
+        responses={status.HTTP_503_SERVICE_UNAVAILABLE: {"model": ErrorResponse}},
+    )
+    async def scan_signals(
+        actor: Annotated[AuthenticatedActor, Depends(require_roles(Role.OPERATOR))],
+    ) -> SignalScanResponse:
+        del actor
+        detector = runtime_provider().signal_detector
+        if detector is None:
+            raise DependencyUnavailable
+        result = await detector.scan()
+        repository = runtime_provider().signals
+        if repository is None:
+            raise DependencyUnavailable
+        affected_cases = (
+            await repository.list_cases(
+                object_keys={
+                    (signal.object_type.value, signal.object_id) for signal in result.signals
+                }
+            )
+            if result.signals
+            else ()
+        )
+        return SignalScanResponse(
+            signals=result.signals,
+            affected_cases=affected_cases,
+            issues=tuple(
+                {
+                    "object_type": issue.object_type.value,
+                    "object_id": issue.object_id,
+                    "code": issue.code,
+                }
+                for issue in result.issues
+            ),
+            scanned_count=result.scanned_count,
+            scanned_at=result.scanned_at,
+        )
+
+    @app.get(
+        "/api/v1/signals",
+        response_model=tuple[OperationalSignal, ...],
+    )
+    async def list_signals(
+        actor: Annotated[
+            AuthenticatedActor,
+            Depends(require_roles(Role.OPERATOR, Role.APPROVER, Role.AUDITOR, Role.DEMO_ADMIN)),
+        ],
+    ) -> tuple[OperationalSignal, ...]:
+        del actor
+        repository = runtime_provider().signals
+        if repository is None:
+            raise DependencyUnavailable
+        return await repository.list_active()
+
+    @app.get(
+        "/api/v1/signal-cases",
+        response_model=tuple[SignalCaseView, ...],
+    )
+    async def list_signal_cases(
+        actor: Annotated[
+            AuthenticatedActor,
+            Depends(require_roles(Role.OPERATOR, Role.APPROVER, Role.AUDITOR, Role.DEMO_ADMIN)),
+        ],
+    ) -> tuple[SignalCaseView, ...]:
+        del actor
+        repository = runtime_provider().signals
+        if repository is None:
+            raise DependencyUnavailable
+        return await repository.list_cases()
+
+    @app.post(
+        "/api/v1/signals/{signal_id}/investigate",
+        status_code=status.HTTP_202_ACCEPTED,
+        response_model=OperationAccepted,
+        responses={
+            status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
+            status.HTTP_409_CONFLICT: {"model": ErrorResponse},
+        },
+    )
+    async def investigate_signal(
+        signal_id: UUID,
+        actor: Annotated[AuthenticatedActor, Depends(require_roles(Role.OPERATOR))],
+    ) -> OperationAccepted:
+        runtime = runtime_provider()
+        repository = runtime.signals
+        if repository is None:
+            raise DependencyUnavailable
+        signal = await repository.load(signal_id)
+        messages = {
+            ObjectType.INVENTORY: "调查已检测到的库存短缺; 在规则要求时提出补货工单",
+            ObjectType.EQUIPMENT: "调查已检测到的设备异常; 在规则要求时提出维修工单",
+            ObjectType.TASK: "调查已检测到的任务阻塞; 在规则要求时提出恢复工单",
+        }
+        operation_id = await runtime.runner.start(
+            OperationRequest(
+                message=messages[signal.object_type],
+                requested_action=ActionType.CREATE_WORK_ORDER,
+                object_type=signal.object_type,
+                object_id=signal.object_id,
+                trigger_signal_id=signal.id,
+            )
+        )
+        if runtime.traces is not None:
+            claimed = await runtime.traces.claim_owner(operation_id, actor.subject)
+            if not claimed:
+                raise PermissionDenied
+        return accepted_response(await runtime.operations.load_detail(operation_id))
+
+    @app.post(
+        "/api/v1/signals/{signal_id}/retry",
+        status_code=status.HTTP_202_ACCEPTED,
+        response_model=OperationAccepted,
+        responses={
+            status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
+            status.HTTP_409_CONFLICT: {"model": ErrorResponse},
+        },
+    )
+    async def retry_signal(
+        signal_id: UUID,
+        actor: Annotated[AuthenticatedActor, Depends(require_roles(Role.OPERATOR))],
+    ) -> OperationAccepted:
+        runtime = runtime_provider()
+        repository = runtime.signals
+        if repository is None:
+            raise DependencyUnavailable
+        successor = await repository.create_successor(signal_id)
+        messages = {
+            ObjectType.INVENTORY: "重新调查仍未解决的库存短缺; 在规则要求时提出补货工单",
+            ObjectType.EQUIPMENT: "重新调查仍未解决的设备异常; 在规则要求时提出维修工单",
+            ObjectType.TASK: "重新调查仍未解决的任务阻塞; 在规则要求时提出恢复工单",
+        }
+        operation_id = await runtime.runner.start(
+            OperationRequest(
+                message=messages[successor.object_type],
+                requested_action=ActionType.CREATE_WORK_ORDER,
+                object_type=successor.object_type,
+                object_id=successor.object_id,
+                trigger_signal_id=successor.id,
+            )
+        )
+        if runtime.traces is not None:
+            claimed = await runtime.traces.claim_owner(operation_id, actor.subject)
+            if not claimed:
+                raise PermissionDenied
+        return accepted_response(await runtime.operations.load_detail(operation_id))
+
+    async def authorize_trace_read(
+        operation_id: UUID,
+        actor: AuthenticatedActor,
+    ) -> AgentTraceRepository:
+        runtime = runtime_provider()
+        traces = runtime.traces
+        if traces is None:
+            raise DependencyUnavailable
+        if actor.role is Role.AUDITOR:
+            return traces
+        if actor.role is Role.DEMO_ADMIN:
+            if runtime.demo_admin_enabled:
+                return traces
+            raise PermissionDenied
+        if actor.role is Role.OPERATOR:
+            if await traces.owner_for(operation_id) == actor.subject:
+                return traces
+            raise PermissionDenied
+        if actor.role is Role.APPROVER:
+            if await traces.operation_status(operation_id) in {
+                "awaiting_approval",
+                "needs_reapproval",
+            }:
+                return traces
+            raise PermissionDenied
+        raise PermissionDenied
+
+    @app.get(
+        "/api/v1/operations/{operation_id}/agent-trace",
+        response_model=AgentTraceSnapshotResponse,
+        responses={
+            status.HTTP_403_FORBIDDEN: {"model": ErrorResponse},
+            status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
+            status.HTTP_503_SERVICE_UNAVAILABLE: {"model": ErrorResponse},
+        },
+    )
+    async def get_agent_trace(
+        operation_id: UUID,
+        actor: Annotated[
+            AuthenticatedActor,
+            Depends(require_roles(Role.OPERATOR, Role.APPROVER, Role.AUDITOR, Role.DEMO_ADMIN)),
+        ],
+    ) -> AgentTraceSnapshotResponse:
+        traces = await authorize_trace_read(operation_id, actor)
+        snapshot = await traces.load_snapshot(operation_id)
+        return AgentTraceSnapshotResponse(run=snapshot.run, events=snapshot.events)
+
+    @app.get(
+        "/api/v1/operations/{operation_id}/agent-trace/events",
+        responses={
+            status.HTTP_403_FORBIDDEN: {"model": ErrorResponse},
+            status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
+            status.HTTP_422_UNPROCESSABLE_CONTENT: {"model": ErrorResponse},
+            status.HTTP_503_SERVICE_UNAVAILABLE: {"model": ErrorResponse},
+        },
+    )
+    async def replay_agent_trace_events(
+        operation_id: UUID,
+        actor: Annotated[
+            AuthenticatedActor,
+            Depends(require_roles(Role.OPERATOR, Role.APPROVER, Role.AUDITOR, Role.DEMO_ADMIN)),
+        ],
+        last_event_id: Annotated[str | None, Header()] = None,
+    ) -> EventSourceResponse:
+        after_sequence = parse_last_event_id(last_event_id)
+        traces = await authorize_trace_read(operation_id, actor)
+        snapshot = await traces.load_snapshot(operation_id)
+
+        async def event_stream() -> AsyncIterator[dict[str, str]]:
+            for trace_event in snapshot.events:
+                if trace_event.sequence > after_sequence:
+                    yield {
+                        "id": str(trace_event.sequence),
+                        "event": "agent_trace",
+                        "data": trace_event.model_dump_json(),
+                    }
+
+        return EventSourceResponse(event_stream())
 
     @app.get(
         "/api/v1/operations/{operation_id}",

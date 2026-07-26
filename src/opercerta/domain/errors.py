@@ -15,6 +15,38 @@ class OperationNotFound(LookupError):
         super().__init__(self.code)
 
 
+class SignalNotFound(LookupError):
+    code = "signal_not_found"
+
+    def __init__(self, signal_id: UUID) -> None:
+        self.signal_id = signal_id
+        super().__init__(self.code)
+
+
+class SignalAlreadyClaimed(RuntimeError):
+    code = "signal_already_claimed"
+
+    def __init__(self, signal_id: UUID) -> None:
+        self.signal_id = signal_id
+        super().__init__(self.code)
+
+
+class SignalObjectMismatch(RuntimeError):
+    code = "signal_object_mismatch"
+
+    def __init__(self, signal_id: UUID) -> None:
+        self.signal_id = signal_id
+        super().__init__(self.code)
+
+
+class SignalRetryNotAllowed(RuntimeError):
+    code = "signal_retry_not_allowed"
+
+    def __init__(self, signal_id: UUID) -> None:
+        self.signal_id = signal_id
+        super().__init__(self.code)
+
+
 class ApprovalAlreadyDecided(RuntimeError):
     code = "approval_already_decided"
 
@@ -193,6 +225,41 @@ class UnknownTool(RuntimeError):
         super().__init__(self.code)
 
 
+class ToolPolicyViolation(RuntimeError):
+    code = "tool_policy_violation"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class ObjectBindingMismatch(RuntimeError):
+    code = "object_binding_mismatch"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class DuplicateToolCall(RuntimeError):
+    code = "duplicate_tool_call"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class ToolBudgetExceeded(RuntimeError):
+    code = "tool_budget_exceeded"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class InvalidAgentToolArguments(ValueError):
+    code = "invalid_agent_tool_arguments"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
 class WorkOrderNotFound(LookupError):
     code = "work_order_not_found"
 
@@ -216,6 +283,27 @@ class WorkOrderStorageFailed(RuntimeError):
 
 class DependencyUnavailable(RuntimeError):
     code = "dependency_unavailable"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class KnowledgeVersionConflict(RuntimeError):
+    code = "knowledge_version_conflict"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class KnowledgeInsufficient(LookupError):
+    code = "knowledge_insufficient"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
+class KnowledgeUnavailable(RuntimeError):
+    code = "knowledge_unavailable"
 
     def __init__(self) -> None:
         super().__init__(self.code)

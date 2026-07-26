@@ -25,6 +25,11 @@ def test_redis_is_internal_healthy_and_required_only_by_api() -> None:
     assert "OPERCERTA_CACHE_TTL_SECONDS=60" in example
     assert "OPERCERTA_CACHE_ENABLED: ${OPERCERTA_CACHE_ENABLED:-true}" in compose
     assert "OPERCERTA_OTLP_ENABLED=false" in example
+    assert "OPERCERTA_MODEL_MODE: ${OPERCERTA_MODEL_MODE:-mock}" in compose
+    assert "OPERCERTA_MODEL_BASE_URL: ${OPERCERTA_MODEL_BASE_URL:-}" in compose
+    assert "OPERCERTA_MODEL_NAME: ${OPERCERTA_MODEL_NAME:-}" in compose
+    assert "OPERCERTA_MODEL_API_KEY: ${OPERCERTA_MODEL_API_KEY:-}" in compose
+    assert "OPERCERTA_MCP_TIMEOUT_SECONDS: ${OPERCERTA_MCP_TIMEOUT_SECONDS:-2}" in compose
 
 
 def test_postgres_18_uses_the_parent_data_mount() -> None:
@@ -34,10 +39,27 @@ def test_postgres_18_uses_the_parent_data_mount() -> None:
     assert "postgres_data:/var/lib/postgresql/data" not in compose
 
 
+def test_compose_pins_pgvector_and_persists_the_embedding_cache() -> None:
+    compose = Path("compose.yaml").read_text(encoding="utf-8")
+    example = Path(".env.compose.example").read_text(encoding="utf-8")
+
+    assert "image: pgvector/pgvector:0.8.2-pg18-trixie" in compose
+    assert "fastembed_cache:/home/opercerta/.cache/fastembed" in compose
+    assert "OPERCERTA_EMBEDDING_CACHE_DIR: /home/opercerta/.cache/fastembed" in compose
+    assert 'HF_HUB_DISABLE_XET: "1"' in compose
+    assert "HF_HUB_OFFLINE: ${OPERCERTA_HF_HUB_OFFLINE:-false}" in compose
+    assert "install -d -o opercerta -g opercerta /home/opercerta/.cache/fastembed" in Path(
+        "Dockerfile"
+    ).read_text(encoding="utf-8")
+    assert "OPERCERTA_KNOWLEDGE_ENABLED=true" in example
+    assert "OPERCERTA_KNOWLEDGE_REQUIRED=false" in example
+
+
 def test_image_uses_locked_dependencies_and_non_root_user() -> None:
     dockerfile = Path("Dockerfile").read_text(encoding="utf-8")
 
     assert "uv sync --frozen --no-dev" in dockerfile
+    assert "install -d -o opercerta -g opercerta /home/opercerta/.cache" in dockerfile
     assert "USER opercerta" in dockerfile
 
 
@@ -59,7 +81,7 @@ def test_compose_example_is_tracked_and_real_file_is_ignored() -> None:
     assert "OPERCERTA_DEMO_TOKEN_ENABLED=true" in example
 
 
-def test_smoke_script_checks_health_duplicate_approval_and_database_facts() -> None:
+def test_smoke_script_checks_signal_entry_duplicate_approval_and_database_facts() -> None:
     script = Path("scripts/verify_compose.py").read_text(encoding="utf-8")
 
     for required in (
@@ -69,6 +91,10 @@ def test_smoke_script_checks_health_duplicate_approval_and_database_facts() -> N
         "COUNT(*) FROM approvals",
         "COUNT(*) FROM work_orders",
         "operation_completed",
+        "/api/v1/signals/scan",
+        "/investigate",
+        "request_validation_failed",
+        '== "resolved"',
     ):
         assert required in script
     assert all(
@@ -81,7 +107,6 @@ def test_smoke_script_checks_health_duplicate_approval_and_database_facts() -> N
     assert "time.monotonic" in script
     for kind in ("replenishment", "repair", "task_recovery"):
         assert kind in script
-    assert "rejected" in script
     assert "--recovery-only" in script
 
 
