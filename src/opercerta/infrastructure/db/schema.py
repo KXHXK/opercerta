@@ -133,6 +133,61 @@ operations = sa.Table(
     ),
 )
 
+operational_signals = sa.Table(
+    "operational_signals",
+    metadata,
+    sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+    sa.Column("dedup_key", sa.String(length=200), nullable=False),
+    sa.Column("signal_type", sa.String(length=32), nullable=False),
+    sa.Column("object_type", sa.String(length=16), nullable=False),
+    sa.Column("object_id", sa.String(length=64), nullable=False),
+    sa.Column("source", sa.String(length=64), nullable=False),
+    sa.Column("severity", sa.String(length=16), nullable=False),
+    sa.Column("reason_code", sa.String(length=64), nullable=False),
+    sa.Column("facts_hash", sa.String(length=64), nullable=False),
+    sa.Column("facts", postgresql.JSONB(), nullable=False),
+    sa.Column("status", sa.String(length=32), nullable=False),
+    sa.Column(
+        "operation_id",
+        postgresql.UUID(as_uuid=True),
+        sa.ForeignKey("operations.id", ondelete="SET NULL"),
+    ),
+    sa.Column(
+        "predecessor_signal_id",
+        postgresql.UUID(as_uuid=True),
+        sa.ForeignKey("operational_signals.id", ondelete="RESTRICT"),
+    ),
+    sa.Column("detected_at", sa.DateTime(timezone=True), nullable=False),
+    sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
+    sa.Column("resolved_at", sa.DateTime(timezone=True)),
+    sa.UniqueConstraint("dedup_key", name="uq_operational_signals_dedup_key"),
+    sa.UniqueConstraint("operation_id", name="uq_operational_signals_operation_id"),
+    sa.UniqueConstraint(
+        "predecessor_signal_id",
+        name="uq_operational_signals_predecessor_signal_id",
+    ),
+    sa.CheckConstraint(
+        "signal_type IN ('inventory_shortage', 'equipment_attention', 'task_blocked')",
+        name="ck_operational_signals_type",
+    ),
+    sa.CheckConstraint(
+        "object_type IN ('inventory', 'equipment', 'task')",
+        name="ck_operational_signals_object_type",
+    ),
+    sa.CheckConstraint(
+        "severity IN ('low', 'medium', 'high')",
+        name="ck_operational_signals_severity",
+    ),
+    sa.CheckConstraint(
+        "status IN ('open', 'investigating', 'resolved', 'attention_required')",
+        name="ck_operational_signals_status",
+    ),
+    sa.CheckConstraint(
+        "facts_hash ~ '^[0-9a-f]{64}$'",
+        name="ck_operational_signals_facts_hash",
+    ),
+)
+
 agent_runs = sa.Table(
     "agent_runs",
     metadata,

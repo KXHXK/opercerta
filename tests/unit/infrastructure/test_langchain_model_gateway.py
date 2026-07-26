@@ -7,14 +7,18 @@ from langchain_core.messages import AIMessage
 from opercerta.agent.prompt_registry import PromptRegistry
 from opercerta.domain.agent import (
     AgentAnalysis,
+    AgentDecisionContext,
+    AgentTurn,
     AnalysisContext,
     DecisionPlan,
+    FinalAnalysis,
     FinalReport,
     GoalContext,
     GoalEncoding,
     PlanningContext,
     PlanningMode,
     ReportingContext,
+    ToolDecision,
     ToolDefinition,
     ToolObservation,
     VerificationContext,
@@ -84,6 +88,74 @@ def goal() -> GoalEncoding:
 
 def planning_context() -> PlanningContext:
     return PlanningContext(goal=goal(), tools=(tool_definition(),), replan_count=0)
+
+
+def decision_context(*, tools: tuple[ToolDefinition, ...]) -> AgentDecisionContext:
+    return AgentDecisionContext(
+        goal=goal(),
+        tools=tools,
+        model_call_count=1,
+        tool_call_count=0,
+    )
+
+
+@pytest.mark.asyncio
+async def test_loop_decision_uses_native_tool_call_and_preserves_provider_call_id() -> None:
+    model = FakeChatModel(
+        tool_response=AIMessage(
+            content="",
+            tool_calls=[
+                {
+                    "name": "inventory_get_snapshot",
+                    "args": {"sku": "SKU-DEMO-001"},
+                    "id": "provider-call-001",
+                    "type": "tool_call",
+                }
+            ],
+        )
+    )
+    gateway = LangChainOpenAIModelGateway(model=model, prompts=PromptRegistry.packaged())
+
+    turn = await gateway.decide(decision_context(tools=(tool_definition(),)))
+
+    assert isinstance(turn, AgentTurn)
+    assert isinstance(turn.root, ToolDecision)
+    assert turn.root.tool_calls[0].tool_call_id == "provider-call-001"
+    assert turn.root.tool_calls[0].tool_name == "inventory.get_snapshot"
+
+
+@pytest.mark.asyncio
+async def test_loop_decision_without_remaining_tools_returns_final_analysis() -> None:
+    expected = FinalAnalysis(
+        kind="final_analysis",
+        finding="库存事实与规则已经核验。",
+        evidence_refs=("provider-call-001",),
+        missing_evidence=(),
+        recommended_action="request_approval",
+        confidence_band="high",
+        explanation="确定性规则将计算受控参数。",
+    )
+    model = FakeChatModel(
+        tool_response=AIMessage(
+            content="",
+            tool_calls=[
+                {
+                    "name": "submit_final_analysis",
+                    "args": expected.model_dump(mode="json"),
+                    "id": "provider-final-001",
+                    "type": "tool_call",
+                }
+            ],
+        )
+    )
+    gateway = LangChainOpenAIModelGateway(model=model, prompts=PromptRegistry.packaged())
+
+    turn = await gateway.decide(decision_context(tools=()))
+
+    assert isinstance(turn.root, FinalAnalysis)
+    assert turn.root == expected
+    assert model.bound_tools[0]["function"]["name"] == "submit_final_analysis"  # type: ignore[index]
+    assert model.bound_tool_choice == "required"
 
 
 @pytest.mark.asyncio
@@ -192,7 +264,7 @@ async def test_goal_encoder_uses_langchain_structured_output() -> None:
 
 
 @pytest.mark.asyncio
-async def test_analysis_verification_and_report_use_structured_outputs() -> None:
+async def test_analysis_and_report_use_structured_output_and_verifier_uses_native_tool() -> None:
     observation = ToolObservation(
         tool_call_id="call-001",
         tool_name="inventory.get_snapshot",
@@ -216,11 +288,22 @@ async def test_analysis_verification_and_report_use_structured_outputs() -> None
         evidence_refs=(observation.evidence_ref,),
     )
     model = FakeChatModel(
+        tool_response=AIMessage(
+            content="",
+            tool_calls=[
+                {
+                    "name": "submit_verification_decision",
+                    "args": verification.model_dump(mode="json"),
+                    "id": "provider-verify-001",
+                    "type": "tool_call",
+                }
+            ],
+        ),
         structured={
             AgentAnalysis: analysis,
             VerificationDecision: verification,
             FinalReport: report,
-        }
+        },
     )
     gateway = LangChainOpenAIModelGateway(model=model, prompts=PromptRegistry.packaged())
     decision = DecisionPlan(

@@ -385,3 +385,18 @@
 - **处置：** 不把连接错误冒充产品 RED；旧值按已暴露处理。新鲜门禁使用仅绑定 loopback、运行时随机密码的一次性 pgvector 容器，测试结束自动销毁。
 - **改进：** 恢复长期 Windows 测试库前轮换角色密码并同步 ignored 配置；测试 harness 应进一步缩短连接超时并确保异常永不呈现完整 DSN。
 - **面试表达：** “开发测试环境同样是供应链的一部分。我把长期凭据改成一次性门禁凭据，并用 trap 保证失败也清理；同时区分基础设施不可用和业务断言失败。”
+
+## 43. Mock 全绿不代表真实模型协议兼容
+
+- **问题：** 单元、集成和 Mock Compose 全绿后，Kimi K2.6 的真实 Agent 请求仍统一 503。
+- **根因：** production factory 复用了 MCP 的 2 秒 timeout；强制 tool calling 与默认 thinking mode 不兼容；最终分析和 Verifier 的通用 structured output 存在供应商波动。
+- **修复：** 把模型 timeout 独立为 90 秒；仅在 Moonshot/Kimi adapter 配置关闭 thinking；最终分析与 Verifier 使用两个内部原生提交工具，再由本地 schema 校验。
+- **验证：** 三业务真实只读、库存批准写入均通过；无效 provider 仍是 503、failed、零审批和零工单，没有回退 Mock。
+- **面试表达：** “Mock 证明我的确定性契约，Real 证明供应商协议兼容。我把差异留在 adapter 边界，并同时保留修复前失败和修复后成功证据。”
+
+## 44. 协议依赖不能共用一个超时语义
+
+- **问题：** MCP 本地请求的 2 秒 timeout 被无意传给远程 LLM，造成正常生成被误判依赖故障。
+- **风险：** 配置项名字与实际作用不一致，排障时会误以为网络或模型不可用；继续提高统一 timeout 又会拖慢 MCP 故障发现。
+- **修复：** 分离 `OPERCERTA_MCP_TIMEOUT_SECONDS` 和 `OPERCERTA_MODEL_TIMEOUT_SECONDS`，并用 factory 单元测试锁定 2 秒与 90 秒分别进入对应 adapter。
+- **面试表达：** “timeout 不是全系统通用数字，而是协议预算。远程生成、本地工具和数据库各有不同延迟与失败语义。”

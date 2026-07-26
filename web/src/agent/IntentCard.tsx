@@ -14,7 +14,7 @@ function display(value: TraceValue | undefined): string | null {
 
 export function IntentCard({ detail, trace }: IntentCardProps) {
   if (detail === null) {
-    return <p className="agent-empty">提交有限业务表单后，系统会在此展示编码后的 Goal。</p>;
+    return <p className="agent-empty">从异常信号启动调查后，系统会在此展示编码后的 Goal。</p>;
   }
   const goal = trace?.events.find((event) => event.node === "encode_goal");
   const encodedAction = display(goal?.safe_output.goal) ?? detail.request.requested_action;

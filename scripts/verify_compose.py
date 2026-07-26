@@ -96,21 +96,14 @@ def wait_for_ready(timeout_seconds: float = 30) -> None:
     raise AssertionError("API did not become ready before the smoke timeout")
 
 
-def create_operation(
-    object_type: str,
-    object_id: str,
+def investigate_signal(
+    signal: dict[str, Any],
     operator_headers: dict[str, str],
 ) -> tuple[str, dict[str, Any]]:
     status, created = request(
         "POST",
-        "/api/v1/operations",
-        {
-            "message": f"compose smoke create {object_type} work order",
-            "requested_action": "create_work_order",
-            "object_type": object_type,
-            "object_id": object_id,
-        },
-        operator_headers,
+        f"/api/v1/signals/{signal['id']}/investigate",
+        headers=operator_headers,
     )
     assert status == 202
     operation_id = str(UUID(created["operation_id"]))
@@ -121,6 +114,20 @@ def create_operation(
     )
     assert detail_status == 200
     return operation_id, detail
+
+
+def scan_signals(operator_headers: dict[str, str]) -> dict[tuple[str, str], dict[str, Any]]:
+    status, result = request("POST", "/api/v1/signals/scan", headers=operator_headers)
+    assert status == 200
+    assert result["scanned_count"] == 3
+    assert result["issues"] == []
+    signals = {(signal["object_type"], signal["object_id"]): signal for signal in result["signals"]}
+    assert set(signals) == {
+        ("inventory", "SKU-LOW-001"),
+        ("equipment", "EQ-PUMP-001"),
+        ("task", "TASK-BLOCKED-001"),
+    }
+    return signals
 
 
 def submit_approval(
@@ -167,6 +174,21 @@ def verify_recovery_only(operator_headers: dict[str, str]) -> None:
     assert detail["approval"] is None
     assert detail["work_order"] is None
     assert_database_counts(operation_id, approvals=0, work_orders=0)
+    approver_headers = demo_headers("approver")
+    approved_status, approved = submit_approval(
+        operation_id,
+        detail,
+        "approved",
+        approver_headers,
+    )
+    assert approved_status == 202 and approved["status"] == "completed"
+    assert_database_counts(operation_id, approvals=1, work_orders=1)
+    assert (
+        postgres_scalar(
+            f"SELECT status FROM operational_signals WHERE operation_id = '{operation_id}'"
+        )
+        == "resolved"
+    )
 
 
 def read_recovery_operation_id() -> str:
@@ -177,14 +199,27 @@ def verify_full(
     operator_headers: dict[str, str],
     approver_headers: dict[str, str],
 ) -> ComposeVerificationResult:
+    direct_status, direct_body = request(
+        "POST",
+        "/api/v1/operations",
+        {
+            "message": "compose smoke must not bypass signal",
+            "requested_action": "create_work_order",
+            "object_type": "inventory",
+            "object_id": "SKU-LOW-001",
+        },
+        operator_headers,
+    )
+    assert direct_status == 422 and direct_body["code"] == "request_validation_failed"
+    signals = scan_signals(operator_headers)
     scenarios = (
         ("inventory", "SKU-LOW-001", "replenishment"),
         ("equipment", "EQ-PUMP-001", "repair"),
-        ("task", "TASK-BLOCKED-001", "task_recovery"),
     )
     completed: list[tuple[str, str]] = []
     for object_type, object_id, work_order_kind in scenarios:
-        operation_id, detail = create_operation(object_type, object_id, operator_headers)
+        signal = signals[(object_type, object_id)]
+        operation_id, detail = investigate_signal(signal, operator_headers)
         approved_status, approved = submit_approval(
             operation_id,
             detail,
@@ -221,18 +256,20 @@ def verify_full(
         )
         assert observed_kind == work_order_kind
         assert_database_counts(operation_id, approvals=1, work_orders=1)
+        assert (
+            postgres_scalar(
+                f"SELECT status FROM operational_signals WHERE operation_id = '{operation_id}'"
+            )
+            == "resolved"
+        )
         completed.append((operation_id, object_type))
 
-    inventory_id, inventory_detail = create_operation(
-        "inventory", "SKU-BACKORDER-001", operator_headers
+    inventory_id = completed[0][0]
+    _, inventory_detail = request(
+        "GET",
+        f"/api/v1/operations/{inventory_id}",
+        headers=operator_headers,
     )
-    approval_status, _ = submit_approval(
-        inventory_id,
-        inventory_detail,
-        "approved",
-        approver_headers,
-    )
-    assert approval_status == 202
     duplicate_status, duplicate = submit_approval(
         inventory_id,
         inventory_detail,
@@ -242,17 +279,10 @@ def verify_full(
     assert duplicate_status == 409 and duplicate["code"] == "approval_already_decided"
     assert_database_counts(inventory_id, approvals=1, work_orders=1)
 
-    rejected_id, rejected_detail = create_operation("equipment", "EQ-PUMP-001", operator_headers)
-    rejected_status, rejected = submit_approval(
-        rejected_id,
-        rejected_detail,
-        "rejected",
-        approver_headers,
+    recovery_id, _ = investigate_signal(
+        signals[("task", "TASK-BLOCKED-001")],
+        operator_headers,
     )
-    assert rejected_status == 202 and rejected["status"] == "rejected"
-    assert_database_counts(rejected_id, approvals=1, work_orders=0)
-
-    recovery_id, _ = create_operation("task", "TASK-BLOCKED-001", operator_headers)
     RECOVERY_MARKER.parent.mkdir(parents=True, exist_ok=True)
     RECOVERY_MARKER.write_text(recovery_id + "\n", encoding="utf-8")
 

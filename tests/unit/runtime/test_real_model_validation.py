@@ -6,10 +6,49 @@ import scripts.verify_real_model as real_model_validation
 from scripts.verify_real_model import (
     RepresentativeValidationError,
     build_real_report,
+    run_representative_path,
     run_representative_scenario,
     safe_failure_detail,
     summarize_explanation,
 )
+
+
+def test_representative_path_can_limit_real_calls_to_query_only() -> None:
+    result = run_representative_path(
+        path="query",
+        object_type="equipment",
+        object_id="EQ-PUMP-001",
+        expected_kind="repair",
+        operator_headers={},
+        approver_headers={},
+        query_runner=lambda *_args: {"status": "completed"},
+    )
+
+    assert result == {
+        "scenario": "equipment",
+        "status": "passed",
+        "operations_attempted": 1,
+        "query": {"status": "completed"},
+    }
+
+
+def test_representative_path_can_limit_real_calls_to_one_approved_write() -> None:
+    result = run_representative_path(
+        path="approved_path",
+        object_type="inventory",
+        object_id="SKU-LOW-001",
+        expected_kind="replenishment",
+        operator_headers={},
+        approver_headers={},
+        approved_runner=lambda *_args: {"work_order_kind": "replenishment"},
+    )
+
+    assert result == {
+        "scenario": "inventory",
+        "status": "passed",
+        "operations_attempted": 1,
+        "approved_path": {"work_order_kind": "replenishment"},
+    }
 
 
 def test_explanation_summary_records_lengths_without_model_text_or_authoritative_fields() -> None:

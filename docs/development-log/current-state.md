@@ -1,5 +1,23 @@
 # OperCerta 当前状态
 
+## 2026-07-26 单根 Agent Loop 架构纠偏已批准，Task 0–3 完成
+
+用户在真实控制台复核中指出：当前 LLM 没有形成“决策 → 工具 → Observation → 再决策”的 Agent 核心循环；LangGraph 调查图、Python 包装器和三个场景图被串联使用，完整 operation 并非由一个根图拥有；Redis 也只包裹旧场景初读，没有进入统一的 MCP Observation 链路。前端同时把 predecessor/successor signal 平铺为主卡片，并用全局详情和 busy 状态驱动交互，造成多卡、串卡和业务谱系失真。
+
+完整复核四份原始设计、2026-07-21 Agent 核心设计和当前实现后确认：这不是用户临时改变需求，而是实现没有兑现已经批准的“LangGraph 唯一编排运行时 + AgentHarness ToolLoop”。可靠性内核仍有效并继续保留，包括 PostgreSQL 事实、signal 认领/对账、RBAC、审批竞态、批准后刷新、Verifier、事实绑定、幂等工单、MCP/RAG 和重启恢复；必须重构的是编排所有权、模型—工具循环、Redis 接入位置和 React case 状态模型。
+
+纠偏规格 `docs/superpowers/specs/2026-07-26-single-root-agent-loop-and-case-workspace-design.md` 已获用户批准。Task 0 基线为 71 条可靠性单元测试和一次性 PostgreSQL 上 43 条审批/幂等/signal/恢复集成测试通过。Task 1 先观测 `AgentTurn` 缺失 RED，再新增 ToolDecision/FinalAnalysis 互斥联合契约和累计预算校验；定向 33 条通过。Task 2 先观测统一缓存结果缺失 RED，再新增 `CachedReadToolGateway` 和 `hit/miss/bypass/unavailable` Observation；相关范围 76 条通过，一次性 PostgreSQL 上 Agent 图/RAG/重启恢复 11 条通过。最终使用 `PYTHONPATH=.:src` 和 `set -euo pipefail` 复跑完整单元套件 `386 passed in 34.14s`，全项目 Ruff、Mypy 81 个源文件及 `git diff --check` 通过。
+
+Task 3 已新增默认关闭的库存 `InventoryAgentRootGraph` 和 `AgentLoopModelGateway.decide` 协议。查询测试证明模型依次看到 0、1、2 条 Observation 后选择库存、规则并形成最终分析；创建路径在同一根图和 `thread_id` 停在原生 `approval_interrupt`。证据不足、引用不匹配和写工具均安全失败。一次性 PostgreSQL checkpointer 定向 `6 passed`；包含旧 Agent 图的完整回归 `398 passed in 35.32s`，全项目 Ruff、Mypy 82 个源文件和 diff 检查通过。
+
+当前根图只到审批中断，尚未接入审批提交后的刷新、Verifier、绑定和幂等写入；候选必须显式 `enabled=True`，默认 API/Compose 仍使用旧路径。未审批当前 operation、未调用 Real Kimi、未 commit/push/merge，发布门禁保持 `CLOSED`。下一步是 Task 4 审批后可靠性节点接入根图。
+
+## 2026-07-25 异常信号入口修订
+
+已纠正“固定对象直接创建处置”缺少业务动机的问题：新增迁移 `0007_operational_signals`、并发去重信号仓储、信号与 operation 原子认领、三业务确定性 `SignalDetector`、扫描/列表/调查 API，以及 React 异常信号箱。生产模式下 `create_work_order` 没有 `trigger_signal_id` 会返回 422；query 仍作为诊断入口。真实本地 Compose 经 Caddy 扫描三对象得到库存短缺、设备异常、任务阻塞三条信号且零数据源错误；库存信号原子绑定新 operation 并进入 `awaiting_approval`。operation 完成或拒绝时 signal 原子收口为 `resolved`，失败、过期或中止时转为 `attention_required`，形成可再次介入的反馈闭环。新鲜证据：完整后端 `600 passed in 178.48s`；前端 18 文件/`56 passed` 与 production build；Ruff、Mypy 79 个源文件通过；隔离空卷 Mock release Compose 依次验证直接写 422、三信号、三业务审批/Verifier/工单、重复审批、数据库事实以及 API/MCP 重启恢复，退出码 0、耗时 175.1 秒并自动清理。远程 CI、修订后的 Real Kimi、PR 提交/合并与生产治理尚未执行，因此发布门禁继续 `CLOSED`。
+
+同日用户复核发现首次页面必须切角色才能扫描，而且切角色会自动读取 PostgreSQL 历史 signal，造成“扫描按钮是假的”观感。修复后首次 operator 无需预先签发 JWT即可点击；首次点击在同一动作内签发内存 JWT 并调用真实 scan API；角色切换不再调用 `GET /signals`，刷新后在扫描完成前保持空信号箱。scan 响应新增服务端 `scanned_at`，页面显示本次范围、6 次只读 MCP、命中数、去重语义和三类具体规则事实。新鲜回归为完整后端 `600 passed in 189.97s`、前端 18 文件/`56 passed`、production build、Ruff 和 Mypy 79 个源文件全绿；本地 Compose 已重建并恢复 `18080` 端口。应用内浏览器因 localhost URL 策略拒绝自动复验，需用户手动刷新做视觉确认，不能将组件测试冒充浏览器证据。
+
 ## 最新核验：前端安全边界与审批写入语义已完成本地收口
 
 2026-07-24，规格一致性复核继续发现并修复两项端到端边界：未知后端错误码不再把原始 `message` 暴露给用户；审批 API 已成功写入但后置读取因 RBAC/网络失败时，前端明确保留“审批已提交”事实并禁用重复决定，不再误报“审批未提交”。两项均先写 RED，再以最小实现转为 GREEN。
@@ -170,3 +188,59 @@
 ## 发布门禁
 
 `OperCerta production release gate: CLOSED`。当前证据证明三业务本地 Mock Agent、真实 FastEmbed/pgvector RAG、Agent Trace、审批/幂等/恢复、单页控制台、历史静态展示、replan/异常原子收口、Draft PR 快速 CI 和凭据轮换；新 Agent 核心的 Real Kimi 完整 Compose 稳定通过、合并/main Compose、生产身份、公网 HTTPS 后端、限流/备份、自动部署、用户掌握和 Release Tag 仍待完成。求职演示发布门禁不能与生产门禁混用。
+
+## 2026-07-25 异常信号历史对账待办
+
+- 当前本地持久卷的三条关联 operation 均为 `expired`，但库存与任务 signal 仍为 `investigating`；设备 signal 已为 `attention_required`。
+- 代码当前终态契约是 `completed/rejected → resolved`、`aborted/expired/failed → attention_required`，新路径测试已通过；旧卷状态形成于该映射上线前，尚无启动 backfill/reconciliation。
+- 该问题不会否定新事务映射，但会使人工演示误以为仍在调查。下一实现任务应先为历史对账写 RED 测试，再实现启动对账或显式管理动作，并验证幂等、审计和重启恢复。
+- 同时存在失败恢复入口缺口：`attention_required` signal 当前只能查看关联处置，同一事实哈希的再次扫描又会命中原去重行。下一规格需在“受控 reopen”与“创建带 lineage 的 superseding signal”之间作出选择，并覆盖并发重试、旧审批失效和审计链。
+- 在修复并重新验证前，不把当前旧卷作为完整成功闭环证据，发布门禁继续保持 `CLOSED`。
+
+## 2026-07-25 异常信号历史对账与后继调查已完成
+
+- 上述待办已通过独立规格和 TDD 实现，不删除历史行：production 先恢复 operation，再把历史 `investigating` signal 对账为 `resolved` 或 `attention_required`。
+- 新增 `0008_signal_successor_lineage`、唯一 predecessor 约束、幂等启动对账、operator-only retry API 和 React 后继谱系展示。
+- 旧持久卷三个根 signal 已全部对账为 `attention_required`，三条旧 operation 仍为 `expired`。
+- 库存 predecessor `57cb635c-07bb-41b3-bd7e-b579b810bb01` 已创建 successor `2cef23d3-1b30-436b-82b0-7a29125c6372` 和 operation `157347ee-ba5b-4911-bfe9-3f64a47ad162`；API/MCP 重启后仍为 `awaiting_approval`，重复 retry 为 HTTP 409。
+- 新鲜门禁：完整后端 `607 passed in 329.96s`；前端 18 文件 `58 passed` 且 build 成功；Ruff、format 199 文件和 mypy 80 个源文件通过。
+- 当前关键节点是人工审批新 operation；未 commit、未 push、未 merge，Real Kimi 未在本轮调用，生产发布门禁仍为 `CLOSED`。
+
+## 2026-07-26 单根 Agent 图实施状态
+
+- Task 1–3 已建立严格 AgentTurn、统一 Observation/Redis 语义和库存单根 ToolLoop。
+- Task 4 已把批准后强制刷新、模型 Verifier、确定性事实绑定、拒绝/二次审批、安全失败、幂等工单和写后读接入同一 `operation_id/thread_id` 的根图。
+- 一次性 PostgreSQL/MCP 根图用例 `11 passed`；完整单元 `386 passed`；Ruff、Mypy 81 个源文件与 diff 检查通过。
+- 这仍是显式 `enabled=True` 的内部候选；默认 FastAPI/Compose 仍走旧多图路径，设备与任务尚未接入共享根图。
+- 当前执行 Task 5：把设备维修与阻塞任务收敛为策略，不复制生命周期编排。Real Kimi、默认路径切换、旧图删除、公开部署、commit/push/merge 均尚未发生，发布门禁为 `CLOSED`。
+
+## 2026-07-26 Task 5 更新
+
+- 库存、设备维修和阻塞任务已共用通用根图入口和完全相同的生命周期节点。
+- 场景差异只存在于策略函数：允许的 MCP 事实工具、对象键、证据/评估/计划类型、审批 binding 和工单 payload。
+- 一次性 PostgreSQL/MCP 的三场景根图测试合计 `20 passed`；完整单元 `386 passed`；Ruff、Mypy 82 个源文件与 diff 检查通过。
+- 默认运行入口仍未切换，旧图仍在；下一步为 Task 6 case projection API，生产发布门禁继续 `CLOSED`。
+
+## 2026-07-26 Task 6 更新
+
+- 后端新增 `/api/v1/signal-cases`，实时投影“一对象一 case”，包含当前 signal、当前 operation、历史计数和有序 lineage。
+- `/signals/scan` 返回本次受影响 case；原始 `/signals` 保留，不迁移或复制业务事实。
+- PostgreSQL signal API 用例 `4 passed`，目标静态检查通过。React 尚未消费新接口，当前执行 Task 7。
+
+## 2026-07-26 Task 7 React case 工作台更新
+
+- React 已从平铺 signal 列表迁移为按 `case_key` 聚合的一对象一主卡；选中、加载、错误、打开处置和历史展开均只作用于当前卡片。
+- 真实浏览器扫描显示三类业务各一张主卡，单独展开任务历史时全页只有一个“收起历史”。验收同时发现并修复了 case current 选择缺陷：有 successor 后不得回退到仍为 `attention_required` 的祖先，当前事实永远是 lineage 叶节点。
+- 前端 19 个文件共 `60 passed` 且生产构建成功；signal API `5 passed`，目标 Ruff/Mypy 通过。API 镜像已重建；重建后的浏览器 reload 被本地 URL 安全策略阻止，未虚构最终浏览器复验结果。
+- 默认 API/Compose 尚未切到新根图；下一步执行 Task 8 新旧路径等价与旧编排收敛，生产发布门禁保持 `CLOSED`。
+
+## 2026-07-26 Task 8–11 单根运行时与最终本地门禁
+
+- production factory 已切换为只构造一个 `ControlledAgentRootGraph`；首次运行和重启恢复都通过同一 root runner/coordinator。历史图模块仅供回归与等价测试，产品运行时不存在隐藏 fallback。
+- 三业务新旧路径等价测试 `3 passed`；production lifespan `2 passed`；核心 API/root/equivalence 合集 `41 passed`。同时修复恢复时把失败 read observation 重新提交、触发 `duplicate_tool_call` 的缺陷：成功或失败 Observation 都计入 attempted，证据不完整时最终分析 fail closed。
+- Task 9 本地总门禁：单元 `392 passed`，完整集成 `260 passed`，前端 19 个文件 `60 passed` 且 build 成功，Ruff/format/Mypy（85 个源文件）通过。隔离 Compose 的三业务、RAG、数据库断言和 API/MCP 重启恢复通过，临时环境已清理。
+- Task 10 少量真实 Kimi 代表验证完成：三业务各一次只读、库存一次批准写入、无效 provider 一次 fail-closed。真实路径没有回退 Mock；证据不保存 API key、完整 prompt、模型原文或隐藏推理。
+- 真实门禁暴露并修复三项 Mock 无法发现的兼容问题：LLM 错用 MCP 2 秒 timeout；Kimi 强制 tool calling 需关闭 thinking；通用 structured output 在 Final Analysis/Verifier 上波动。现由独立 90 秒模型 timeout、provider 配置和两个内部原生提交工具收口。
+- Task 11 学习文档、事故复盘、实施证据、每日日志、handoff 和根目录唯一文档索引已更新。当前仅剩外部审批动作与生产能力：commit/push/PR/merge、公开交互部署、生产 IAM/限流/备份/自动发布/Release Tag。
+- 文档完成后的最终复验为完整单元 `395 passed`、受影响隔离 PostgreSQL 集成 `32 passed`、Ruff/213 文件 format check/Mypy 85 个源文件/仓库安全全绿；同步 worktree 当日日志后文档索引核对 544 份、零漏项。
+- 生产发布门禁保持 `CLOSED`；未启动 ForenTrail。

@@ -18,6 +18,9 @@ from opercerta.domain.errors import (
     OperationNotFound,
     OperationTransitionConflict,
     RecoveryStateConflict,
+    SignalAlreadyClaimed,
+    SignalNotFound,
+    SignalObjectMismatch,
 )
 from opercerta.domain.maintenance import (
     MaintenanceAssessment,
@@ -40,6 +43,7 @@ from opercerta.domain.replenishment import (
     build_approval_binding,
 )
 from opercerta.domain.scenarios import ApprovalBinding
+from opercerta.domain.signals import SignalStatus, signal_status_for_operation_terminal
 from opercerta.domain.task_recovery import (
     TaskRecoveryAssessment,
     TaskRecoveryEvidenceBundle,
@@ -56,6 +60,7 @@ from opercerta.infrastructure.db.schema import (
     approvals,
     audit_events,
     evidence,
+    operational_signals,
     operations,
     work_orders,
 )
@@ -214,6 +219,29 @@ class ReplenishmentOperationRepository:
         )
         event_payload: dict[str, JsonValue] = {"request": request_payload}
         async with self._engine.begin() as connection:
+            if request.trigger_signal_id is not None:
+                signal = (
+                    (
+                        await connection.execute(
+                            select(operational_signals)
+                            .where(operational_signals.c.id == request.trigger_signal_id)
+                            .with_for_update()
+                        )
+                    )
+                    .mappings()
+                    .one_or_none()
+                )
+                if signal is None:
+                    raise SignalNotFound(request.trigger_signal_id)
+                if (
+                    request.object_type is None
+                    or request.object_id is None
+                    or signal["object_type"] != request.object_type.value
+                    or signal["object_id"] != request.object_id
+                ):
+                    raise SignalObjectMismatch(request.trigger_signal_id)
+                if signal["status"] != "open" or signal["operation_id"] is not None:
+                    raise SignalAlreadyClaimed(request.trigger_signal_id)
             await connection.execute(
                 insert(operations).values(
                     id=operation_id,
@@ -235,6 +263,16 @@ class ReplenishmentOperationRepository:
                     created_at=created_at,
                 )
             )
+            if request.trigger_signal_id is not None:
+                await connection.execute(
+                    update(operational_signals)
+                    .where(operational_signals.c.id == request.trigger_signal_id)
+                    .values(
+                        status="investigating",
+                        operation_id=operation_id,
+                        updated_at=created_at,
+                    )
+                )
         return operation_id
 
     async def mark_gathering_evidence(self, operation_id: UUID) -> None:
@@ -798,6 +836,19 @@ class ReplenishmentOperationRepository:
             await connection.execute(
                 update(operations).where(operations.c.id == operation_id).values(**values)
             )
+            signal_status = signal_status_for_operation_terminal(target)
+            if signal_status is not None:
+                signal_values: dict[str, object] = {
+                    "status": signal_status.value,
+                    "updated_at": changed_at,
+                }
+                if signal_status is SignalStatus.RESOLVED:
+                    signal_values["resolved_at"] = changed_at
+                await connection.execute(
+                    update(operational_signals)
+                    .where(operational_signals.c.operation_id == operation_id)
+                    .values(**signal_values)
+                )
             await connection.execute(
                 insert(audit_events).values(
                     id=uuid4(),

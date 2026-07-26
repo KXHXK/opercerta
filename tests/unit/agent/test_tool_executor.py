@@ -4,8 +4,8 @@ from uuid import UUID
 import pytest
 from pydantic import BaseModel
 
-from opercerta.agent.tool_executor import ToolExecutor
-from opercerta.domain.agent import ToolCallProposal
+from opercerta.agent.tool_executor import ReadToolResult, ToolExecutor
+from opercerta.domain.agent import CacheStatus, ToolCallProposal
 from opercerta.domain.errors import EvidenceUnavailable
 from opercerta.domain.replenishment import InventoryEvidence
 
@@ -59,7 +59,26 @@ async def test_executor_returns_hashed_typed_observation() -> None:
     assert observation.status == "ok"
     assert observation.evidence_ref == EVIDENCE_ID
     assert observation.structured_payload["sku"] == "SKU-DEMO-001"
+    assert observation.cache_status is CacheStatus.BYPASS
     assert gateway.calls == [(proposal().tool_name, {"sku": "SKU-DEMO-001"})]
+
+
+@pytest.mark.asyncio
+async def test_executor_projects_gateway_cache_status_into_observation() -> None:
+    evidence = InventoryEvidence(
+        evidence_id=EVIDENCE_ID,
+        sku="SKU-DEMO-001",
+        on_hand_quantity=3,
+        reserved_quantity=1,
+        captured_at=NOW,
+        source_version="inventory-seed-v1",
+    )
+    gateway = FakeReadGateway(ReadToolResult(evidence=evidence, cache_status=CacheStatus.HIT))
+
+    observation = await ToolExecutor(gateway).execute(proposal())  # type: ignore[arg-type]
+
+    assert observation.cache_status is CacheStatus.HIT
+    assert observation.structured_payload["sku"] == "SKU-DEMO-001"
 
 
 @pytest.mark.asyncio

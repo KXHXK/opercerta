@@ -7,6 +7,7 @@ from pydantic import (
     ConfigDict,
     Field,
     JsonValue,
+    RootModel,
     StringConstraints,
 )
 
@@ -59,6 +60,19 @@ class ReadToolName(StrEnum):
 class PlanningMode(StrEnum):
     NATIVE_TOOL_CALL = "native_tool_call"
     STRUCTURED_PLAN = "structured_plan"
+
+
+class ConfidenceBand(StrEnum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
+class CacheStatus(StrEnum):
+    HIT = "hit"
+    MISS = "miss"
+    BYPASS = "bypass"
+    UNAVAILABLE = "unavailable"
 
 
 class IntentEnvelope(StrictAgentModel):
@@ -115,6 +129,7 @@ class ToolObservation(StrictAgentModel):
     evidence_ref: UUID | None = None
     safe_summary: SafeText
     structured_payload: dict[str, JsonValue]
+    cache_status: CacheStatus = CacheStatus.BYPASS
 
 
 class KnowledgeCitation(StrictAgentModel):
@@ -130,6 +145,38 @@ class AgentAnalysis(StrictAgentModel):
     recommendation: SafeText
     uncertainties: tuple[SafeText, ...] = ()
     citations: tuple[KnowledgeCitation, ...] = ()
+
+
+class AgentToolCall(StrictAgentModel):
+    tool_call_id: SafeIdentifier
+    tool_name: ReadToolName
+    arguments: dict[str, JsonValue]
+    purpose: SafeText
+
+
+class ToolDecision(StrictAgentModel):
+    kind: Literal["tool_calls"]
+    tool_calls: Annotated[tuple[AgentToolCall, ...], Field(min_length=1, max_length=4)]
+
+
+class FinalAnalysis(StrictAgentModel):
+    kind: Literal["final_analysis"]
+    finding: SafeText
+    evidence_refs: tuple[SafeIdentifier, ...] = ()
+    missing_evidence: tuple[EvidenceRequirement, ...] = ()
+    recommended_action: SafeSlug
+    confidence_band: ConfidenceBand
+    explanation: SafeText
+
+
+AgentTurnPayload = Annotated[
+    ToolDecision | FinalAnalysis,
+    Field(discriminator="kind"),
+]
+
+
+class AgentTurn(RootModel[AgentTurnPayload]):
+    model_config = ConfigDict(frozen=True)
 
 
 class DecisionPlan(StrictAgentModel):
@@ -177,6 +224,14 @@ class AnalysisContext(StrictAgentModel):
     goal: GoalEncoding
     observations: Annotated[tuple[ToolObservation, ...], Field(min_length=1)]
     citations: tuple[KnowledgeCitation, ...] = ()
+
+
+class AgentDecisionContext(StrictAgentModel):
+    goal: GoalEncoding
+    tools: tuple[ToolDefinition, ...]
+    observations: tuple[ToolObservation, ...] = ()
+    model_call_count: StrictPositiveInt
+    tool_call_count: Annotated[int, Field(strict=True, ge=0)]
 
 
 class VerificationContext(StrictAgentModel):

@@ -224,6 +224,8 @@ class TraceRecorder:
                 ),
             )
         analysis_payload = state.get("analysis")
+        if not isinstance(analysis_payload, Mapping):
+            analysis_payload = state.get("agent_analysis")
         if isinstance(analysis_payload, Mapping):
             analysis = AgentAnalysis.model_validate(analysis_payload)
             await self._append(

@@ -1,8 +1,10 @@
 from opercerta.domain.agent import (
     AgentBudget,
+    AgentTurn,
     GoalEncoding,
     IntentEnvelope,
     InvestigationPlan,
+    ToolDecision,
 )
 
 
@@ -39,3 +41,22 @@ class AgentHarness:
         if plan.replan_count > self._budget.max_replans:
             raise AgentContractViolation("replan_budget_exceeded")
         return plan
+
+    def validate_turn(
+        self,
+        turn: AgentTurn,
+        *,
+        model_call_count: int,
+        prior_tool_call_count: int,
+    ) -> AgentTurn:
+        if type(model_call_count) is not int or model_call_count < 1:
+            raise AgentContractViolation("invalid_model_call_count")
+        if type(prior_tool_call_count) is not int or prior_tool_call_count < 0:
+            raise AgentContractViolation("invalid_tool_call_count")
+        if model_call_count > self._budget.max_model_calls:
+            raise AgentContractViolation("model_budget_exceeded")
+        if isinstance(turn.root, ToolDecision):
+            total_tool_calls = prior_tool_call_count + len(turn.root.tool_calls)
+            if total_tool_calls > self._budget.max_tool_calls:
+                raise AgentContractViolation("tool_budget_exceeded")
+        return turn

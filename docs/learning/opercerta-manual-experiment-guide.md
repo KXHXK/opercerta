@@ -294,3 +294,53 @@ docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
 - **为什么：** 用例引用真实 pytest node ID，包含数据库与重启证据，不按模型文案做主观打分。
 - **常见错误：** 把 9/9 当生产准确率；它只是冻结合成契约回归。
 - **面试怎么讲：** “评测由我设计，但每例公开 expected trajectory 和可执行测试定位，避免只报一个无法审查的分数。”
+
+## 11. 按源码完整走一遍单根 Agent
+
+不要只背架构图。进入 WSL 工作树后，按一次真实请求的顺序阅读：
+
+```bash
+cd /mnt/d/CODEX/agent-portfolio/opercerta/.worktrees/agent-core-implementation
+rg -n "ControlledAgentRootRunner|ControlledAgentRootRecoveryCoordinator" src/opercerta/api/app.py src/opercerta/application
+rg -n "model_decide|authorize_tools|execute_read_tools|approval_interrupt|verify_current_facts|execute_controlled_action" src/opercerta/workflow
+rg -n "class ToolPolicy|class ToolExecutor|class CachedReadToolGateway" src/opercerta
+rg -n "create_or_get|FOR UPDATE|idempot" src/opercerta/infrastructure src/opercerta/application
+```
+
+阅读时为每一层回答四个问题：输入是谁创建的、输出是什么类型、失败会落到哪个安全终态、副作用由什么数据库约束保护。推荐顺序是：
+
+1. `api/app.py`：HTTP、JWT/RBAC、schema 与 production factory；
+2. `controlled_agent_root_runner.py`：把可信请求送入唯一根图；
+3. `inventory_agent_root_graph.py`：Model↔Tool 循环、Policy、HITL、Verifier、write/readback；
+4. `scenario_runtime.py`：三业务差异为什么只是策略；
+5. `tool_policy.py`、`traced_tool_gateway.py` 与 FastMCP server：工具白名单和协议边界；
+6. PostgreSQL repositories：审批竞态、幂等工单、审计与恢复事实。
+
+每读完一个节点，先预测对应测试断言，再打开测试核对；不要只复制命令。
+
+## 12. 自己执行四层门禁
+
+无真实模型密钥时，依次执行：
+
+```bash
+PYTHONPATH=.:src uv run pytest tests/unit -q
+PYTHONPATH=.:src uv run pytest tests/integration -q
+cd frontend && npm test -- --run && npm run build && cd ..
+docker compose up -d --build
+python3 scripts/verify_agent_compose.py
+docker compose restart api mcp
+python3 scripts/verify_agent_compose.py --recovery-only
+```
+
+真实模型只做代表性兼容验证。Moonshot/Kimi 当前验证配置需把模型 timeout 与 MCP timeout 分开，并关闭 thinking mode：
+
+```dotenv
+OPERCERTA_MODEL_TIMEOUT_SECONDS=90
+OPERCERTA_MODEL_THINKING_MODE=disabled
+```
+
+API key 只放 ignored 的 `.env.local`，不要输出到终端历史、截图、文档或 Git。运行真实验证前先确认调用成本和授权范围。
+
+## 13. 掌握验收练习
+
+选择一条库存 Trace，手画 `Goal → model_decide → MCP Observation → model_decide → Policy → approval → fresh Observation → Verifier → binding → idempotent write → readback`。随后用 SQL 核对 operation、approval、work_order 和 audit event。最后口述两个故障：为什么 2 秒 MCP timeout 不能复用于 LLM，以及为什么真实 provider failure 必须 503/failed/零写入而不能回退 Mock。能独立完成这三件事，才算从“会运行”进入“能解释和排障”。

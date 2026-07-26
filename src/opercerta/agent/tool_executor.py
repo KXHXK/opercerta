@@ -1,10 +1,13 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
 from hashlib import sha256
 from typing import Protocol, cast
 from uuid import UUID
 
 from pydantic import BaseModel, JsonValue
 
-from opercerta.domain.agent import ReadToolName, ToolCallProposal, ToolObservation
+from opercerta.domain.agent import CacheStatus, ReadToolName, ToolCallProposal, ToolObservation
 from opercerta.domain.errors import (
     EquipmentNotFound,
     EvidenceUnavailable,
@@ -28,7 +31,13 @@ class ReadToolGateway(Protocol):
         self,
         name: ReadToolName,
         arguments: dict[str, JsonValue],
-    ) -> BaseModel: ...
+    ) -> BaseModel | ReadToolResult: ...
+
+
+@dataclass(frozen=True)
+class ReadToolResult:
+    evidence: BaseModel
+    cache_status: CacheStatus
 
 
 EXPECTED_READ_FAILURES = (
@@ -56,7 +65,7 @@ class ToolExecutor:
         canonical_arguments = canonical_payload_json(proposal.arguments)
         arguments_hash = sha256(canonical_arguments.encode("utf-8")).hexdigest()
         try:
-            evidence = await self._gateway.read_agent_tool(
+            result = await self._gateway.read_agent_tool(
                 proposal.tool_name,
                 proposal.arguments,
             )
@@ -70,6 +79,13 @@ class ToolExecutor:
                 structured_payload={"error_code": error.code},
             )
 
+        if isinstance(result, ReadToolResult):
+            evidence = result.evidence
+            cache_status = result.cache_status
+        else:
+            evidence = result
+            cache_status = CacheStatus.BYPASS
+
         evidence_ref = getattr(evidence, "evidence_id", None)
         if not isinstance(evidence_ref, UUID):
             raise TypeError("read_tool_evidence_invalid")
@@ -82,4 +98,5 @@ class ToolExecutor:
             evidence_ref=evidence_ref,
             safe_summary="已取得并验证只读业务证据。",
             structured_payload=payload,
+            cache_status=cache_status,
         )

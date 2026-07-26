@@ -6,6 +6,40 @@ import App from "./App";
 afterEach(() => vi.unstubAllGlobals());
 beforeEach(() => window.history.pushState({}, "", "/console"));
 
+const inventorySignal = {
+  id: "signal-1",
+  dedup_key: `signal:v1:inventory_shortage:SKU-LOW-001:${"a".repeat(64)}`,
+  signal_type: "inventory_shortage",
+  object_type: "inventory",
+  object_id: "SKU-LOW-001",
+  source: "demo_watchlist.v1",
+  severity: "medium",
+  reason_code: "inventory_below_reorder_point",
+  facts_hash: "a".repeat(64),
+  facts: { available_quantity: 12, reorder_point: 15 },
+  status: "open",
+  operation_id: null,
+  predecessor_signal_id: null,
+  detected_at: "2026-07-25T10:00:00Z",
+  updated_at: "2026-07-25T10:00:00Z",
+  resolved_at: null
+};
+
+const attentionSignal = {
+  ...inventorySignal,
+  status: "attention_required",
+  operation_id: "expired-operation"
+};
+
+const successorSignal = {
+  ...inventorySignal,
+  id: "signal-2",
+  dedup_key: "signal:retry:v1:signal-1",
+  status: "investigating",
+  operation_id: "new-operation",
+  predecessor_signal_id: "signal-1"
+};
+
 it("renders the static showcase at the root without calling fetch", () => {
   const fetchMock = vi.fn();
   vi.stubGlobal("fetch", fetchMock);
@@ -56,6 +90,32 @@ it("renders the controls, facts, approval, and audit areas", () => {
   expect(screen.queryByPlaceholderText(/自由输入|聊天/)).not.toBeInTheDocument();
 });
 
+it("refreshes active lineage after scanning so an existing successor is not retried", async () => {
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({ access_token: "memory-token" }), { status: 200 })
+    )
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({
+        signals: [attentionSignal], issues: [], scanned_count: 3,
+        scanned_at: "2026-07-25T10:00:00Z"
+      }), { status: 200 })
+    )
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify([attentionSignal, successorSignal]), { status: 200 })
+    );
+  vi.stubGlobal("fetch", fetchMock);
+
+  render(<App />);
+  fireEvent.click(screen.getByRole("button", { name: "扫描业务异常" }));
+
+  expect(await screen.findAllByTestId("signal-case-card")).toHaveLength(1);
+  expect(screen.getByRole("button", { name: "展开历史（1）" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "重新调查" })).not.toBeInTheDocument();
+  expect(fetchMock).toHaveBeenCalledTimes(3);
+});
+
 it("loads a created operation after acquiring an in-memory demo token", async () => {
   const binding = {
     scenario: "inventory" as const,
@@ -86,21 +146,31 @@ it("loads a created operation after acquiring an in-memory demo token", async ()
   const fetchMock = vi
     .fn()
     .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: "memory-token" }), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({
+      signals: [inventorySignal], issues: [], scanned_count: 3,
+      scanned_at: "2026-07-25T10:00:00Z"
+    }), { status: 200 }))
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify([inventorySignal]), { status: 200 })
+    )
     .mockResolvedValueOnce(new Response(JSON.stringify({ operation_id: "operation-1" }), { status: 202 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify([{ ...inventorySignal, status: "investigating", operation_id: "operation-1" }]), { status: 200 }))
     .mockResolvedValueOnce(new Response(JSON.stringify(detail), { status: 200 }))
     .mockResolvedValueOnce(new Response(JSON.stringify(trace), { status: 200 }))
     .mockResolvedValueOnce(new Response("id: 2\nevent: approval_requested\ndata: {}\n\n", { status: 200 }));
   vi.stubGlobal("fetch", fetchMock);
 
   render(<App />);
-  fireEvent.change(screen.getByLabelText("演示角色"), { target: { value: "operator" } });
-  await waitFor(() => expect(screen.getByRole("button", { name: "创建处置" })).toBeEnabled());
-  fireEvent.click(screen.getByRole("button", { name: "创建处置" }));
+  expect(screen.getByRole("button", { name: "扫描业务异常" })).toBeEnabled();
+  expect(screen.queryByText("SKU-LOW-001")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "扫描业务异常" }));
+  const investigate = await screen.findByRole("button", { name: "启动 Agent 调查" });
+  fireEvent.click(investigate);
 
   expect(await screen.findByText("operation-1")).toBeInTheDocument();
   expect(screen.getAllByText("等待审批")).not.toHaveLength(0);
   expect(screen.getAllByText("建议补货并提交人工审批").length).toBeGreaterThan(0);
-  expect(fetchMock).toHaveBeenCalledTimes(5);
+  expect(fetchMock).toHaveBeenCalledTimes(8);
 });
 
 it("shows an actionable safe error when a controlled request is rejected", async () => {
@@ -108,6 +178,13 @@ it("shows an actionable safe error when a controlled request is rejected", async
     .fn()
     .mockResolvedValueOnce(
       new Response(JSON.stringify({ access_token: "memory-token" }), { status: 200 })
+    )
+    .mockResolvedValueOnce(new Response(JSON.stringify({
+      signals: [inventorySignal], issues: [], scanned_count: 3,
+      scanned_at: "2026-07-25T10:00:00Z"
+    }), { status: 200 }))
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify([inventorySignal]), { status: 200 })
     )
     .mockResolvedValueOnce(
       new Response(
@@ -121,9 +198,8 @@ it("shows an actionable safe error when a controlled request is rejected", async
   vi.stubGlobal("fetch", fetchMock);
 
   render(<App />);
-  fireEvent.change(screen.getByLabelText("演示角色"), { target: { value: "operator" } });
-  await waitFor(() => expect(screen.getByRole("button", { name: "创建处置" })).toBeEnabled());
-  fireEvent.click(screen.getByRole("button", { name: "创建处置" }));
+  fireEvent.click(screen.getByRole("button", { name: "扫描业务异常" }));
+  fireEvent.click(await screen.findByRole("button", { name: "启动 Agent 调查" }));
 
   expect(await screen.findByRole("status")).toHaveTextContent(
     "提交内容不符合受控业务契约。请检查场景、对象与动作。"

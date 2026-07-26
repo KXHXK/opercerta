@@ -162,6 +162,13 @@ def test_rag_is_enabled_but_not_required_by_default() -> None:
     assert settings.knowledge_required is False
 
 
+def test_model_timeout_is_separate_from_the_short_mcp_timeout() -> None:
+    settings = ProductionSettings.model_validate(production_values())
+
+    assert settings.mcp_timeout_seconds == 2
+    assert settings.model_timeout_seconds == 90
+
+
 def test_production_secrets_are_redacted_from_representation() -> None:
     settings = ProductionSettings.model_validate(
         production_values()

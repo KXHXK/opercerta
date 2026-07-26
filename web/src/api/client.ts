@@ -2,7 +2,10 @@ import type {
   AgentTraceSnapshot,
   ApprovalBinding,
   OperationAccepted,
-  OperationDetail
+  OperationDetail,
+  OperationalSignal,
+  SignalCaseView,
+  SignalScanResult
 } from "./contracts";
 import type { OperationAction, ScenarioDefinition } from "../scenarios";
 
@@ -101,6 +104,49 @@ export class ApiClient {
         object_type: scenario.objectType,
         object_id: scenario.objectId
       })
+    });
+    if (!response.ok) await raiseApiError(response);
+    return (await response.json()) as OperationAccepted;
+  }
+
+  async scanSignals(): Promise<SignalScanResult> {
+    const response = await fetch(this.endpoint("/api/v1/signals/scan"), {
+      method: "POST",
+      headers: { Authorization: this.authorizationHeader() }
+    });
+    if (!response.ok) await raiseApiError(response);
+    return (await response.json()) as SignalScanResult;
+  }
+
+  async listSignals(): Promise<OperationalSignal[]> {
+    const response = await fetch(this.endpoint("/api/v1/signals"), {
+      headers: { Authorization: this.authorizationHeader() }
+    });
+    if (!response.ok) await raiseApiError(response);
+    return (await response.json()) as OperationalSignal[];
+  }
+
+  async listSignalCases(): Promise<SignalCaseView[]> {
+    const response = await fetch(this.endpoint("/api/v1/signal-cases"), {
+      headers: { Authorization: this.authorizationHeader() }
+    });
+    if (!response.ok) await raiseApiError(response);
+    return (await response.json()) as SignalCaseView[];
+  }
+
+  async investigateSignal(signalId: string): Promise<OperationAccepted> {
+    const response = await fetch(this.endpoint(`/api/v1/signals/${signalId}/investigate`), {
+      method: "POST",
+      headers: { Authorization: this.authorizationHeader() }
+    });
+    if (!response.ok) await raiseApiError(response);
+    return (await response.json()) as OperationAccepted;
+  }
+
+  async retrySignal(signalId: string): Promise<OperationAccepted> {
+    const response = await fetch(this.endpoint(`/api/v1/signals/${signalId}/retry`), {
+      method: "POST",
+      headers: { Authorization: this.authorizationHeader() }
     });
     if (!response.ok) await raiseApiError(response);
     return (await response.json()) as OperationAccepted;

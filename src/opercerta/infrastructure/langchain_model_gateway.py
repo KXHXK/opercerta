@@ -9,7 +9,11 @@ from pydantic import BaseModel, SecretStr, ValidationError
 from opercerta.agent.prompt_registry import PromptId, PromptRegistry
 from opercerta.domain.agent import (
     AgentAnalysis,
+    AgentDecisionContext,
+    AgentToolCall,
+    AgentTurn,
     AnalysisContext,
+    FinalAnalysis,
     FinalReport,
     GoalContext,
     GoalEncoding,
@@ -26,6 +30,8 @@ from opercerta.domain.agent import (
 from opercerta.infrastructure.model_gateway import ModelOutputInvalid
 
 StructuredModel = TypeVar("StructuredModel", bound=BaseModel)
+FINAL_ANALYSIS_TOOL_NAME = "submit_final_analysis"
+VERIFICATION_TOOL_NAME = "submit_verification_decision"
 
 
 def to_model_tool_name(name: ReadToolName) -> str:
@@ -75,6 +81,68 @@ class LangChainOpenAIModelGateway:
 
     async def encode_goal(self, context: GoalContext) -> GoalEncoding:
         return await self._invoke_structured(PromptId.PLANNER, context, GoalEncoding)
+
+    async def decide(self, context: AgentDecisionContext) -> AgentTurn:
+        prompt = self._prompts.load(PromptId.TOOL_LOOP)
+        if not context.tools:
+            final_tool = {
+                "type": "function",
+                "function": {
+                    "name": FINAL_ANALYSIS_TOOL_NAME,
+                    "description": "Submit the final evidence-backed analysis for this turn.",
+                    "parameters": FinalAnalysis.model_json_schema(),
+                },
+            }
+            response = await self._model.bind_tools([final_tool], tool_choice="required").ainvoke(
+                self._messages(prompt.content, context)
+            )
+            if (
+                not isinstance(response, AIMessage)
+                or len(response.tool_calls) != 1
+                or response.tool_calls[0].get("name") != FINAL_ANALYSIS_TOOL_NAME
+            ):
+                raise ModelOutputInvalid
+            try:
+                return AgentTurn.model_validate(
+                    FinalAnalysis.model_validate(response.tool_calls[0]["args"])
+                )
+            except (KeyError, TypeError, ValidationError):
+                raise ModelOutputInvalid from None
+
+        wire_to_domain = {
+            to_model_tool_name(definition.name): definition.name for definition in context.tools
+        }
+        if len(wire_to_domain) != len(context.tools):
+            raise ValueError("model_tool_name_collision")
+        tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": to_model_tool_name(definition.name),
+                    "description": definition.description,
+                    "parameters": definition.input_schema,
+                },
+            }
+            for definition in context.tools
+        ]
+        response = await self._model.bind_tools(
+            cast(list[object], tools), tool_choice="required"
+        ).ainvoke(self._messages(prompt.content, context))
+        if not isinstance(response, AIMessage) or not response.tool_calls:
+            raise ModelOutputInvalid
+        try:
+            calls = tuple(
+                AgentToolCall(
+                    tool_call_id=str(call["id"]),
+                    tool_name=wire_to_domain[call["name"]],
+                    arguments=call["args"],
+                    purpose="读取当前决策仍缺少的受控事实。",
+                )
+                for call in response.tool_calls
+            )
+            return AgentTurn.model_validate({"kind": "tool_calls", "tool_calls": calls})
+        except (KeyError, TypeError, ValueError, ValidationError):
+            raise ModelOutputInvalid from None
 
     async def plan(self, context: PlanningContext) -> PlanningResult:
         prompt = self._prompts.load(PromptId.PLANNER)
@@ -135,11 +203,28 @@ class LangChainOpenAIModelGateway:
         return await self._invoke_structured(PromptId.ANALYST, context, AgentAnalysis)
 
     async def verify(self, context: VerificationContext) -> VerificationDecision:
-        return await self._invoke_structured(
-            PromptId.VERIFIER,
-            context,
-            VerificationDecision,
-        )
+        prompt = self._prompts.load(PromptId.VERIFIER)
+        verification_tool = {
+            "type": "function",
+            "function": {
+                "name": VERIFICATION_TOOL_NAME,
+                "description": "Submit the approval-time verification decision.",
+                "parameters": VerificationDecision.model_json_schema(),
+            },
+        }
+        response = await self._model.bind_tools(
+            [verification_tool], tool_choice="required"
+        ).ainvoke(self._messages(prompt.content, context))
+        if (
+            not isinstance(response, AIMessage)
+            or len(response.tool_calls) != 1
+            or response.tool_calls[0].get("name") != VERIFICATION_TOOL_NAME
+        ):
+            raise ModelOutputInvalid
+        try:
+            return VerificationDecision.model_validate(response.tool_calls[0]["args"])
+        except (KeyError, TypeError, ValidationError):
+            raise ModelOutputInvalid from None
 
     async def report(self, context: ReportingContext) -> FinalReport:
         return await self._invoke_structured(PromptId.REPORTER, context, FinalReport)

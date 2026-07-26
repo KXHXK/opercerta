@@ -7,8 +7,8 @@ type NextRoleGuideProps = {
 };
 
 export function NextRoleGuide({ role, status, hasWorkOrder }: NextRoleGuideProps) {
-  let title = "先以 operator 提交业务表单";
-  let detail = "选择三种合成场景之一，执行查询或申请工单。";
+  let title = "先以 operator 检测业务异常";
+  let detail = "扫描业务事实后，从待调查信号启动 Agent；没有异常就不创建处置。";
   if (status === "awaiting_approval" || status === "needs_reapproval") {
     if (role === "approver") {
       title = status === "needs_reapproval" ? "核对变化后再次审批" : "核对绑定事实并决定";

@@ -1,6 +1,28 @@
 import json
 from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
+from hashlib import sha256
 from typing import Protocol, cast
+
+from opercerta.domain.agent import CacheStatus
+
+
+@dataclass(frozen=True)
+class CacheLookup:
+    status: CacheStatus
+    value: dict[str, object] | None
+
+
+def evidence_cache_key(kind: str, object_id: str) -> str:
+    parameters_hash = sha256(
+        json.dumps(
+            {"kind": kind, "object_id": object_id},
+            ensure_ascii=True,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
+    return f"opercerta:evidence:v1:{kind}:{parameters_hash}"
 
 
 class AsyncRedisClient(Protocol):
@@ -10,15 +32,20 @@ class AsyncRedisClient(Protocol):
 
 
 class EvidenceCache(Protocol):
+    async def lookup(self, key: str) -> CacheLookup: ...
+
     async def get(self, key: str) -> dict[str, object] | None: ...
 
     async def set(self, key: str, value: dict[str, object], ttl_seconds: int) -> None: ...
 
 
 class NullEvidenceCache:
-    async def get(self, key: str) -> dict[str, object] | None:
+    async def lookup(self, key: str) -> CacheLookup:
         del key
-        return None
+        return CacheLookup(CacheStatus.BYPASS, None)
+
+    async def get(self, key: str) -> dict[str, object] | None:
+        return (await self.lookup(key)).value
 
     async def set(self, key: str, value: dict[str, object], ttl_seconds: int) -> None:
         del key, value, ttl_seconds
@@ -39,21 +66,24 @@ class RedisEvidenceCache:
         except Exception:
             pass
 
-    async def get(self, key: str) -> dict[str, object] | None:
+    async def lookup(self, key: str) -> CacheLookup:
         try:
             raw = await self._client.get(key)
             if raw is None:
                 self._record("miss")
-                return None
+                return CacheLookup(CacheStatus.MISS, None)
             decoded = raw.decode("utf-8") if isinstance(raw, bytes) else raw
             value = json.loads(decoded)
             if not isinstance(value, dict):
                 raise ValueError("cached evidence must be a JSON object")
             self._record("hit")
-            return cast(dict[str, object], value)
+            return CacheLookup(CacheStatus.HIT, cast(dict[str, object], value))
         except Exception:
             self._record("error")
-            return None
+            return CacheLookup(CacheStatus.UNAVAILABLE, None)
+
+    async def get(self, key: str) -> dict[str, object] | None:
+        return (await self.lookup(key)).value
 
     async def set(self, key: str, value: dict[str, object], ttl_seconds: int) -> None:
         try:

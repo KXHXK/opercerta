@@ -151,6 +151,50 @@ it("loads the redacted Agent Trace snapshot with the current role token", async 
   });
 });
 
+it("scans, lists, investigates, and retries durable business signals with the current role token", async () => {
+  const scan = {
+    signals: [], issues: [], scanned_count: 3,
+    scanned_at: "2026-07-25T10:00:00Z"
+  };
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify(scan), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }))
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({ operation_id: "operation-1" }), { status: 202 })
+    )
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({ operation_id: "operation-2" }), { status: 202 })
+    );
+  vi.stubGlobal("fetch", fetchMock);
+  const client = new ApiClient(() => "Bearer memory-only");
+
+  await expect(client.scanSignals()).resolves.toEqual(scan);
+  await expect(client.listSignals()).resolves.toEqual([]);
+  await expect(client.investigateSignal("signal-1")).resolves.toMatchObject({
+    operation_id: "operation-1"
+  });
+  await expect(client.retrySignal("signal-1")).resolves.toMatchObject({
+    operation_id: "operation-2"
+  });
+
+  expect(fetchMock).toHaveBeenNthCalledWith(1, "/api/v1/signals/scan", {
+    method: "POST",
+    headers: { Authorization: "Bearer memory-only" }
+  });
+  expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/v1/signals", {
+    headers: { Authorization: "Bearer memory-only" }
+  });
+  expect(fetchMock).toHaveBeenNthCalledWith(3, "/api/v1/signals/signal-1/investigate", {
+    method: "POST",
+    headers: { Authorization: "Bearer memory-only" }
+  });
+  expect(fetchMock).toHaveBeenNthCalledWith(4, "/api/v1/signals/signal-1/retry", {
+    method: "POST",
+    headers: { Authorization: "Bearer memory-only" }
+  });
+});
+
 it("preserves a safe backend error envelope as an actionable ApiError", async () => {
   const fetchMock = vi.fn().mockResolvedValue(
     new Response(JSON.stringify({ code: "approval_expired", message: "审批已过期。" }), {

@@ -10,6 +10,7 @@ from opercerta.domain.scenarios import Digest, Version
 
 class PromptId(StrEnum):
     PLANNER = "planner"
+    TOOL_LOOP = "tool_loop"
     ANALYST = "analyst"
     VERIFIER = "verifier"
     REPORTER = "reporter"
@@ -26,6 +27,7 @@ class PromptSpec(BaseModel):
 
 _PROMPT_FILES: dict[PromptId, tuple[str, str]] = {
     PromptId.PLANNER: ("planner-v1.md", "v1"),
+    PromptId.TOOL_LOOP: ("tool-loop-v1.md", "v1"),
     PromptId.ANALYST: ("analyst-v1.md", "v1"),
     PromptId.VERIFIER: ("verifier-v1.md", "v1"),
     PromptId.REPORTER: ("reporter-v1.md", "v1"),

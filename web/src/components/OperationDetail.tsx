@@ -14,7 +14,7 @@ type OperationDetailProps = {
 
 export function OperationDetail({ detail }: OperationDetailProps) {
   if (detail === null) {
-    return <p className="timeline-empty">创建或读取处置后，在此查看后端返回的业务事实。</p>;
+    return <p className="timeline-empty">启动异常调查或读取处置后，在此查看后端返回的业务事实。</p>;
   }
 
   return (

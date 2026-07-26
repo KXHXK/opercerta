@@ -30,6 +30,7 @@ def test_schema_mapping_matches_reliability_migration() -> None:
         "agent_runs",
         "agent_trace_events",
         "agent_trace_citations",
+        "operational_signals",
     }
     assert {
         constraint.name

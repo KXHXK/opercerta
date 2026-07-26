@@ -15,6 +15,38 @@ class OperationNotFound(LookupError):
         super().__init__(self.code)
 
 
+class SignalNotFound(LookupError):
+    code = "signal_not_found"
+
+    def __init__(self, signal_id: UUID) -> None:
+        self.signal_id = signal_id
+        super().__init__(self.code)
+
+
+class SignalAlreadyClaimed(RuntimeError):
+    code = "signal_already_claimed"
+
+    def __init__(self, signal_id: UUID) -> None:
+        self.signal_id = signal_id
+        super().__init__(self.code)
+
+
+class SignalObjectMismatch(RuntimeError):
+    code = "signal_object_mismatch"
+
+    def __init__(self, signal_id: UUID) -> None:
+        self.signal_id = signal_id
+        super().__init__(self.code)
+
+
+class SignalRetryNotAllowed(RuntimeError):
+    code = "signal_retry_not_allowed"
+
+    def __init__(self, signal_id: UUID) -> None:
+        self.signal_id = signal_id
+        super().__init__(self.code)
+
+
 class ApprovalAlreadyDecided(RuntimeError):
     code = "approval_already_decided"
 

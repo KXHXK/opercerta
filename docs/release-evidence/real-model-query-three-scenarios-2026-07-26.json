@@ -1,0 +1,45 @@
+{
+  "executed_at": "2026-07-26T10:23:24.061727+00:00",
+  "provider": "moonshot-openai-compatible",
+  "model": "kimi-k2.6",
+  "mode": "real",
+  "representative_operations": 3,
+  "results": [
+    {
+      "scenario": "inventory",
+      "status": "failed",
+      "failure_stage": "query",
+      "error_type": "RepresentativeValidationError",
+      "operations_attempted": 1,
+      "failure_detail": {
+        "stage": "create_operation",
+        "http_status": 503,
+        "error_code": "dependency_unavailable"
+      }
+    },
+    {
+      "scenario": "equipment",
+      "status": "failed",
+      "failure_stage": "query",
+      "error_type": "RepresentativeValidationError",
+      "operations_attempted": 1,
+      "failure_detail": {
+        "stage": "create_operation",
+        "http_status": 503,
+        "error_code": "dependency_unavailable"
+      }
+    },
+    {
+      "scenario": "task",
+      "status": "failed",
+      "failure_stage": "query",
+      "error_type": "RepresentativeValidationError",
+      "operations_attempted": 1,
+      "failure_detail": {
+        "stage": "create_operation",
+        "http_status": 503,
+        "error_code": "dependency_unavailable"
+      }
+    }
+  ]
+}

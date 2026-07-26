@@ -195,6 +195,61 @@ def run_representative_scenario(
     }
 
 
+def run_representative_path(
+    *,
+    path: str,
+    object_type: str,
+    object_id: str,
+    expected_kind: str,
+    operator_headers: dict[str, str],
+    approver_headers: dict[str, str],
+    query_runner: Any = None,
+    approved_runner: Any = None,
+) -> dict[str, Any]:
+    """Run one bounded path so real-provider evidence uses the fewest calls needed."""
+
+    if path == "full":
+        return run_representative_scenario(
+            object_type=object_type,
+            object_id=object_id,
+            expected_kind=expected_kind,
+            operator_headers=operator_headers,
+            approver_headers=approver_headers,
+            query_runner=query_runner,
+            approved_runner=approved_runner,
+        )
+    runner = query_runner or run_query if path == "query" else approved_runner or run_approved_path
+    try:
+        result = (
+            runner(object_type, object_id, operator_headers)
+            if path == "query"
+            else runner(
+                object_type,
+                object_id,
+                expected_kind,
+                operator_headers,
+                approver_headers,
+            )
+        )
+    except Exception as error:
+        failure: dict[str, Any] = {
+            "scenario": object_type,
+            "status": "failed",
+            "failure_stage": path,
+            "error_type": type(error).__name__,
+            "operations_attempted": 1,
+        }
+        if isinstance(error, RepresentativeValidationError):
+            failure["failure_detail"] = error.detail
+        return failure
+    return {
+        "scenario": object_type,
+        "status": "passed",
+        "operations_attempted": 1,
+        path: result,
+    }
+
+
 def run_query(
     object_type: str,
     object_id: str,
@@ -285,16 +340,25 @@ def run_approved_path(
     approver_headers: dict[str, str],
 ) -> dict[str, Any]:
     started = time.monotonic()
+    scan_status, scan = request(
+        "POST",
+        "/api/v1/signals/scan",
+        headers=operator_headers,
+    )
+    assert scan_status == 200, (object_type, scan_status, scan)
+    matching_signals = [
+        signal
+        for signal in scan["signals"]
+        if signal["object_type"] == object_type and signal["object_id"] == object_id
+    ]
+    assert len(matching_signals) == 1
+    signal_status = matching_signals[0]["status"]
+    assert signal_status in {"open", "attention_required"}
+    action = "investigate" if signal_status == "open" else "retry"
     status, created = request(
         "POST",
-        "/api/v1/operations",
-        {
-            "message": f"representative real-model controlled action for {object_type}",
-            "requested_action": "create_work_order",
-            "object_type": object_type,
-            "object_id": object_id,
-        },
-        operator_headers,
+        f"/api/v1/signals/{matching_signals[0]['id']}/{action}",
+        headers=operator_headers,
     )
     create_elapsed_ms = round((time.monotonic() - started) * 1000, 3)
     assert status == 202, (object_type, status, created)
@@ -368,6 +432,12 @@ def main() -> None:
         choices=("all", "inventory", "equipment", "task"),
         default="all",
     )
+    parser.add_argument(
+        "--path",
+        choices=("full", "query", "approved_path"),
+        default="full",
+        help="Run both paths, only the read-only query, or only one approved write path.",
+    )
     args = parser.parse_args()
 
     wait_for_ready(60)
@@ -380,7 +450,8 @@ def main() -> None:
     ]
     for object_type, object_id, work_order_kind in selected:
         results.append(
-            run_representative_scenario(
+            run_representative_path(
+                path=args.path,
                 object_type=object_type,
                 object_id=object_id,
                 expected_kind=work_order_kind,

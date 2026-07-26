@@ -1,7 +1,13 @@
 import pytest
 
 from opercerta.agent.harness import AgentContractViolation, AgentHarness
-from opercerta.domain.agent import AgentBudget, GoalEncoding, IntentEnvelope, InvestigationPlan
+from opercerta.domain.agent import (
+    AgentBudget,
+    AgentTurn,
+    GoalEncoding,
+    IntentEnvelope,
+    InvestigationPlan,
+)
 
 
 def request() -> IntentEnvelope:
@@ -97,3 +103,51 @@ def test_harness_accepts_bound_goal_and_plan() -> None:
 
     assert harness().validate_goal(request(), trusted_goal) == trusted_goal
     assert harness().validate_plan(trusted_goal, plan) == plan
+
+
+def tool_turn(call_count: int = 1) -> AgentTurn:
+    return AgentTurn.model_validate(
+        {
+            "kind": "tool_calls",
+            "tool_calls": [
+                {
+                    "tool_call_id": f"call-{index}",
+                    "tool_name": "inventory.get_snapshot",
+                    "arguments": {"sku": "SKU-DEMO-001"},
+                    "purpose": "读取当前库存事实。",
+                }
+                for index in range(call_count)
+            ],
+        }
+    )
+
+
+def test_harness_rejects_turn_after_model_budget_is_exhausted() -> None:
+    with pytest.raises(AgentContractViolation, match="model_budget_exceeded"):
+        harness().validate_turn(
+            tool_turn(),
+            model_call_count=5,
+            prior_tool_call_count=0,
+        )
+
+
+def test_harness_rejects_turn_that_exceeds_cumulative_tool_budget() -> None:
+    with pytest.raises(AgentContractViolation, match="tool_budget_exceeded"):
+        harness(max_tool_calls=2).validate_turn(
+            tool_turn(call_count=2),
+            model_call_count=2,
+            prior_tool_call_count=1,
+        )
+
+
+def test_harness_accepts_turn_within_cumulative_budgets() -> None:
+    turn = tool_turn()
+
+    assert (
+        harness(max_tool_calls=2).validate_turn(
+            turn,
+            model_call_count=2,
+            prior_tool_call_count=1,
+        )
+        == turn
+    )

@@ -81,7 +81,7 @@ def test_compose_example_is_tracked_and_real_file_is_ignored() -> None:
     assert "OPERCERTA_DEMO_TOKEN_ENABLED=true" in example
 
 
-def test_smoke_script_checks_health_duplicate_approval_and_database_facts() -> None:
+def test_smoke_script_checks_signal_entry_duplicate_approval_and_database_facts() -> None:
     script = Path("scripts/verify_compose.py").read_text(encoding="utf-8")
 
     for required in (
@@ -91,6 +91,10 @@ def test_smoke_script_checks_health_duplicate_approval_and_database_facts() -> N
         "COUNT(*) FROM approvals",
         "COUNT(*) FROM work_orders",
         "operation_completed",
+        "/api/v1/signals/scan",
+        "/investigate",
+        "request_validation_failed",
+        '== "resolved"',
     ):
         assert required in script
     assert all(
@@ -103,7 +107,6 @@ def test_smoke_script_checks_health_duplicate_approval_and_database_facts() -> N
     assert "time.monotonic" in script
     for kind in ("replenishment", "repair", "task_recovery"):
         assert kind in script
-    assert "rejected" in script
     assert "--recovery-only" in script
 
 

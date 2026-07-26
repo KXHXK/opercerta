@@ -1,25 +1,25 @@
-import json
 from collections.abc import Awaitable, Callable
 from datetime import datetime
-from hashlib import sha256
 from typing import Any, Protocol, cast
 from uuid import UUID
 
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import Command
-from pydantic import BaseModel, JsonValue
+from pydantic import BaseModel
 
 from opercerta.agent.tool_executor import ReadToolGateway
 from opercerta.agent.trace_recorder import TraceRecorder
 from opercerta.application.scenario_registry import ScenarioRegistry
-from opercerta.domain.agent import AgentAnalysis, ReadToolName
+from opercerta.domain.agent import AgentAnalysis
 from opercerta.domain.contracts import ObjectType, OperationRequest
 from opercerta.domain.model_gateway import AgentModelGateway, ModelGateway
 from opercerta.domain.replenishment import OperationError
 from opercerta.domain.work_orders import WorkOrderCommand, WorkOrderRecord, WorkOrderWriteResult
-from opercerta.infrastructure.cache import EvidenceCache, NullEvidenceCache
+from opercerta.infrastructure.cache import EvidenceCache, NullEvidenceCache, evidence_cache_key
 from opercerta.infrastructure.db.evidence_repository import EvidenceRepository
 from opercerta.infrastructure.db.operation_repository import OperationRepository
+from opercerta.infrastructure.observation_gateway import CachedReadToolGateway
+from opercerta.infrastructure.traced_tool_gateway import TracedControlledEvidenceGateway
 from opercerta.observability.tracing import NOOP_TRACING, Tracing
 from opercerta.workflow.agent_controlled_action_graph import (
     AgentInvestigationGraph,
@@ -57,58 +57,6 @@ class ControlledEvidenceGateway(
     pass
 
 
-class TracedControlledEvidenceGateway:
-    def __init__(self, delegate: ControlledEvidenceGateway, tracing: Tracing) -> None:
-        self._delegate = delegate
-        self._tracing = tracing
-
-    async def _read(self, loader: Callable[[], Awaitable[object]]) -> object:
-        with self._tracing.span(
-            "mcp.call",
-            {"component": "mcp", "operation": "read"},
-        ):
-            return await loader()
-
-    async def get_inventory(self, sku: str) -> object:
-        return await self._read(lambda: self._delegate.get_inventory(sku))
-
-    async def get_policy(self, sku: str) -> object:
-        return await self._read(lambda: self._delegate.get_policy(sku))
-
-    async def get_equipment(self, equipment_id: str) -> object:
-        return await self._read(lambda: self._delegate.get_equipment(equipment_id))
-
-    async def get_maintenance_policy(self, equipment_id: str) -> object:
-        return await self._read(lambda: self._delegate.get_maintenance_policy(equipment_id))
-
-    async def get_task(self, task_id: str) -> object:
-        return await self._read(lambda: self._delegate.get_task(task_id))
-
-    async def get_task_recovery_policy(self, task_id: str) -> object:
-        return await self._read(lambda: self._delegate.get_task_recovery_policy(task_id))
-
-    async def read_agent_tool(
-        self,
-        name: ReadToolName,
-        arguments: dict[str, JsonValue],
-    ) -> BaseModel:
-        result = await self._read(lambda: self._delegate.read_agent_tool(name, arguments))
-        return cast(BaseModel, result)
-
-    async def create_work_order(
-        self, command: WorkOrderCommand, *, plan_hash: str
-    ) -> WorkOrderWriteResult:
-        with self._tracing.span(
-            "mcp.call",
-            {"component": "mcp", "operation": "write"},
-        ):
-            return await self._delegate.create_work_order(command, plan_hash=plan_hash)
-
-    async def get_work_order(self, work_order_id: UUID) -> WorkOrderRecord:
-        result = await self._read(lambda: self._delegate.get_work_order(work_order_id))
-        return cast(WorkOrderRecord, result)
-
-
 class CachedControlledEvidenceGateway:
     def __init__(
         self,
@@ -124,15 +72,7 @@ class CachedControlledEvidenceGateway:
 
     @staticmethod
     def _key(kind: str, object_id: str) -> str:
-        parameters_hash = sha256(
-            json.dumps(
-                {"kind": kind, "object_id": object_id},
-                ensure_ascii=True,
-                separators=(",", ":"),
-                sort_keys=True,
-            ).encode("utf-8")
-        ).hexdigest()
-        return f"opercerta:evidence:v1:{kind}:{parameters_hash}"
+        return evidence_cache_key(kind, object_id)
 
     async def _get(self, key: str, loader: Callable[[], Awaitable[object]]) -> object:
         with self._tracing.span("redis.evidence", {"component": "redis", "operation": "get"}):
@@ -421,10 +361,16 @@ def build_controlled_action_graph(
         approval_ttl_seconds=approval_ttl_seconds,
         agent_model_gateway=agent_model_gateway,
     )
+    agent_gateway = CachedReadToolGateway(
+        traced_gateway,
+        cache or NullEvidenceCache(),
+        ttl_seconds=cache_ttl_seconds,
+        tracing=tracing,
+    )
     agent = (
         build_agent_investigation_graph(
             agent_model_gateway,
-            traced_gateway,
+            agent_gateway,
             checkpointer=checkpointer,
             registry=registry,
             clock=clock,

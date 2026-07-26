@@ -124,8 +124,8 @@ def main() -> None:
         assert_agent_trace(
             trace,
             expected_scenario="task",
-            expected_status="awaiting_human",
-            require_approval=False,
+            expected_status="completed",
+            require_approval=True,
             require_citations=True,
         )
         assert "human" in {event["event_type"] for event in trace["events"]}

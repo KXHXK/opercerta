@@ -25,7 +25,7 @@ export function AgentTrace({ trace }: { trace: AgentTraceSnapshot | null }) {
   if (trace === null || trace.events.length === 0) {
     return (
       <section className="trace-board trace-board--empty" aria-label="Agent Trace">
-        <p className="agent-empty">尚无 Agent Trace。创建或读取处置后加载后端持久化轨迹。</p>
+        <p className="agent-empty">尚无 Agent Trace。从异常信号启动调查或读取处置后加载持久化轨迹。</p>
       </section>
     );
   }

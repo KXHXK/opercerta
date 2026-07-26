@@ -70,7 +70,10 @@ def test_real_model_smoke_loads_ignored_config_and_limits_the_representative_set
     for object_type in ("inventory", "equipment", "task"):
         assert object_type in verifier
     assert '"query"' in verifier
-    assert '"create_work_order"' in verifier
+    assert '"/api/v1/signals/scan"' in verifier
+    assert 'action = "investigate" if signal_status == "open" else "retry"' in verifier
+    assert "f\"/api/v1/signals/{matching_signals[0]['id']}/{action}\"" in verifier
+    assert 'signal_status in {"open", "attention_required"}' in verifier
     assert "raw_model_output" not in verifier
     assert "token_usage_available" not in verifier
     assert "cost_available" not in verifier

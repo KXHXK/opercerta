@@ -2,6 +2,8 @@ from typing import Protocol
 
 from opercerta.domain.agent import (
     AgentAnalysis,
+    AgentDecisionContext,
+    AgentTurn,
     AnalysisContext,
     FinalReport,
     GoalContext,
@@ -50,6 +52,17 @@ class AgentModelGateway(Protocol):
         raise NotImplementedError
 
 
+class AgentLoopModelGateway(Protocol):
+    async def encode_goal(self, context: GoalContext) -> GoalEncoding:
+        raise NotImplementedError
+
+    async def decide(self, context: AgentDecisionContext) -> AgentTurn:
+        raise NotImplementedError
+
+    async def verify(self, context: VerificationContext) -> VerificationDecision:
+        raise NotImplementedError
+
+
 class MockModelGateway:
     async def explain_plan(
         self,
@@ -85,6 +98,46 @@ class MockAgentModelGateway:
                 if context.intent.goal.value == "query"
                 else "approved_work_order_verified"
             ),
+        )
+
+    async def decide(self, context: AgentDecisionContext) -> AgentTurn:
+        if context.tools:
+            calls: list[dict[str, object]] = []
+            for index, definition in enumerate(context.tools, start=1):
+                properties = definition.input_schema.get("properties")
+                if not isinstance(properties, dict):
+                    raise ValueError("mock_tool_schema_invalid")
+                arguments: dict[str, object] = {}
+                for key, schema in properties.items():
+                    if (
+                        not isinstance(key, str)
+                        or not isinstance(schema, dict)
+                        or "const" not in schema
+                    ):
+                        raise ValueError("mock_tool_schema_invalid")
+                    arguments[key] = schema["const"]
+                calls.append(
+                    {
+                        "tool_call_id": f"mock-call-{context.tool_call_count + index}",
+                        "tool_name": definition.name,
+                        "arguments": arguments,
+                        "purpose": "读取当前决策仍缺少的受控事实。",
+                    }
+                )
+            return AgentTurn.model_validate({"kind": "tool_calls", "tool_calls": calls})
+
+        return AgentTurn.model_validate(
+            {
+                "kind": "final_analysis",
+                "finding": f"已核对 {context.goal.object_id} 的业务事实与规则。",
+                "evidence_refs": [observation.tool_call_id for observation in context.observations],
+                "missing_evidence": [],
+                "recommended_action": (
+                    "report_status" if context.goal.goal.value == "query" else "request_approval"
+                ),
+                "confidence_band": "high",
+                "explanation": "最终动作参数和写权限仍由确定性规则与审批门禁控制。",
+            }
         )
 
     async def plan(self, context: PlanningContext) -> PlanningResult:
