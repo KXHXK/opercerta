@@ -4,6 +4,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 BOOTSTRAP = ROOT / "scripts" / "bootstrap_wsl_environment.sh"
 PROJECT_BOOTSTRAP = ROOT / "scripts" / "bootstrap_project_runtime.sh"
+GIT_ATTRIBUTES = ROOT / ".gitattributes"
 
 
 def bootstrap_text() -> str:
@@ -71,3 +72,12 @@ def test_project_bootstrap_runs_compose_and_restart_recovery_gates() -> None:
     assert "docker compose restart api mcp" in text
     assert "python3 scripts/verify_agent_compose.py --recovery-only" in text
     assert "http://127.0.0.1:8080/health/ready" in text
+
+
+def test_repository_enforces_cross_platform_lf_without_rewriting_binary_assets() -> None:
+    assert GIT_ATTRIBUTES.is_file()
+    text = GIT_ATTRIBUTES.read_text(encoding="utf-8")
+
+    assert "* text=auto eol=lf" in text
+    for extension in ("png", "jpg", "jpeg", "gif", "ico", "woff", "woff2"):
+        assert f"*.{extension} binary" in text

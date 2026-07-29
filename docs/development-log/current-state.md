@@ -6,7 +6,7 @@
 
 纯 WSL 前端链路已经在 `/mnt/d/CODEX/agent-portfolio/opercerta/web` 通过：`npm ci` 安装 121 个包，19 个测试文件共 60 条测试通过，Vite production build 成功。DrvFS 当前未启用 `metadata`，`chmod` 不持久化 mode bits，但它没有阻断现有测试与构建；后续必须只用 WSL npm 管理当前 `web/node_modules`，不能与 Windows npm 交替安装，也不能使用 `sudo npm ci`。
 
-换机环境脚本已增加固定版本、国内下载镜像、Node 官方 SHA256 校验、失败诊断和跨运行时依赖边界；环境资产 3 条测试通过。`DOCUMENT_INDEX.md` 已修复为根工作树 113/113 份 Markdown，并把 6 个旧 worktree 各自保留为明确的历史表；索引校验 3 条测试通过。当前这些环境、日志、Typora 和索引变更仍未提交；本地 Git 基线为 `7f56f06`，远端 `main` 比它多 6 个只涉及临时 `doc` 文件且净文件差异为 0 的提交。下一步先在独立环境收口分支提交本地成果，再 fetch/rebase 到远端 `main`，随后执行完整后端、前端、Compose 重启恢复和远程 CI 门禁。生产门禁继续 `CLOSED`，不启动 ForenTrail。
+换机环境脚本已增加固定版本、国内下载镜像、Node 官方 SHA256 校验、失败诊断和跨运行时依赖边界。`DOCUMENT_INDEX.md` 已修复为根工作树 113/113 份 Markdown，并把 6 个旧 worktree 各自保留为明确的历史表。环境与索引成果已在 `chore/new-machine-env-20260729` 形成保护提交 `e02439c`。首次 GitHub fetch/push 因 WSL 网络 TLS/443 失败而未完成；同时确认 WSL 显示的数百个修改全部是 Windows/WSL `core.autocrlf` 不一致造成的行尾假差异，434 个 tracked 文件中真实内容差异为 0、缺失为 0。仓库级 `.gitattributes` 正在固定文本 LF 和 binary 边界。下一步提交行尾策略，待网络恢复后 fetch/rebase/push，再执行完整后端、前端、Compose 重启恢复和远程 CI 门禁。生产门禁继续 `CLOSED`，不启动 ForenTrail。
 
 ## 2026-07-27：PR #8、main Compose 与新版静态专题已发布
 
