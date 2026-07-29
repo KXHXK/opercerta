@@ -19,7 +19,6 @@ OperCerta 是面向库存异常、设备告警和运营工单的智能运营处�
 ## 当前已验证范围
 
 - 严格非法输入与 JSON-only 恢复快照；
-- 确定性恢复决策矩阵；
 - PostgreSQL Schema、Alembic 升降级和审批原子竞态；
 - 授权后幂等工单写入与并发安全重放；
 - 独立 `langgraph` Schema checkpointer；
