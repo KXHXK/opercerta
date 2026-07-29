@@ -840,7 +840,10 @@ async def test_production_lifespan_loads_environment_and_recovers_once(
     monkeypatch.setenv("OPERCERTA_MCP_TIMEOUT_SECONDS", "2")
     monkeypatch.setenv("OPERCERTA_APPROVAL_TTL_SECONDS", "300")
     monkeypatch.setenv("OPERCERTA_MODEL_MODE", "mock")
-    monkeypatch.setenv("OPERCERTA_JWT_SIGNING_KEY", "production-lifespan-test-key")
+    monkeypatch.setenv(
+        "OPERCERTA_JWT_SIGNING_KEY",
+        "production-lifespan-test-signing-key-32-bytes",
+    )
     monkeypatch.setenv("OPERCERTA_JWT_ISSUER", "opercerta-production-test")
     monkeypatch.setenv("OPERCERTA_JWT_AUDIENCE", "opercerta-api-test")
     monkeypatch.setenv("OPERCERTA_JWT_TTL_SECONDS", "300")

@@ -4,11 +4,10 @@ import re
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = ROOT / "DOCUMENT_INDEX.md"
 EXCLUDED_PARTS = {".git", ".pytest_cache", ".worktrees", ".venv", "node_modules"}
-ROOT_HEADING = re.compile(r"^## 根工作树（(?P<count>\d+) 份）$")
+ROOT_HEADING = re.compile(r"^## 根工作树（(?P<count>\d+) 份）$")  # noqa: RUF001
 ROW = re.compile(r"^\| (?P<number>\d+) \|")
 
 
@@ -82,7 +81,10 @@ def verify() -> list[str]:
     ]
     if not historical_headings:
         errors.append("historical worktree tables are missing")
-    elif any(not line.startswith("## 历史 Worktree：") for line in historical_headings):
+    elif any(
+        not line.startswith("## 历史 Worktree：")  # noqa: RUF001
+        for line in historical_headings
+    ):
         errors.append("every retained worktree table must be explicitly labeled as historical")
 
     return errors

@@ -5,7 +5,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[3]
 INDEX = ROOT / "DOCUMENT_INDEX.md"
 VERIFY_SCRIPT = ROOT / "scripts" / "verify_document_index.py"
@@ -48,7 +47,7 @@ def test_historical_worktree_tables_are_explicitly_labeled() -> None:
     ]
 
     assert headings
-    assert all(line.startswith("## 历史 Worktree：") for line in headings)
+    assert all(line.startswith("## 历史 Worktree：") for line in headings)  # noqa: RUF001
 
 
 def test_document_index_verifier_passes() -> None:

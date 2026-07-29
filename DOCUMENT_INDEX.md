@@ -68,7 +68,7 @@ Typora 显示：首次运行 `powershell -ExecutionPolicy Bypass -File scripts/i
 | 40 | `2026-07-20-opercerta-three-business-release.md` | `docs/superpowers/plans/2026-07-20-opercerta-three-business-release.md` | 将三业务适配、六个 MCP 工具、评测、Redis、OpenTelemetry、真实模型代表验证、本地发布和中文学习包拆成主线任务。 | 本地任务已执行；公网交互、用户掌握与最终门禁待完成 | 2026-07-20 |
 | 41 | `2026-07-20-opercerta-zero-cost-showcase-engineering-walkthrough.md` | `docs/superpowers/plans/2026-07-20-opercerta-zero-cost-showcase-engineering-walkthrough.md` | 规划统一事实清单、招聘专题、本地工程详解、控制台共存、响应式测试、静态导出和 Netlify 发布验证。 | 计划已创建；根分支尚未归档完成证据 | 2026-07-20 |
 | 42 | `README.md` | `docs/development-log/README.md` | 说明开发日志目录结构、各类日志职责、记录规范、敏感信息禁区和上下文恢复阅读顺序。 | 已建立并持续使用 | 2026-07-15 |
-| 43 | `current-state.md` | `docs/development-log/current-state.md` | 保存最新可验证项目状态、测试证据、运行环境、发布边界、未完成事项和下一步，作为压缩上下文后的事实入口。 | 已同步真实模型代表验证与剩余外部门禁 | 2026-07-15 |
+| 43 | `current-state.md` | `docs/development-log/current-state.md` | 保存最新可验证项目状态、测试证据、运行环境、发布边界、未完成事项和下一步，作为压缩上下文后的事实入口；同时区分本地候选镜像、空缓存冷构建、远程 CI 和真实生产发布四类证据。 | 已同步换机全量门禁、CRLF/SOP 修复、候选镜像恢复验证及仍未关闭的冷构建与远程门禁 | 2026-07-15 |
 | 44 | `2026-07-15.md` | `docs/development-log/daily/2026-07-15.md` | 记录日志体系、Windows PostgreSQL、审批领域契约及初始可靠性实施过程与命令证据。 | 当日记录已归档 | 2026-07-15 |
 | 45 | `2026-07-16.md` | `docs/development-log/daily/2026-07-16.md` | 记录库存补货 Task 1–9、幂等工单、LangGraph 恢复、调试过程和本地验证结果。 | 当日记录已归档 | 2026-07-16 |
 | 46 | `2026-07-17.md` | `docs/development-log/daily/2026-07-17.md` | 记录 WSL2、Docker Linux 运行时、JWT/RBAC 和 Compose 环境迁移中的问题、修复与验证。 | 当日记录已归档 | 2026-07-17 |
@@ -80,7 +80,7 @@ Typora 显示：首次运行 `powershell -ExecutionPolicy Bypass -File scripts/i
 | 52 | `2026-07-23.md` | `docs/development-log/daily/2026-07-23.md` | 记录 Draft PR 与 GitHub Actions、Kimi replan、provider 异常原子收口、真实模型失败边界、规格一致性审计，并提供暂停时 Git 事实、未完成边界和数日后恢复开发的操作入口。 | 当日记录与阶段暂停检查点已归档；项目未完成，生产门禁保持 CLOSED | 2026-07-23 |
 | 53 | `2026-07-15-windows-native-postgres.md` | `docs/development-log/decisions/2026-07-15-windows-native-postgres.md` | 记录最初采用 Windows 原生 PostgreSQL 的背景、选择理由、风险和后续迁移条件。 | 历史决策已归档；运行时后来转向 WSL2/Compose | 2026-07-15 |
 | 54 | `2026-07-16-risk-based-review-and-progress-control.md` | `docs/development-log/decisions/2026-07-16-risk-based-review-and-progress-control.md` | 规定风险分级复核、进度百分比口径、关键节点审批和优先完成纵向业务闭环的项目控制方法。 | 已采用 | 2026-07-16 |
-| 55 | `interview-casebook.md` | `docs/development-log/interview-casebook.md` | 将真实实施问题整理为面试案例，按现象、根因、诊断、修复、验证和经验总结记录可讨论的工程话题。 | 已记录稳定哈希、路由、代理响应等案例并持续扩充 | 2026-07-17 |
+| 55 | `interview-casebook.md` | `docs/development-log/interview-casebook.md` | 将真实实施问题整理为面试案例，按现象、根因、诊断、修复、验证和经验总结记录可讨论的工程话题；覆盖 Agent 契约、数据库可靠性、跨平台环境、供应链和发布证据边界。 | 已新增 `.gitattributes` 与既有 CRLF 的差异、冷构建和候选镜像分层举证案例 | 2026-07-17 |
 | 56 | `learning-method.md` | `docs/development-log/learning-method.md` | 规定源码阅读、手动命令、单变量实验、复述、故障演练和面试问答结合的项目掌握方法。 | 已加入三业务学习与手动闭环建议；需持续实践 | 2026-07-17 |
 | 57 | `opercerta-core-technical-guide.md` | `docs/learning/opercerta-core-technical-guide.md` | 从一次业务请求出发解释 FastAPI、LangGraph、MCP、PostgreSQL、审批、幂等、恢复、容器和可观测性的代码链路与底层思想。 | 本地学习材料已完成；文件名已统一为英文路径，需结合源码实践 | 2026-07-20 |
 | 58 | `opercerta-manual-experiment-guide.md` | `docs/learning/opercerta-manual-experiment-guide.md` | 提供 WSL2/Compose 启停、三业务操作、数据库核对、MCP 调用、故障注入和恢复验证的可复制命令与观察点。 | 已记录命令；文件名已统一为英文路径，用户掌握检查待继续 | 2026-07-20 |
@@ -110,7 +110,7 @@ Typora 显示：首次运行 `powershell -ExecutionPolicy Bypass -File scripts/i
 | 82 | `2026-07-24.md` | `docs/development-log/daily/2026-07-24.md` | 汇总 Agent 实施 worktree当日的安全修复、一次性 pgvector 门禁、凭据轮换、WSL 符号链接、提交推送与远程 CI，作为根工作树的跨会话入口。 | 本地凭据已轮换并安全探针通过；提交 `d49577b` 已推送，PR #8 run `30081426265` 四项快速门禁全绿；生产门禁保持 CLOSED | 2026-07-24 |
 | 83 | `2026-07-26.md` | `docs/development-log/daily/2026-07-26.md` | 记录单根 Agent Loop 纠偏从设计审计到 Task 0–11 的完整实施，覆盖 Agent 回合、统一 Observation、三业务策略、case 工作台、默认运行时、Mock/Compose 门禁、真实 Kimi 兼容故障与文档收口。 | Task 0–11 本地完成；生产门禁保持 CLOSED | 2026-07-26 |
 | 84 | `2026-07-27.md` | `docs/development-log/daily/2026-07-27.md` | 记录 PR #8 合并、main 五项远程门禁、Netlify Preview/Production 两阶段发布、线上资源指纹、静态 API 回退边界、回滚点和下一学习验收任务。 | 静态专题 production deploy `6a6631d24958714a43ddc508` 已通过；公网可写后端未发布 | 2026-07-27 |
-| 85 | `2026-07-29.md` | `docs/development-log/daily/2026-07-29.md` | 记录更换电脑后的 WSL2、Ubuntu、Docker、uv、Python 和 Node 环境恢复，DrvFS 权限边界、国内镜像、FastEmbed 模型缓存、Compose 诊断、Git 完整性审计及纯 WSL 前端门禁。 | WSL 前端 60 条测试和构建通过，四个 Compose 服务 healthy；环境变更待提交 | 2026-07-29 |
+| 85 | `2026-07-29.md` | `docs/development-log/daily/2026-07-29.md` | 记录更换电脑后的 WSL2、Ubuntu、Docker、uv、Python 和 Node 环境恢复，DrvFS 权限边界、国内镜像、FastEmbed 模型缓存、Git 完整性审计、CRLF/SOP 校验和故障、隔离 PostgreSQL 全量测试、前端构建、候选镜像 Compose 与重启恢复门禁。 | 本地后端 664 条、两套评估、前端 60 条及当前源码候选 Compose 均通过；最终提交因 GitHub 443 不通待推送，空缓存冷构建和远程 PR 门禁待关闭 | 2026-07-29 |
 | 86 | `equipment-maintenance-v1.md` | `data/knowledge/equipment-maintenance-v1.md` | 设备维修场景的合成 SOP 知识文档，为 pgvector RAG 提供故障隔离、维修升级和安全边界的可追溯检索素材。 | 合成知识资产；只辅助 Agent 解释与规划，不替代确定性规则 | 2026-07-22 |
 | 87 | `inventory-replenishment-v1.md` | `data/knowledge/inventory-replenishment-v1.md` | 库存补货场景的合成 SOP 知识文档，为 pgvector RAG 提供补货处置步骤、审批要求和异常升级依据。 | 合成知识资产；不包含旧公司材料或真实业务数据 | 2026-07-22 |
 | 88 | `task-recovery-v1.md` | `data/knowledge/task-recovery-v1.md` | 作业阻塞恢复场景的合成 SOP 知识文档，为 Agent 检索恢复顺序、安全检查和升级条件提供引用。 | 合成知识资产；不覆盖审批、状态机和数据库约束 | 2026-07-22 |

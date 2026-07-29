@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[3]
 BOOTSTRAP = ROOT / "scripts" / "bootstrap_wsl_environment.sh"
 PROJECT_BOOTSTRAP = ROOT / "scripts" / "bootstrap_project_runtime.sh"
@@ -23,10 +22,7 @@ def test_wsl_bootstrap_pins_the_project_development_toolchain() -> None:
     assert 'UV_VERSION="0.11.28"' in text
     assert 'PYTHON_VERSION="3.12.13"' in text
     assert 'NODE_VERSION="24.18.0"' in text
-    assert (
-        'NODE_SHA256="55aa7153f9d88f28d765fcdad5ae6945b5c0f98a36881703817e4c450fa76742"'
-        in text
-    )
+    assert 'NODE_SHA256="55aa7153f9d88f28d765fcdad5ae6945b5c0f98a36881703817e4c450fa76742"' in text
     assert "uv python install" in text
     assert "node --version" in text
     assert "npm --version" in text

@@ -1,5 +1,13 @@
 # OperCerta 当前状态
 
+## 2026-07-29：换机本地门禁已通过，冷缓存构建与远程 PR 门禁待关闭
+
+当前分支 `chore/new-machine-env-20260729` 的前两项环境提交已同步到远端同名分支；最终本地门禁提交因 `github.com:443` 连接重置/超时暂未推送，本地安全领先远端 1 个提交。换机后的固定工具链可用：WSL2 Ubuntu 26.04、Docker/Compose、uv `0.11.28`、项目 Python `3.12.13`、Node `24.18.0` 与 npm `11.16.0`。后端在随机短生命周期 pgvector 容器上完成 `664 passed`，固定业务评估 `1 passed`，Agent 评估 `9/9 passed`；前端完成 `19` 个测试文件、`60` 条用例和 production build。PyJWT 测试弱密钥警告已消除并以 warning-as-error 定向复验。
+
+换机复核发现并修复两类真实跨平台问题：5 个 Linux shell 脚本仍是 CRLF，导致 Bash 无法解析 `pipefail`；三份 SOP 的原始字节与清单哈希不一致，导致知识导入拒绝。所有相关文件已归一化为 LF，SOP 现与冻结 manifest 哈希一致。当前源码候选镜像已通过三业务 Agent Compose、知识导入、API/MCP 重启恢复以及 database/checkpoint/MCP readiness。
+
+本次没有宣称空缓存冷构建通过：Docker 内冻结依赖首次下载历史约需 32 分钟，本次为加速本地业务门禁，在确认现有镜像内 `pyproject.toml`、`uv.lock` 与仓库 SHA-256 完全一致后，仅覆盖当前源码和运行资产生成候选镜像。下一步完成最终静态/安全/索引检查、提交推送和 Draft PR 快速 CI；随后再决定是否执行独立冷构建性能优化。生产门禁继续 `CLOSED`，不启动 ForenTrail。
+
 ## 2026-07-29：新电脑 WSL2 开发环境已恢复，等待 Git 同步与完整门禁
 
 新电脑已完成 WSL `2.7.11.0`、Ubuntu `26.04 LTS`、Docker `29.1.3`、Compose `2.40.3`、uv `0.11.28`、项目 Python `3.12.13`、Node.js `24.18.0` 和 npm `11.16.0` 的安装与版本核对。PostgreSQL/pgvector、Redis、MCP 和 API 四个 Compose 服务均为 `healthy`；API readiness 已返回 database/checkpoint/MCP 全部 ready。FastEmbed 首次模型下载通过本机 ignored 的 Hugging Face 镜像端点完成，正式 Compose 未硬编码第三方端点。
