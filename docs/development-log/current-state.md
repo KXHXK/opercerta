@@ -1,5 +1,13 @@
 # OperCerta 当前状态
 
+## 2026-07-29：新电脑 WSL2 开发环境已恢复，等待 Git 同步与完整门禁
+
+新电脑已完成 WSL `2.7.11.0`、Ubuntu `26.04 LTS`、Docker `29.1.3`、Compose `2.40.3`、uv `0.11.28`、项目 Python `3.12.13`、Node.js `24.18.0` 和 npm `11.16.0` 的安装与版本核对。PostgreSQL/pgvector、Redis、MCP 和 API 四个 Compose 服务均为 `healthy`；API readiness 已返回 database/checkpoint/MCP 全部 ready。FastEmbed 首次模型下载通过本机 ignored 的 Hugging Face 镜像端点完成，正式 Compose 未硬编码第三方端点。
+
+纯 WSL 前端链路已经在 `/mnt/d/CODEX/agent-portfolio/opercerta/web` 通过：`npm ci` 安装 121 个包，19 个测试文件共 60 条测试通过，Vite production build 成功。DrvFS 当前未启用 `metadata`，`chmod` 不持久化 mode bits，但它没有阻断现有测试与构建；后续必须只用 WSL npm 管理当前 `web/node_modules`，不能与 Windows npm 交替安装，也不能使用 `sudo npm ci`。
+
+换机环境脚本已增加固定版本、国内下载镜像、Node 官方 SHA256 校验、失败诊断和跨运行时依赖边界；环境资产 3 条测试通过。`DOCUMENT_INDEX.md` 已修复为根工作树 113/113 份 Markdown，并把 6 个旧 worktree 各自保留为明确的历史表；索引校验 3 条测试通过。当前这些环境、日志、Typora 和索引变更仍未提交；本地 Git 基线为 `7f56f06`，远端 `main` 比它多 6 个只涉及临时 `doc` 文件且净文件差异为 0 的提交。下一步先在独立环境收口分支提交本地成果，再 fetch/rebase 到远端 `main`，随后执行完整后端、前端、Compose 重启恢复和远程 CI 门禁。生产门禁继续 `CLOSED`，不启动 ForenTrail。
+
 ## 2026-07-27：PR #8、main Compose 与新版静态专题已发布
 
 单根 Agent Loop 与 case 工作台在 [PR #8](https://github.com/KXHXK/opercerta/pull/8) 合并为 `609f8f7dcbfbadb9d12f4371cf49815d48884a4e`。对应 [main run 30203438564](https://github.com/KXHXK/opercerta/actions/runs/30203438564) 的 `repository-safety`、`python-quality`、`backend-tests`、`frontend`、`compose-smoke` 全部成功；Compose 实际完成容器构建启动、Agent 轨迹与数据库副作用、API/MCP 重启、重启恢复和清理。
