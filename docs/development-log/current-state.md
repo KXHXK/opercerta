@@ -8,6 +8,8 @@
 
 已有开发卷因三条 signal 已完成而返回预期幂等 `409`，不能复用为首次调查测试。改用独立 Compose project 和新鲜临时卷后，三业务 Agent、RAG/Trace、审批、Verifier、工单数据库断言、API/MCP 重启及 recovery-only 全部通过，退出码 0；原开发卷未删除并已恢复四服务 healthy。当前 Ruff、216 文件格式、Mypy 85 个源文件、仓库安全与文档索引门禁均通过。下一步提交本轮修复并等待 PR #15 新鲜 CI；PR 合并后再执行 main Compose、部署与掌握验收。空缓存 Docker 冷构建和公网生产治理仍未关闭，production release gate 保持 `CLOSED`，不启动 ForenTrail。
 
+首次新鲜 CI 中 repository-safety、python-quality、frontend 通过，backend-tests 为 `2 failed, 663 passed`；失败仅来自最新 main 新增 `CONTRIBUTING.md` 后合并态文档数从 114 变成 115。本地 Git HTTPS 暂时无法 fetch，但 GitHub compare API 已证明 main 的净文件变化仅为该新增文件。当前分支已采用 main 原文并补齐第 115 条索引，正在进行本地复验和二次 CI；不能把首次失败误报为业务或 Agent 测试失败。
+
 ## 2026-07-29：换机本地门禁已通过，冷缓存构建与远程 PR 门禁待关闭
 
 当前分支 `chore/new-machine-env-20260729` 已通过普通 fast-forward push 把本地门禁提交 `08e113b` 同步到远端同名分支。此前的连接重置来自受限命令环境；获得窄范围 `git push` 网络授权后推送成功。GitHub App 因安装权限不足无法创建 Draft PR，内置浏览器连接 GitHub 超时，本机 `gh` 已安装但尚未登录，因此 PR 与远程 Actions 门禁仍待完成。换机后的固定工具链可用：WSL2 Ubuntu 26.04、Docker/Compose、uv `0.11.28`、项目 Python `3.12.13`、Node `24.18.0` 与 npm `11.16.0`。后端在随机短生命周期 pgvector 容器上完成 `664 passed`，固定业务评估 `1 passed`，Agent 评估 `9/9 passed`；前端完成 `19` 个测试文件、`60` 条用例和 production build。PyJWT 测试弱密钥警告已消除并以 warning-as-error 定向复验。
