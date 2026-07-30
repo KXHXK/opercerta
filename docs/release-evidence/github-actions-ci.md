@@ -1,5 +1,13 @@
 # GitHub Actions 分层 CI：远程验证证据
 
+## 2026-07-31 最终证据合并与 Showcase Pre-release
+
+- [PR #18](https://github.com/KXHXK/opercerta/pull/18) 已合入 main `298fc5978a56961d36e73888f4ae73017e302715`，未绕过检查。
+- [main run 30541088053](https://github.com/KXHXK/opercerta/actions/runs/30541088053) 的 `repository-safety`、`python-quality`、`frontend`、`backend-tests`、`compose-smoke` 五个 job 全部为 `success`。
+- 远程门禁继续记录完整后端 `667 passed`、三业务固定契约、冻结 Agent 安全/恢复评测 `9/9`、前端 19 个测试文件/60 条用例和 Vite production build；`compose-smoke` 实际验证三业务数据库副作用、API/MCP 重启恢复并清理隔离资源。
+- [Showcase 预发布 `v0.1.0-showcase.1`](https://github.com/KXHXK/opercerta/releases/tag/v0.1.0-showcase.1) 为非草稿 prerelease，tag 与 release target 均精确指向 `298fc59`。
+- 本节证明可复现的求职静态展示和本地单节点 Agent 发布候选，不证明公网可写后端、生产 IAM、限流、备份、高可用、SLA 或产品级正式发布。
+
 ## 2026-07-30 发布准备 PR #17 与最新 main 总门禁
 
 - [PR #17](https://github.com/KXHXK/opercerta/pull/17) 的 `repository-safety`、`python-quality`、`frontend`、`backend-tests` 全部成功，`compose-smoke` 按 PR 事件规则跳过；随后以普通 merge commit `b6aa5fa13c7645bd3351092fc23b6c3e132a284d` 合入 main，未绕过检查。

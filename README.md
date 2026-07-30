@@ -7,6 +7,7 @@ and audit-focused observability in a reproducible reference implementation.
 
 - [Project showcase](https://opercerta-kxh.netlify.app)
 - [Portfolio overview](https://kxh-agent-portfolio.netlify.app)
+- [Showcase pre-release](https://github.com/KXHXK/opercerta/releases/tag/v0.1.0-showcase.1)
 - Status: engineering showcase; the public site is read-only and the
   production release gate remains closed.
 
@@ -14,7 +15,7 @@ and audit-focused observability in a reproducible reference implementation.
 
 OperCerta 是面向库存异常、设备告警和运营工单的智能运营处置 Agent 独立作品仓库。
 
-> 当前状态：库存补货、设备维修、作业异常恢复三条 FastAPI + 单根 LangGraph + 最小 LangChain + FastMCP + PostgreSQL/pgvector 闭环、演示 JWT/RBAC、Agent Trace、本地 React 控制台、Redis 只读证据缓存和真实 FastEmbed RAG 已有自动化证据。少量 Moonshot AI `kimi-k2.6` 代表验证覆盖三业务只读、库存批准写入和无效 provider fail-closed，未回退 Mock 冒充成功。[PR #17](https://github.com/KXHXK/opercerta/pull/17) 合入发布准备修订；最新 [main CI](https://github.com/KXHXK/opercerta/actions/runs/30539160493) 在 `b6aa5fa` 上通过 667 条后端测试、19 个前端测试文件/60 条用例、9/9 冻结 Agent 评测和真实 Compose 构建、三业务数据库副作用与 API/MCP 重启恢复。[零成本静态项目专题](https://opercerta-kxh.netlify.app)已于 2026-07-30 晋级 deploy `6a6b17cf496c38056f737264`，安全头和资源 SHA-256 已经公网复验；[单页作品集](https://kxh-agent-portfolio.netlify.app)继续可只读访问。公开页面不提供后端写入口；生产身份、交互 HTTPS 后端、自动部署和公开 API 尚未完成，生产发布门禁：`CLOSED`。
+> 当前状态：库存补货、设备维修、作业异常恢复三条 FastAPI + 单根 LangGraph + 最小 LangChain + FastMCP + PostgreSQL/pgvector 闭环、演示 JWT/RBAC、Agent Trace、本地 React 控制台、Redis 只读证据缓存和真实 FastEmbed RAG 已有自动化证据。少量 Moonshot AI `kimi-k2.6` 代表验证覆盖三业务只读、库存批准写入和无效 provider fail-closed，未回退 Mock 冒充成功。[PR #18](https://github.com/KXHXK/opercerta/pull/18) 合入最终静态发布证据；最新 [main CI](https://github.com/KXHXK/opercerta/actions/runs/30541088053) 在 `298fc59` 上通过 667 条后端测试、19 个前端测试文件/60 条用例、9/9 冻结 Agent 评测和真实 Compose 构建、三业务数据库副作用与 API/MCP 重启恢复。[零成本静态项目专题](https://opercerta-kxh.netlify.app)已晋级 deploy `6a6b17cf496c38056f737264`，安全头和资源 SHA-256 已经公网复验；[Showcase 预发布 v0.1.0-showcase.1](https://github.com/KXHXK/opercerta/releases/tag/v0.1.0-showcase.1)精确指向该已验证提交。公开页面不提供后端写入口；生产身份、交互 HTTPS 后端、自动部署和公开 API 尚未完成，产品生产发布门禁：`CLOSED`。
 
 ## 当前已验证范围
 
@@ -40,7 +41,7 @@ OperCerta 是面向库存异常、设备告警和运营工单的智能运营处�
 
 ## 下一实施边界
 
-下一阶段仍只实施 OperCerta。单根 Agent 纠偏已经合并，main Compose 和新版静态专题生产发布均已通过；下一步完成用户手动演示、源码讲解与口述掌握检查，再整理 Release Tag、简历话术和五分钟演示材料。是否建设公网可写 HTTPS 后端仍需单独选择托管环境并审批成本与安全治理。生产 IAM、限流/防滥用、备份、高可用、自动部署和正式 Release Tag 仍待完成。生产发布门禁为 `CLOSED`，关闭前不启动其他项目。
+下一阶段仍只实施 OperCerta。单根 Agent 纠偏、main Compose、静态专题发布与 `v0.1.0-showcase.1` Showcase 预发布均已通过；下一步只做用户手动业务演示、源码讲解与口述掌握检查，并录制 3–5 分钟演示、定稿简历话术。是否建设公网可写 HTTPS 后端仍需单独选择托管环境并审批成本与安全治理。生产 IAM、限流/防滥用、备份、高可用、自动部署和产品级正式 Release 仍待完成。产品生产发布门禁为 `CLOSED`，关闭前不把静态展示误报为生产系统。
 
 三业务收口规格与八项 TDD 主计划见 [设计](docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md)和[计划](docs/superpowers/plans/2026-07-20-opercerta-three-business-release.md)。历史库存切片设计仍作为可靠性内核演进记录保留。
 

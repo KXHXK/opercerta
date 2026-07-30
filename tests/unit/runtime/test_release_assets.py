@@ -188,6 +188,8 @@ def test_current_demo_and_learning_docs_match_the_single_root_agent_release() ->
         assert "新 Agent 核心的 Real Kimi Tool Calling 代表 query 为 failed" not in content
 
     assert "667 条后端测试" in interview
+    assert "v0.1.0-showcase.1" in readme
+    assert "v0.1.0-showcase.1" in interview
     assert ".worktrees/agent-core-implementation" not in manual
     assert "cd frontend" not in manual
     assert "cd web" in manual
