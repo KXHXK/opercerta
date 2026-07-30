@@ -1,5 +1,17 @@
 # OperCerta 公开专题部署证据
 
+## 2026-07-30 安全头发布候选 Preview
+
+- 候选分支：`chore/release-readiness-20260730`；候选源码提交：`4cd1e8563a2a8967775abc360ff2cd391b1012d5`。
+- 发布前门禁：发布/静态/索引定向契约 `18 passed`，文档索引 `115/115`，仓库安全扫描通过；前端 `19` 个测试文件、`60` 条用例通过，TypeScript/Vite production build 成功。
+- 新电脑首次执行 Windows `netlify deploy --build` 及 `--dir` 失败：Windows Netlify CLI 调用了 Windows npm，但 `web/node_modules` 由 WSL 安装，导致 `tsc` 不可用。失败 deploy 为 `6a6b1742b0a84f106a2d6c02`、`6a6b17b006114307809dc315`；它们未替换 production。
+- 修正方式不是复制 OAuth token 或重新生成未验证产物，而是复用已在 WSL 通过测试和构建的 `web/dist`，执行 `netlify deploy --dir web/dist --no-build`。
+- 成功 Preview deploy：`6a6b17cf496c38056f737264`；不可变地址：<https://6a6b17cf496c38056f737264--opercerta-kxh.netlify.app>。
+- 真实 HTTP 核验：`GET /`、`GET /console`、`GET /api/v1/auth/demo-token` 均为 `200 text/html`。第三项证明该站仍是 SPA 静态回退，没有伪装公开业务 API。
+- Preview 已实际返回 `Content-Security-Policy`、`Cross-Origin-Opener-Policy`、`Permissions-Policy`、`Referrer-Policy`、`X-Content-Type-Options` 和 `X-Frame-Options`；Preview 自带 `X-Robots-Tag: noindex`，符合预览环境预期。
+- 线上 JS 为 `index-Ckvsq13U.js`，大小 `254,845 bytes`，SHA-256 为 `dcd31a4d6e1c53f06c1a16cc6fb65f7f5d347926a078dc56fe08606c8052abb1`，与本地已验证产物完全一致。
+- 当前仅完成 Preview 验证，尚未替换 production。FastAPI、LangGraph、MCP、PostgreSQL、Redis 与模型密钥仍未部署到公网；OperCerta 原产品 release gate 保持 `CLOSED`。
+
 ## 2026-07-27 单根 Agent 版本生产替换
 
 - 对应源码合并提交：`609f8f7dcbfbadb9d12f4371cf49815d48884a4e`；PR：[KXHXK/opercerta#8](https://github.com/KXHXK/opercerta/pull/8)。

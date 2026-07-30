@@ -97,7 +97,7 @@ Typora 显示：首次运行 `powershell -ExecutionPolicy Bypass -File scripts/i
 | 69 | `observability-security-regression.md` | `docs/release-evidence/observability-security-regression.md` | 保存 request_id、结构化安全日志、低基数指标、敏感信息防泄漏、HTTP/SSE 和全量回归结果。 | 本地门禁通过；生产发布门禁仍关闭 | 2026-07-18 |
 | 70 | `performance-cache-matrix.md` | `docs/release-evidence/performance-cache-matrix.md` | 记录缓存开关与工具模式组成的 12 格、60 次 query 的实际 MCP 调用、cache hit 和本机延迟。 | 本机小样本已测；明确不作生产性能承诺 | 2026-07-20 |
 | 71 | `portfolio-netlify-static-mirror.md` | `docs/release-evidence/portfolio-netlify-static-mirror.md` | 保存原 Sites 403 对照、静态导出测试、Netlify preview/production deploy id、HTTPS 和浏览器核验。 | 公开作品集静态镜像已验证；业务后端仍未公开 | 2026-07-19 |
-| 72 | `public-portfolio-showcase.md` | `docs/release-evidence/public-portfolio-showcase.md` | 保存 OperCerta 静态专题、库存审批示例、唯一工单、审计序列、截图、资源指纹和线上 URL 验证。 | 静态 URL 已验证；原业务发布门禁仍关闭 | 2026-07-18 |
+| 72 | `public-portfolio-showcase.md` | `docs/release-evidence/public-portfolio-showcase.md` | 保存 OperCerta 静态专题、库存审批示例、唯一工单、审计序列、截图、资源指纹和线上 URL 验证。 | 安全头 Preview 已验证；production 晋级待主线门禁，原业务发布门禁仍关闭 | 2026-07-30 |
 | 73 | `real-model-representative-validation.md` | `docs/release-evidence/real-model-representative-validation.md` | 保存 Moonshot AI kimi-k2.6 在三业务中的代表性模型调用、兼容调试、端到端耗时和敏感信息边界。 | 本地 6 次代表操作通过；公网和生产仍关闭 | 2026-07-20 |
 | 74 | `reliability-kernel.md` | `docs/release-evidence/reliability-kernel.md` | 汇总非法输入、状态恢复、审批竞态、幂等工单和数据库断言等 Task 1–6 可靠性内核门禁。 | 本地可靠性内核已验证；发布门禁仍关闭 | 2026-07-16 |
 | 75 | `replenishment-contract-evaluation.md` | `docs/release-evidence/replenishment-contract-evaluation.md` | 保存 30 条冻结库存补货合成契约的逐例结果、全量回归和明确的非模型准确率、非生产效果边界。 | 30 条本地契约全部通过；不代表独立评测 | 2026-07-18 |
@@ -139,7 +139,7 @@ Typora 显示：首次运行 `powershell -ExecutionPolicy Bypass -File scripts/i
 | 111 | `reporter-v1.md` | `src/opercerta/prompts/reporter-v1.md` | Reporter 角色版本化 Prompt，将已验证事实、工具结果和终态组织为面向业务用户的可解释报告。 | v1 已实施；不得把未验证内容写成事实 | 2026-07-21 |
 | 112 | `tool-loop-v1.md` | `src/opercerta/prompts/tool-loop-v1.md` | Tool Loop 主 Prompt，规定模型在 Observation 后选择继续调用只读工具、请求审批或结束，并约束 JSON 工具协议。 | v1 已用于单根 Agent Loop；真实 Kimi 兼容边界另有事件记录 | 2026-07-26 |
 | 113 | `verifier-v1.md` | `src/opercerta/prompts/verifier-v1.md` | Verifier 角色版本化 Prompt，用于批准后重新核对事实、识别漂移并决定执行、重审批或安全终止。 | v1 已实施并有事实漂移回归测试 | 2026-07-21 |
-| 114 | `2026-07-30.md` | `docs/development-log/daily/2026-07-30.md` | 记录新电脑环境最终收口、WSL 登录 shell Node PATH 的 TDD 修复、冻结依赖国内镜像恢复、DrvFS 权限边界、PR/main 门禁，以及发布材料防漂移与静态安全头修订。 | PR #15/main 五项 CI 与本机四服务健康通过；求职材料口径已校正，公网安全头待部署验证 | 2026-07-30 |
+| 114 | `2026-07-30.md` | `docs/development-log/daily/2026-07-30.md` | 记录新电脑环境最终收口、WSL 登录 shell Node PATH 的 TDD 修复、冻结依赖国内镜像恢复、DrvFS 权限边界、PR/main 门禁，以及发布材料防漂移与静态安全头修订。 | PR #15/main 五项 CI 与本机四服务健康通过；求职材料口径已校正，Netlify Preview 安全头及产物一致性已验证，production 晋级待主线门禁 | 2026-07-30 |
 | 115 | `CONTRIBUTING.md` | `CONTRIBUTING.md` | 规定 OperCerta 的分支、最小变更、测试、PR 说明、安全和隐私贡献流程，确保外部协作不引入凭据、客户数据或未经评审的架构扩张。 | 已由 main 的 PR #16 引入；在环境分支同步登记以保证合并态索引一致 | 2026-07-30 |
 
 ## 历史 Worktree：agent-core-architecture（82 条记录）
