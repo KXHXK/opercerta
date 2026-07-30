@@ -27,7 +27,7 @@ Typora 显示：首次运行 `powershell -ExecutionPolicy Bypass -File scripts/i
 | 序号 | 文件名 | 路径 | 用途（详细） | 状态 | 日期 |
 | ---: | --- | --- | --- | --- | --- |
 | 1 | `README.md` | `README.md` | 项目总入口，说明三业务场景、核心技术栈、运行方式、演示边界、学习入口和发布门禁，供开发者、审阅者与面试官快速了解 OperCerta。 | 已同步三业务、本地发布候选、学习入口与剩余门禁 | 2026-07-14 |
-| 2 | `IMPLEMENTATION_HANDOFF.md` | `IMPLEMENTATION_HANDOFF.md` | 跨对话和上下文压缩后的实施交接文件，记录当前分支、已验证事实、未完成事项、下一步动作及禁止越过的发布边界。 | 已同步真实模型验证与公网发布下一边界 | 2026-07-14 |
+| 2 | `IMPLEMENTATION_HANDOFF.md` | `IMPLEMENTATION_HANDOFF.md` | 跨对话和上下文压缩后的实施交接文件，记录当前分支、已验证事实、未完成事项、下一步动作及禁止越过的发布边界。 | 已同步 PR #15、main Compose、换机收口与发布准备分支 | 2026-07-14 |
 | 3 | `DOCUMENT_INDEX.md` | `DOCUMENT_INDEX.md` | OperCerta 全部项目文档的唯一总登记表，用于按文件名、路径、用途、状态和日期统一检索、复查与交接。 | 当前根工作树 115 份文档已完整登记；另保留 6 个旧 worktree 的 456 条历史记录 | 2026-07-15 |
 | 4 | `2026-07-14-agent-project-naming-design.md` | `docs/specs/2026-07-14-agent-project-naming-design.md` | 定义 OperCerta、ForenTrail、SiteVerum、Federune 四个项目的命名原则、语义边界与品牌一致性，防止项目职责和名称漂移。 | 已冻结为命名基线 | 2026-07-14 |
 | 5 | `ai-agent-portfolio-overall-design.md` | `docs/specs/ai-agent-portfolio-overall-design.md` | 规定四个 AI Agent 项目的整体定位、差异化业务范围、技术能力组合、实施顺序和共同约束，是项目组合的最高层设计依据。 | 已冻结为总体设计基线；文件名已统一为英文路径 | 2026-07-14 |
@@ -139,7 +139,7 @@ Typora 显示：首次运行 `powershell -ExecutionPolicy Bypass -File scripts/i
 | 111 | `reporter-v1.md` | `src/opercerta/prompts/reporter-v1.md` | Reporter 角色版本化 Prompt，将已验证事实、工具结果和终态组织为面向业务用户的可解释报告。 | v1 已实施；不得把未验证内容写成事实 | 2026-07-21 |
 | 112 | `tool-loop-v1.md` | `src/opercerta/prompts/tool-loop-v1.md` | Tool Loop 主 Prompt，规定模型在 Observation 后选择继续调用只读工具、请求审批或结束，并约束 JSON 工具协议。 | v1 已用于单根 Agent Loop；真实 Kimi 兼容边界另有事件记录 | 2026-07-26 |
 | 113 | `verifier-v1.md` | `src/opercerta/prompts/verifier-v1.md` | Verifier 角色版本化 Prompt，用于批准后重新核对事实、识别漂移并决定执行、重审批或安全终止。 | v1 已实施并有事实漂移回归测试 | 2026-07-21 |
-| 114 | `2026-07-30.md` | `docs/development-log/daily/2026-07-30.md` | 记录新电脑环境最终收口、WSL 登录 shell Node PATH 的 TDD 修复、冻结依赖国内镜像恢复、DrvFS 权限边界、已有业务卷的幂等语义，以及独立 Compose project 中三业务与重启恢复门禁。 | 环境与隔离候选运行门禁已通过；待提交、PR #15 新鲜 CI、main Compose 和后续发布治理 | 2026-07-30 |
+| 114 | `2026-07-30.md` | `docs/development-log/daily/2026-07-30.md` | 记录新电脑环境最终收口、WSL 登录 shell Node PATH 的 TDD 修复、冻结依赖国内镜像恢复、DrvFS 权限边界、已有业务卷幂等语义、PR 合并态索引故障，以及 main Compose 重启恢复门禁。 | PR #15 已合并，main 五项 CI 与本机四服务健康通过；部署和生产治理待继续 | 2026-07-30 |
 | 115 | `CONTRIBUTING.md` | `CONTRIBUTING.md` | 规定 OperCerta 的分支、最小变更、测试、PR 说明、安全和隐私贡献流程，确保外部协作不引入凭据、客户数据或未经评审的架构扩张。 | 已由 main 的 PR #16 引入；在环境分支同步登记以保证合并态索引一致 | 2026-07-30 |
 
 ## 历史 Worktree：agent-core-architecture（82 条记录）
