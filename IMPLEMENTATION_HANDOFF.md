@@ -2,6 +2,7 @@
 
 ## 当前检查点
 
+- 2026-07-31：最终证据修订经 [PR #18](https://github.com/KXHXK/opercerta/pull/18) 合入 main `298fc5978a56961d36e73888f4ae73017e302715`；[main run 30541088053](https://github.com/KXHXK/opercerta/actions/runs/30541088053) 的 repository-safety、python-quality、frontend、backend-tests、compose-smoke 五项全绿，继续证明后端 `667 passed`、三业务契约、冻结 Agent `9/9`、前端 19 文件/60 条和真实 Compose 重启恢复。[Showcase 预发布 `v0.1.0-showcase.1`](https://github.com/KXHXK/opercerta/releases/tag/v0.1.0-showcase.1) 精确指向该提交；Netlify 静态 production 仍为已核验 deploy `6a6b17cf496c38056f737264`，上一 production `6a6631d24958714a43ddc508` 可回滚。自动化工程与求职静态展示已收口，下一步只做用户源码掌握、完整业务实演、3–5 分钟录屏和简历定稿；公网可写后端及产品治理仍未完成，产品 release gate 保持 `CLOSED`，不启动 ForenTrail。
 - 2026-07-30：发布准备分支经 [PR #17](https://github.com/KXHXK/opercerta/pull/17) 全绿后，以普通 merge commit `b6aa5fa13c7645bd3351092fc23b6c3e132a284d` 合入 main；[main run 30539160493](https://github.com/KXHXK/opercerta/actions/runs/30539160493) 五项全绿，包含完整后端 `667 passed`、三业务契约 `1 passed`、冻结 Agent `9/9`、前端 19 文件/60 条和真实 Compose 重启恢复。已验证 Netlify Preview `6a6b17cf496c38056f737264` 经官方可回滚 API 晋级 production，公网三个静态路由、六项安全头和 JS SHA-256 均复验通过；上一 production `6a6631d24958714a43ddc508` 为回滚点。下一步只做固定评测、源码掌握、演示和简历材料；公网可写后端及生产治理仍未完成，产品 release gate 保持 `CLOSED`，不启动 ForenTrail。
 
 - 2026-07-30：换机环境分支经 [PR #15](https://github.com/KXHXK/opercerta/pull/15) 合并为 main 提交 `42ba974`；对应 [main run 30525556998](https://github.com/KXHXK/opercerta/actions/runs/30525556998) 的 repository-safety、python-quality、frontend、backend-tests 和实际 compose-smoke 全部成功。compose-smoke 已执行镜像构建、三业务 Agent 轨迹与数据库副作用、API/MCP 重启、恢复验证和隔离卷清理。本地 main 已 fast-forward 到同一提交；WSL 的 Node `24.18.0`、npm `11.16.0`、uv `0.11.28` 可用，PostgreSQL/Redis/MCP/API 四服务均 healthy，readiness 为 database/checkpoint/MCP 全部 ready。当前后续分支为 `chore/release-readiness-20260730`，用于部署、评测、源码掌握和简历材料收口；公网可写后端和生产 IAM/限流/备份仍未实现，production release gate 保持 `CLOSED`，不启动 ForenTrail。
@@ -69,7 +70,7 @@
 ## 新对话必须先做
 
 1. 先阅读 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md` 和最近每日日志，再阅读相关设计、计划、交接和 Git 状态。
-2. 只实施 OperCerta；PR #17、最新 main Compose 与静态 production 已全绿。下一步从干净 main 分支完成固定评测口径、源码掌握、演示和简历材料；产品生产门禁关闭前不启动其他项目。
+2. 只实施 OperCerta；PR #18、最新 main Compose、静态 production 与 `v0.1.0-showcase.1` Showcase 预发布已全绿。下一步完成源码掌握、完整实演、3–5 分钟录屏和简历材料；产品生产门禁关闭前不把静态展示误报为生产系统。
 3. 运行集成测试前，以不回显方式从已忽略 `.env.local` 加载 `OPERCERTA_DATABASE_URL`；不得提交该文件或任何凭据。
 4. 每个效果数字都保留基线、测试数据、测量脚本和结果证据；指标未测出前使用目标值或空值，不写成已实现结果。
 5. 使用公开或合成数据，从零编写全部代码和文档，不导入任何原单位源码、数据、截图、模型、品牌或内部规则。
@@ -83,4 +84,4 @@
 
 ## 可复制到新对话的启动语
 
-> 工作目录为本 OperCerta 仓库根目录。请先读取 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md`、最近每日日志、`README.md`、`IMPLEMENTATION_HANDOFF.md`、`docs/specs/` 下的四份设计文件及当前相关规格、计划和证据；PR #17 已合并为 main `b6aa5fa`，main run `30539160493` 五项全绿并包含 667 条后端测试、三业务数据库副作用和重启恢复；Netlify 静态 production deploy `6a6b17cf496c38056f737264` 已通过安全头和资源哈希核验。下一步只继续固定评测、源码掌握、演示和简历材料。公开根路径只读、`/engineering` 仅 localhost、`/console` 仅本地真实演示；不复用旧公司材料，不虚构指标，不启动其他项目。
+> 工作目录为本 OperCerta 仓库根目录。请先读取 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md`、最近每日日志、`README.md`、`IMPLEMENTATION_HANDOFF.md`、`docs/specs/` 下的四份设计文件及当前相关规格、计划和证据；PR #18 已合并为 main `298fc59`，main run `30541088053` 五项全绿并包含 667 条后端测试、三业务数据库副作用和重启恢复；Netlify 静态 production deploy `6a6b17cf496c38056f737264` 已通过安全头和资源哈希核验，Showcase 预发布 `v0.1.0-showcase.1` 精确指向该已验证提交。下一步只继续源码掌握、完整实演、3–5 分钟录屏和简历材料。公开根路径只读、`/engineering` 仅 localhost、`/console` 仅本地真实演示；不复用旧公司材料，不虚构指标，不把静态展示误报为生产系统。

@@ -1,5 +1,13 @@
 # OperCerta 当前状态
 
+## 2026-07-31：Showcase Pre-release 已发布，自动化工程收口
+
+[PR #18](https://github.com/KXHXK/opercerta/pull/18) 已合入 main `298fc5978a56961d36e73888f4ae73017e302715`；[main run 30541088053](https://github.com/KXHXK/opercerta/actions/runs/30541088053) 的 repository-safety、python-quality、frontend、backend-tests、compose-smoke 五项全部成功。证据仍为完整后端 `667 passed`、三业务固定契约、冻结 Agent 安全/恢复评测 `9/9`、前端 19 文件/60 条，以及隔离 Compose 的三业务数据库副作用、API/MCP 重启恢复和无条件清理。
+
+[Showcase 预发布 `v0.1.0-showcase.1`](https://github.com/KXHXK/opercerta/releases/tag/v0.1.0-showcase.1) 已创建并精确指向 `298fc59`。Netlify 公开静态专题保持 production deploy `6a6b17cf496c38056f737264`，六项安全头、资源 SHA-256 和三个静态路由已核验；上一 production `6a6631d24958714a43ddc508` 保留为回滚点。
+
+状态必须分开表达：求职代码仓库、静态展示、固定评测和可重复本地三业务演示的自动化工程门禁已经通过；个人源码掌握、完整手动实演、3–5 分钟录屏和简历定稿仍需用户亲自完成。公网可写 FastAPI、生产 IAM、限流、防滥用、备份、高可用、自动部署和 SLA 仍未实现，产品 production release gate 保持 `CLOSED`。
+
 ## 2026-07-30：发布准备已合并，静态 Production 已晋级
 
 [PR #17](https://github.com/KXHXK/opercerta/pull/17) 全部必需检查通过，并以普通 merge commit `b6aa5fa13c7645bd3351092fc23b6c3e132a284d` 合入 main。[main run 30539160493](https://github.com/KXHXK/opercerta/actions/runs/30539160493) 五项全绿：完整后端 `667 passed`、三业务契约 `1 passed`、冻结 Agent 评测 `9/9`、前端 19 文件/60 条，以及实际 Compose 构建、三业务数据库副作用、API/MCP 重启恢复与清理。
