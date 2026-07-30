@@ -1,0 +1,92 @@
+@import "github.css";
+
+/*
+ * Wide-document theme for OperCerta's six-column Markdown indexes.
+ * Install with scripts/install_typora_index_theme.ps1, restart Typora,
+ * and select Theme > OperCerta Index.
+ */
+
+#write {
+  box-sizing: border-box;
+  max-width: 96vw;
+  padding-left: 2vw;
+  padding-right: 2vw;
+}
+
+#typora-source .CodeMirror-lines {
+  max-width: 96vw;
+}
+
+#write table {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+#write table th,
+#write table td {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 5px 7px;
+  vertical-align: top;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+#write table code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+#write table th:nth-child(1),
+#write table td:nth-child(1) {
+  width: 4%;
+  text-align: center;
+}
+
+#write table th:nth-child(2),
+#write table td:nth-child(2) {
+  width: 14%;
+}
+
+#write table th:nth-child(3),
+#write table td:nth-child(3) {
+  width: 19%;
+}
+
+#write table th:nth-child(4),
+#write table td:nth-child(4) {
+  width: 29%;
+}
+
+#write table th:nth-child(5),
+#write table td:nth-child(5) {
+  width: 26%;
+}
+
+#write table th:nth-child(6),
+#write table td:nth-child(6) {
+  width: 8%;
+  white-space: nowrap;
+}
+
+@media (max-width: 1200px) {
+  #write {
+    max-width: 99vw;
+    padding-left: 0.5vw;
+    padding-right: 0.5vw;
+  }
+
+  #write table {
+    font-size: 11px;
+  }
+
+  #write table th,
+  #write table td {
+    padding: 4px;
+  }
+}

@@ -1,5 +1,31 @@
 # OperCerta 当前状态
 
+## 2026-07-30：换机环境已完成隔离业务门禁，等待 PR #15 新鲜 CI
+
+当前分支 `chore/new-machine-env-20260729` 与远端同名分支在本轮修改前为 `ahead 0 / behind 0`，Draft PR #15 的 repository-safety、python-quality、backend-tests、frontend 已有绿色基线。新电脑固定工具链为 WSL2 Ubuntu 26.04、uv `0.11.28`、项目 Python `3.12.13`、Node `24.18.0`、npm `11.16.0`、Docker `29.1.3` 和 Compose `2.40.3`。
+
+换机收口发现 Node PATH 只持久化到 `.bashrc`，导致非交互 `bash -lc` 找不到 Node。已按 TDD 把引导契约修复为同时维护 `.bashrc` 与 `.profile`，真实登录 shell 和定向 7 条测试均通过。新机空虚拟环境使用从冻结锁导出的带 hash 临时清单和清华 PyPI 镜像恢复 109 个依赖，未改写 `uv.lock`。DrvFS chmod 不持久化继续作为已知约束管理，不在本轮扩大系统配置变更。
+
+已有开发卷因三条 signal 已完成而返回预期幂等 `409`，不能复用为首次调查测试。改用独立 Compose project 和新鲜临时卷后，三业务 Agent、RAG/Trace、审批、Verifier、工单数据库断言、API/MCP 重启及 recovery-only 全部通过，退出码 0；原开发卷未删除并已恢复四服务 healthy。当前 Ruff、216 文件格式、Mypy 85 个源文件、仓库安全与文档索引门禁均通过。下一步提交本轮修复并等待 PR #15 新鲜 CI；PR 合并后再执行 main Compose、部署与掌握验收。空缓存 Docker 冷构建和公网生产治理仍未关闭，production release gate 保持 `CLOSED`，不启动 ForenTrail。
+
+首次新鲜 CI 中 repository-safety、python-quality、frontend 通过，backend-tests 为 `2 failed, 663 passed`；失败仅来自最新 main 新增 `CONTRIBUTING.md` 后合并态文档数从 114 变成 115。本地 Git HTTPS 暂时无法 fetch，但 GitHub compare API 已证明 main 的净文件变化仅为该新增文件。当前分支已采用 main 原文并补齐第 115 条索引，正在进行本地复验和二次 CI；不能把首次失败误报为业务或 Agent 测试失败。
+
+## 2026-07-29：换机本地门禁已通过，冷缓存构建与远程 PR 门禁待关闭
+
+当前分支 `chore/new-machine-env-20260729` 已通过普通 fast-forward push 把本地门禁提交 `08e113b` 同步到远端同名分支。此前的连接重置来自受限命令环境；获得窄范围 `git push` 网络授权后推送成功。GitHub App 因安装权限不足无法创建 Draft PR，内置浏览器连接 GitHub 超时，本机 `gh` 已安装但尚未登录，因此 PR 与远程 Actions 门禁仍待完成。换机后的固定工具链可用：WSL2 Ubuntu 26.04、Docker/Compose、uv `0.11.28`、项目 Python `3.12.13`、Node `24.18.0` 与 npm `11.16.0`。后端在随机短生命周期 pgvector 容器上完成 `664 passed`，固定业务评估 `1 passed`，Agent 评估 `9/9 passed`；前端完成 `19` 个测试文件、`60` 条用例和 production build。PyJWT 测试弱密钥警告已消除并以 warning-as-error 定向复验。
+
+换机复核发现并修复两类真实跨平台问题：5 个 Linux shell 脚本仍是 CRLF，导致 Bash 无法解析 `pipefail`；三份 SOP 的原始字节与清单哈希不一致，导致知识导入拒绝。所有相关文件已归一化为 LF，SOP 现与冻结 manifest 哈希一致。当前源码候选镜像已通过三业务 Agent Compose、知识导入、API/MCP 重启恢复以及 database/checkpoint/MCP readiness。
+
+本次没有宣称空缓存冷构建通过：Docker 内冻结依赖首次下载历史约需 32 分钟，本次为加速本地业务门禁，在确认现有镜像内 `pyproject.toml`、`uv.lock` 与仓库 SHA-256 完全一致后，仅覆盖当前源码和运行资产生成候选镜像。下一步完成最终静态/安全/索引检查、提交推送和 Draft PR 快速 CI；随后再决定是否执行独立冷构建性能优化。生产门禁继续 `CLOSED`，不启动 ForenTrail。
+
+## 2026-07-29：新电脑 WSL2 开发环境已恢复，等待 Git 同步与完整门禁
+
+新电脑已完成 WSL `2.7.11.0`、Ubuntu `26.04 LTS`、Docker `29.1.3`、Compose `2.40.3`、uv `0.11.28`、项目 Python `3.12.13`、Node.js `24.18.0` 和 npm `11.16.0` 的安装与版本核对。PostgreSQL/pgvector、Redis、MCP 和 API 四个 Compose 服务均为 `healthy`；API readiness 已返回 database/checkpoint/MCP 全部 ready。FastEmbed 首次模型下载通过本机 ignored 的 Hugging Face 镜像端点完成，正式 Compose 未硬编码第三方端点。
+
+纯 WSL 前端链路已经在 `/mnt/d/CODEX/agent-portfolio/opercerta/web` 通过：`npm ci` 安装 121 个包，19 个测试文件共 60 条测试通过，Vite production build 成功。DrvFS 当前未启用 `metadata`，`chmod` 不持久化 mode bits，但它没有阻断现有测试与构建；后续必须只用 WSL npm 管理当前 `web/node_modules`，不能与 Windows npm 交替安装，也不能使用 `sudo npm ci`。
+
+换机环境脚本已增加固定版本、国内下载镜像、Node 官方 SHA256 校验、失败诊断和跨运行时依赖边界。`DOCUMENT_INDEX.md` 已修复为根工作树 113/113 份 Markdown，并把 6 个旧 worktree 各自保留为明确的历史表。环境与索引成果已在 `chore/new-machine-env-20260729` 形成保护提交 `e02439c`。首次 GitHub fetch/push 因 WSL 网络 TLS/443 失败而未完成；同时确认 WSL 显示的数百个修改全部是 Windows/WSL `core.autocrlf` 不一致造成的行尾假差异，434 个 tracked 文件中真实内容差异为 0、缺失为 0。仓库级 `.gitattributes` 正在固定文本 LF 和 binary 边界。下一步提交行尾策略，待网络恢复后 fetch/rebase/push，再执行完整后端、前端、Compose 重启恢复和远程 CI 门禁。生产门禁继续 `CLOSED`，不启动 ForenTrail。
+
 ## 2026-07-27：PR #8、main Compose 与新版静态专题已发布
 
 单根 Agent Loop 与 case 工作台在 [PR #8](https://github.com/KXHXK/opercerta/pull/8) 合并为 `609f8f7dcbfbadb9d12f4371cf49815d48884a4e`。对应 [main run 30203438564](https://github.com/KXHXK/opercerta/actions/runs/30203438564) 的 `repository-safety`、`python-quality`、`backend-tests`、`frontend`、`compose-smoke` 全部成功；Compose 实际完成容器构建启动、Agent 轨迹与数据库副作用、API/MCP 重启、重启恢复和清理。

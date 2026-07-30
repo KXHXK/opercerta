@@ -1,16 +1,36 @@
 # OperCerta 文档总索引
 
-本索引分别登记 OperCerta 根工作树和 6 个 .worktrees/ 工作树中的项目 Markdown 文档，共 546 份。每个工作树使用独立表格和独立序号；路径均相对于仓库根目录；日期表示文档首次建立日期。Git 元数据、依赖目录、虚拟环境和工具缓存不属于项目文档登记范围。
+本索引完整登记 OperCerta 当前根工作树中的 115 份 Markdown 文档，并保留旧电脑 6 个 `.worktrees/` 的 456 条历史登记。当前根工作树与每个历史 worktree 使用独立六列表格和独立序号；路径均相对于仓库根目录；日期表示文档首次建立日期。历史 worktree 表用于追溯分支资料，不表示对应物理目录仍存在。Git 元数据、依赖目录、虚拟环境和工具缓存不属于项目文档登记范围。
 
-## 根工作树（90 份）
+Typora 显示：首次运行 `powershell -ExecutionPolicy Bypass -File scripts/install_typora_index_theme.ps1`，重启 Typora 后选择 `主题 → OperCerta Index`。该主题让正文使用 96% 窗口宽度，并统一设置下列全部六列表格的列宽、自动换行和字号。
+
+## 项目核心学习导航
+
+先按 A1–A9 完成一轮“阅读 → 找到代码 → 手动验证 → 自己复述”。后面的 115 份当前文档与 456 条历史 worktree 登记是排查问题和深入学习时使用的资料库，不需要从头到尾顺序阅读。
+
+| 阶段 | 核心主题 | 优先阅读 | 代码与配置入口 | 必做实践 | 掌握标准 |
+| ---: | --- | --- | --- | --- | --- |
+| A1 | 项目地图与当前边界 | [README](README.md)、[当前状态](docs/development-log/current-state.md)、[实施交接](IMPLEMENTATION_HANDOFF.md) | [Compose](compose.yaml)、[API 运行入口](src/opercerta/runtime/api.py)、[MCP 运行入口](src/opercerta/runtime/mcp.py) | 不看稿，用 60 秒说清楚三个业务场景、系统解决的问题、当前已完成能力和仍关闭的生产门禁。 | 能区分“本地验证通过、静态公网展示、真实生产上线”三种状态，不夸大成果。 |
+| A2 | 业务动机与三业务闭环 | [OperCerta 详细设计](docs/specs/2026-07-14-opercerta-design.md)、[三业务发布设计](docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md) | [场景注册表](src/opercerta/application/scenario_registry.py)、[库存图](src/opercerta/workflow/replenishment_graph.py)、[设备图](src/opercerta/workflow/equipment_maintenance_graph.py)、[任务恢复图](src/opercerta/workflow/task_recovery_graph.py) | 分别画出库存短缺、设备异常、任务阻塞的“异常信号 → 调查 → 审批 → 写入 → 验证”流程。 | 能解释为什么传统工单需要 Agent 辅助，以及哪些规则必须由确定性代码控制。 |
+| A3 | Agent 总体架构与循环 | [Agent 核心架构设计](docs/superpowers/specs/2026-07-21-opercerta-agent-core-architecture-design.md)、[单根 Agent Loop 设计](docs/superpowers/specs/2026-07-26-single-root-agent-loop-and-case-workspace-design.md) | [主 Agent 图](src/opercerta/workflow/agent_controlled_action_graph.py)、[Harness](src/opercerta/agent/harness.py)、[Prompt 注册表](src/opercerta/agent/prompt_registry.py) | 对照一次 Agent Trace，逐步标出感知、语义理解、规划、工具、记忆、执行反馈和回环位置。 | 能解释 LangGraph 为什么是状态编排内核，而不是一个普通业务节点；能说明何时循环、何时中断等待审批。 |
+| A4 | LLM、Prompt 与 LangChain | [核心技术手册](docs/learning/opercerta-core-technical-guide.md)、[真实模型证据](docs/release-evidence/real-model-representative-validation.md) | [LangChain 模型适配器](src/opercerta/infrastructure/langchain_model_gateway.py)、[模型端口](src/opercerta/infrastructure/model_gateway.py)、[Tool Loop Prompt](src/opercerta/prompts/tool-loop-v1.md) | 对比 Mock 与 Kimi 模式的输入、结构化输出、超时和失败收口；从 Trace 找出一次模型决策。 | 能说清 LLM 负责语义与规划、不直接越权写库；Prompt、Harness、Provider Adapter 各自解决什么问题。 |
+| A5 | MCP 工具调用与 RAG | [Agent RAG 证据](docs/release-evidence/agent-pgvector-rag.md)、[手动实验手册](docs/learning/opercerta-manual-experiment-guide.md) | [MCP 网关](src/opercerta/infrastructure/mcp_gateway.py)、[工具执行器](src/opercerta/agent/tool_executor.py)、[Embedding](src/opercerta/infrastructure/embedding_gateway.py)、[知识仓储](src/opercerta/infrastructure/db/knowledge_repository.py) | 手动观察一次只读事实工具和一次 `knowledge.search_sop`：记录请求、工具结果、引用及 Agent 后续决策。 | 能区分 API、MCP、MCP Tool、SQL 和 RAG；能解释 SOP 检索为什么只能辅助解释，不能覆盖审批与数量规则。 |
+| A6 | 审批、安全边界与可靠性内核 | [审批原子性](docs/release-evidence/approval-atomicity.md)、[幂等工单](docs/release-evidence/work-order-idempotency.md)、[重启恢复](docs/release-evidence/langgraph-restart-recovery.md)、[批准后 Verifier](docs/release-evidence/agent-verifier-reapproval.md) | [审批仓储](src/opercerta/infrastructure/db/approval_repository.py)、[工单仓储](src/opercerta/infrastructure/db/work_order_repository.py)、[Checkpoint](src/opercerta/infrastructure/checkpoints.py)、[工具策略](src/opercerta/agent/tool_policy.py) | 复现一次重复审批或重启恢复，随后核对数据库事实、审计序列和唯一工单。 | 能用数据库约束、事务、状态机和幂等键解释为什么不会因模型重试产生重复副作用。 |
+| A7 | React 前端、FastAPI 与身份权限 | [控制台证据](docs/release-evidence/single-page-console.md)、[JWT/RBAC 证据](docs/release-evidence/demo-jwt-rbac.md) | [React 控制台](web/src/App.tsx)、[API 应用](src/opercerta/api/app.py)、[认证授权](src/opercerta/api/auth.py)、[请求模型](src/opercerta/api/models.py) | 从浏览器完成一个业务闭环，同时在 Network 与后端 Trace 中对应每个请求、角色切换和状态更新。 | 能解释 React 只负责交互状态，FastAPI 负责协议与鉴权，Agent 内核负责决策编排，PostgreSQL 保存权威事实。 |
+| A8 | PostgreSQL、Redis、Docker 与可观测性 | [三业务发布证据](docs/release-evidence/three-business-release.md)、[Docker 证据](docs/release-evidence/docker-linux-runtime.md)、[可观测性证据](docs/release-evidence/observability-security-regression.md) | [Compose](compose.yaml)、[Dockerfile](Dockerfile)、[Redis 缓存](src/opercerta/infrastructure/cache.py)、[数据库迁移](migrations)、[Tracing](src/opercerta/observability/tracing.py) | 执行健康检查、查看容器状态、重启 API/MCP，并确认 checkpoint、业务事实和工单没有丢失或重复。 | 能解释容器与 Compose 的区别、Redis 为什么不是权威存储、PostgreSQL/pgvector 的双重职责及日志如何安全关联。 |
+| A9 | 故障复盘与面试输出 | [面试讲解](docs/learning/opercerta-interview-guide.md)、[工程案例集](docs/development-log/interview-casebook.md)、[最新开发日志](docs/development-log/daily/2026-07-30.md) | 选择前述任一真实故障对应的代码、日志和修复提交。 | 分别完成 30 秒、3 分钟和 10 分钟讲解；独立复述一个“现象 → 根因 → 修复 → 验证 → 取舍”案例。 | 不看文档也能讲清业务价值、核心链路、技术取舍、可靠性证据和未完成边界，并能接受追问。 |
+
+## 根工作树（115 份）
+
+显示说明：本表及后续各 worktree 表均保持“序号、文件名、路径、用途、状态、日期”六列完整字段。
 
 | 序号 | 文件名 | 路径 | 用途（详细） | 状态 | 日期 |
 | ---: | --- | --- | --- | --- | --- |
 | 1 | `README.md` | `README.md` | 项目总入口，说明三业务场景、核心技术栈、运行方式、演示边界、学习入口和发布门禁，供开发者、审阅者与面试官快速了解 OperCerta。 | 已同步三业务、本地发布候选、学习入口与剩余门禁 | 2026-07-14 |
 | 2 | `IMPLEMENTATION_HANDOFF.md` | `IMPLEMENTATION_HANDOFF.md` | 跨对话和上下文压缩后的实施交接文件，记录当前分支、已验证事实、未完成事项、下一步动作及禁止越过的发布边界。 | 已同步真实模型验证与公网发布下一边界 | 2026-07-14 |
-| 3 | `DOCUMENT_INDEX.md` | `DOCUMENT_INDEX.md` | OperCerta 全部项目文档的唯一总登记表，用于按文件名、路径、用途、状态和日期统一检索、复查与交接。 | 已按根工作树与 6 个 worktree 独立分表登记；总计 546 份项目 Markdown，排除依赖、虚拟环境和工具缓存 | 2026-07-15 |
+| 3 | `DOCUMENT_INDEX.md` | `DOCUMENT_INDEX.md` | OperCerta 全部项目文档的唯一总登记表，用于按文件名、路径、用途、状态和日期统一检索、复查与交接。 | 当前根工作树 115 份文档已完整登记；另保留 6 个旧 worktree 的 456 条历史记录 | 2026-07-15 |
 | 4 | `2026-07-14-agent-project-naming-design.md` | `docs/specs/2026-07-14-agent-project-naming-design.md` | 定义 OperCerta、ForenTrail、SiteVerum、Federune 四个项目的命名原则、语义边界与品牌一致性，防止项目职责和名称漂移。 | 已冻结为命名基线 | 2026-07-14 |
-| 5 | `AI_Agent四项目总体设计规格.md` | `docs/specs/AI_Agent四项目总体设计规格.md` | 规定四个 AI Agent 项目的整体定位、差异化业务范围、技术能力组合、实施顺序和共同约束，是项目组合的最高层设计依据。 | 已冻结为总体设计基线 | 2026-07-14 |
+| 5 | `ai-agent-portfolio-overall-design.md` | `docs/specs/ai-agent-portfolio-overall-design.md` | 规定四个 AI Agent 项目的整体定位、差异化业务范围、技术能力组合、实施顺序和共同约束，是项目组合的最高层设计依据。 | 已冻结为总体设计基线；文件名已统一为英文路径 | 2026-07-14 |
 | 6 | `2026-07-14-agent-portfolio-design.md` | `docs/specs/2026-07-14-agent-portfolio-design.md` | 设计四项目如何组合成求职作品集，包括能力覆盖、展示顺序、共享基础设施边界和避免重复建设的原则。 | 已冻结为组合设计基线 | 2026-07-14 |
 | 7 | `2026-07-14-opercerta-design.md` | `docs/specs/2026-07-14-opercerta-design.md` | OperCerta 原始详细设计，定义业务对象、审批与工单闭环、可靠性要求、技术架构、交付范围和发布门禁，是后续规格审查的基准。 | 已冻结为 OperCerta 详细设计基线 | 2026-07-14 |
 | 8 | `2026-07-15-approval-domain-contract-design.md` | `docs/superpowers/specs/2026-07-15-approval-domain-contract-design.md` | 规定审批请求、业务事实绑定、审批状态转换、并发竞态处理和数据库原子性，防止重复审批或审批旧事实。 | 已确认并实施 | 2026-07-15 |
@@ -48,7 +68,7 @@
 | 40 | `2026-07-20-opercerta-three-business-release.md` | `docs/superpowers/plans/2026-07-20-opercerta-three-business-release.md` | 将三业务适配、六个 MCP 工具、评测、Redis、OpenTelemetry、真实模型代表验证、本地发布和中文学习包拆成主线任务。 | 本地任务已执行；公网交互、用户掌握与最终门禁待完成 | 2026-07-20 |
 | 41 | `2026-07-20-opercerta-zero-cost-showcase-engineering-walkthrough.md` | `docs/superpowers/plans/2026-07-20-opercerta-zero-cost-showcase-engineering-walkthrough.md` | 规划统一事实清单、招聘专题、本地工程详解、控制台共存、响应式测试、静态导出和 Netlify 发布验证。 | 计划已创建；根分支尚未归档完成证据 | 2026-07-20 |
 | 42 | `README.md` | `docs/development-log/README.md` | 说明开发日志目录结构、各类日志职责、记录规范、敏感信息禁区和上下文恢复阅读顺序。 | 已建立并持续使用 | 2026-07-15 |
-| 43 | `current-state.md` | `docs/development-log/current-state.md` | 保存最新可验证项目状态、测试证据、运行环境、发布边界、未完成事项和下一步，作为压缩上下文后的事实入口。 | 已同步真实模型代表验证与剩余外部门禁 | 2026-07-15 |
+| 43 | `current-state.md` | `docs/development-log/current-state.md` | 保存最新可验证项目状态、测试证据、运行环境、发布边界、未完成事项和下一步，作为压缩上下文后的事实入口；同时区分本地候选镜像、空缓存冷构建、远程 CI 和真实生产发布四类证据。 | 已同步换机全量门禁、CRLF/SOP 修复、候选镜像恢复验证及仍未关闭的冷构建与远程门禁 | 2026-07-15 |
 | 44 | `2026-07-15.md` | `docs/development-log/daily/2026-07-15.md` | 记录日志体系、Windows PostgreSQL、审批领域契约及初始可靠性实施过程与命令证据。 | 当日记录已归档 | 2026-07-15 |
 | 45 | `2026-07-16.md` | `docs/development-log/daily/2026-07-16.md` | 记录库存补货 Task 1–9、幂等工单、LangGraph 恢复、调试过程和本地验证结果。 | 当日记录已归档 | 2026-07-16 |
 | 46 | `2026-07-17.md` | `docs/development-log/daily/2026-07-17.md` | 记录 WSL2、Docker Linux 运行时、JWT/RBAC 和 Compose 环境迁移中的问题、修复与验证。 | 当日记录已归档 | 2026-07-17 |
@@ -60,11 +80,11 @@
 | 52 | `2026-07-23.md` | `docs/development-log/daily/2026-07-23.md` | 记录 Draft PR 与 GitHub Actions、Kimi replan、provider 异常原子收口、真实模型失败边界、规格一致性审计，并提供暂停时 Git 事实、未完成边界和数日后恢复开发的操作入口。 | 当日记录与阶段暂停检查点已归档；项目未完成，生产门禁保持 CLOSED | 2026-07-23 |
 | 53 | `2026-07-15-windows-native-postgres.md` | `docs/development-log/decisions/2026-07-15-windows-native-postgres.md` | 记录最初采用 Windows 原生 PostgreSQL 的背景、选择理由、风险和后续迁移条件。 | 历史决策已归档；运行时后来转向 WSL2/Compose | 2026-07-15 |
 | 54 | `2026-07-16-risk-based-review-and-progress-control.md` | `docs/development-log/decisions/2026-07-16-risk-based-review-and-progress-control.md` | 规定风险分级复核、进度百分比口径、关键节点审批和优先完成纵向业务闭环的项目控制方法。 | 已采用 | 2026-07-16 |
-| 55 | `interview-casebook.md` | `docs/development-log/interview-casebook.md` | 将真实实施问题整理为面试案例，按现象、根因、诊断、修复、验证和经验总结记录可讨论的工程话题。 | 已记录稳定哈希、路由、代理响应等案例并持续扩充 | 2026-07-17 |
+| 55 | `interview-casebook.md` | `docs/development-log/interview-casebook.md` | 将真实实施问题整理为面试案例，按现象、根因、诊断、修复、验证和经验总结记录可讨论的工程话题；覆盖 Agent 契约、数据库可靠性、跨平台环境、供应链和发布证据边界。 | 已新增 `.gitattributes` 与既有 CRLF 的差异、冷构建和候选镜像分层举证案例 | 2026-07-17 |
 | 56 | `learning-method.md` | `docs/development-log/learning-method.md` | 规定源码阅读、手动命令、单变量实验、复述、故障演练和面试问答结合的项目掌握方法。 | 已加入三业务学习与手动闭环建议；需持续实践 | 2026-07-17 |
-| 57 | `OperCerta核心技术手册.md` | `docs/learning/OperCerta核心技术手册.md` | 从一次业务请求出发解释 FastAPI、LangGraph、MCP、PostgreSQL、审批、幂等、恢复、容器和可观测性的代码链路与底层思想。 | 本地学习材料已完成；需结合源码实践 | 2026-07-20 |
-| 58 | `OperCerta手动实验手册.md` | `docs/learning/OperCerta手动实验手册.md` | 提供 WSL2/Compose 启停、三业务操作、数据库核对、MCP 调用、故障注入和恢复验证的可复制命令与观察点。 | 已记录命令；用户掌握检查进行中 | 2026-07-20 |
-| 59 | `OperCerta面试讲解.md` | `docs/learning/OperCerta面试讲解.md` | 提供 30 秒、3 分钟、10 分钟项目介绍、架构解释、技术取舍、可靠性证据和常见追问回答框架。 | 材料已完成；需口述演练和基于源码补强 | 2026-07-20 |
+| 57 | `opercerta-core-technical-guide.md` | `docs/learning/opercerta-core-technical-guide.md` | 从一次业务请求出发解释 FastAPI、LangGraph、MCP、PostgreSQL、审批、幂等、恢复、容器和可观测性的代码链路与底层思想。 | 本地学习材料已完成；文件名已统一为英文路径，需结合源码实践 | 2026-07-20 |
+| 58 | `opercerta-manual-experiment-guide.md` | `docs/learning/opercerta-manual-experiment-guide.md` | 提供 WSL2/Compose 启停、三业务操作、数据库核对、MCP 调用、故障注入和恢复验证的可复制命令与观察点。 | 已记录命令；文件名已统一为英文路径，用户掌握检查待继续 | 2026-07-20 |
+| 59 | `opercerta-interview-guide.md` | `docs/learning/opercerta-interview-guide.md` | 提供 30 秒、3 分钟、10 分钟项目介绍、架构解释、技术取舍、可靠性证据和常见追问回答框架。 | 材料已完成；文件名已统一为英文路径，需口述演练和源码补强 | 2026-07-20 |
 | 60 | `demo-script.md` | `docs/demo-script.md` | 规定面向 HR 与面试官的展示顺序、演示前检查、业务闭环操作、异常备用方案和诚实边界。 | 静态展示脚本可用；本地三业务演示需按环境复验 | 2026-07-18 |
 | 61 | `approval-atomicity.md` | `docs/release-evidence/approval-atomicity.md` | 保存 PostgreSQL 迁移、审批原子更新、并发批准竞态和业务事实绑定的实际测试命令与结果。 | 本地证据已归档；不代表生产发布 | 2026-07-15 |
 | 62 | `cache-tracing-model-adapter.md` | `docs/release-evidence/cache-tracing-model-adapter.md` | 保存 Redis 只读缓存、审批后绕过、OpenTelemetry 脱敏关联、严格真实模型适配器及未验证边界的阶段证据。 | 阶段证据已归档；真实模型另有独立证据 | 2026-07-20 |
@@ -88,16 +108,41 @@
 | 80 | `three-business-release.md` | `docs/release-evidence/three-business-release.md` | 保存 Caddy/release Compose、后端与前端总门禁、一键三业务流程和重启 smoke 的本地发布候选证据。 | 本地候选通过；公网交互与生产治理待完成 | 2026-07-20 |
 | 81 | `work-order-idempotency.md` | `docs/release-evidence/work-order-idempotency.md` | 保存唯一工单约束、重复执行、十路并发竞争和稳定返回同一工单的数据库实测结果。 | 本地幂等证据已归档；不代表生产发布 | 2026-07-16 |
 | 82 | `2026-07-24.md` | `docs/development-log/daily/2026-07-24.md` | 汇总 Agent 实施 worktree当日的安全修复、一次性 pgvector 门禁、凭据轮换、WSL 符号链接、提交推送与远程 CI，作为根工作树的跨会话入口。 | 本地凭据已轮换并安全探针通过；提交 `d49577b` 已推送，PR #8 run `30081426265` 四项快速门禁全绿；生产门禁保持 CLOSED | 2026-07-24 |
-| 83 | `progress.md` | `.superpowers/sdd/progress.md` | 保存库存补货纵向闭环早期 SDD 执行进度、Task 1–9 状态、提交基线和从子代理切换到 inline execution 的历史过程，用于追溯实施顺序；其 pending 状态是历史快照，不覆盖当前状态文档。 | 历史 SDD 进度资料，当前事实以 `docs/development-log/current-state.md` 为准 | 2026-07-16 |
-| 84 | `task-1-brief.md` | `.superpowers/sdd/task-1-brief.md` | Task 1 库存补货领域契约、确定性规则、Mock 模型边界、RED/GREEN 命令和提交范围的详细执行简报。 | 历史 SDD 任务简报；Task 1 已完成 | 2026-07-16 |
-| 85 | `task-1-report.md` | `.superpowers/sdd/task-1-report.md` | Task 1 实现报告，记录领域模型、规则哈希、严格整数修复、测试结果、静态门禁、自审及独立 review 结论。 | 历史 SDD 实施证据；Task 1 已完成 | 2026-07-16 |
-| 86 | `task-2-brief.md` | `.superpowers/sdd/task-2-brief.md` | Task 2 PostgreSQL 迁移、证据仓储、operation 生命周期 Repository、事务不变量、数据库 RED/GREEN 命令和提交范围的详细执行简报。 | 历史 SDD 任务简报；Task 2 已完成 | 2026-07-16 |
-| 87 | `task-2-report.md` | `.superpowers/sdd/task-2-report.md` | Task 2 实现报告，记录迁移升降级、原子 Repository、并发一致性、审查修复、数据库回归和最终静态门禁。 | 历史 SDD 实施证据；Task 2 已完成 | 2026-07-16 |
-| 88 | `2026-07-25.md` | `docs/development-log/daily/2026-07-25.md` | 记录掌握检查第 1 关、本地端口排障、异常 signal 收件箱、三类规则发现、PowerShell UUID 422、首屏 JWT/历史信号修复，以及后续历史 signal/operation 启动对账、successor lineage、PostgreSQL 约束名限制、十路重试竞态、Compose 重启和浏览器谱系验证全过程。 | 异常信号、历史对账与后继调查本地门禁通过；新 operation 等待人工审批；未调用本轮 Real Kimi，未 commit/push，生产门禁保持 CLOSED | 2026-07-25 |
-| 89 | `2026-07-26.md` | `docs/development-log/daily/2026-07-26.md` | 记录单根 Agent Loop 纠偏从设计审计到 Task 0–11 的完整实施，覆盖 Agent 回合、统一 Observation、三业务策略、case 工作台、默认运行时、Mock/Compose 门禁、真实 Kimi 兼容故障与文档收口。 | Task 0–11 本地完成；未 commit/push/merge 或公开交互部署；生产门禁保持 CLOSED | 2026-07-26 |
-| 90 | `2026-07-27.md` | `docs/development-log/daily/2026-07-27.md` | 记录 PR #8 合并、main 五项远程门禁、Netlify Preview/Production 两阶段发布、线上资源指纹、静态 API 回退边界、回滚点和下一学习验收任务。 | 静态专题 production deploy `6a6631d24958714a43ddc508` 已通过；公网可写后端未发布，生产门禁保持 CLOSED | 2026-07-27 |
+| 83 | `2026-07-26.md` | `docs/development-log/daily/2026-07-26.md` | 记录单根 Agent Loop 纠偏从设计审计到 Task 0–11 的完整实施，覆盖 Agent 回合、统一 Observation、三业务策略、case 工作台、默认运行时、Mock/Compose 门禁、真实 Kimi 兼容故障与文档收口。 | Task 0–11 本地完成；生产门禁保持 CLOSED | 2026-07-26 |
+| 84 | `2026-07-27.md` | `docs/development-log/daily/2026-07-27.md` | 记录 PR #8 合并、main 五项远程门禁、Netlify Preview/Production 两阶段发布、线上资源指纹、静态 API 回退边界、回滚点和下一学习验收任务。 | 静态专题 production deploy `6a6631d24958714a43ddc508` 已通过；公网可写后端未发布 | 2026-07-27 |
+| 85 | `2026-07-29.md` | `docs/development-log/daily/2026-07-29.md` | 记录更换电脑后的 WSL2、Ubuntu、Docker、uv、Python 和 Node 环境恢复，DrvFS 权限边界、国内镜像、FastEmbed 模型缓存、Git 完整性审计、CRLF/SOP 校验和故障、隔离 PostgreSQL 全量测试、前端构建、候选镜像 Compose 与重启恢复门禁。 | 本地后端 664 条、两套评估、前端 60 条及当前源码候选 Compose 均通过，门禁提交已推送；空缓存冷构建、Draft PR 和远程 CI 待关闭 | 2026-07-29 |
+| 86 | `equipment-maintenance-v1.md` | `data/knowledge/equipment-maintenance-v1.md` | 设备维修场景的合成 SOP 知识文档，为 pgvector RAG 提供故障隔离、维修升级和安全边界的可追溯检索素材。 | 合成知识资产；只辅助 Agent 解释与规划，不替代确定性规则 | 2026-07-22 |
+| 87 | `inventory-replenishment-v1.md` | `data/knowledge/inventory-replenishment-v1.md` | 库存补货场景的合成 SOP 知识文档，为 pgvector RAG 提供补货处置步骤、审批要求和异常升级依据。 | 合成知识资产；不包含旧公司材料或真实业务数据 | 2026-07-22 |
+| 88 | `task-recovery-v1.md` | `data/knowledge/task-recovery-v1.md` | 作业阻塞恢复场景的合成 SOP 知识文档，为 Agent 检索恢复顺序、安全检查和升级条件提供引用。 | 合成知识资产；不覆盖审批、状态机和数据库约束 | 2026-07-22 |
+| 89 | `2026-07-23-spec-conformance-audit.md` | `docs/development-log/audits/2026-07-23-spec-conformance-audit.md` | 对命名、总体、组合和 OperCerta 详细设计进行逐项符合性审计，区分已实现、部分实现、缺失和明确不在范围内的能力。 | 审计已归档；用于防止实现路线偏离原始目标 | 2026-07-23 |
+| 90 | `2026-07-26-kimi-tool-loop-compatibility.md` | `docs/development-log/incidents/2026-07-26-kimi-tool-loop-compatibility.md` | 复盘 Kimi Tool Calling 与新 Agent Loop 的兼容故障，记录现象、根因假设、fail-closed 行为、验证证据和不得伪装成功的边界。 | 真实模型兼容事件已归档；失败结果保留为诚实工程证据 | 2026-07-26 |
+| 91 | `agent-core-architecture.md` | `docs/release-evidence/agent-core-architecture.md` | 汇总感知、规划、工具、记忆、执行反馈六模块 Agent 核心的实现位置、测试结果、真实模型边界和交付判定。 | 本地 Agent 核心门禁已形成证据；生产门禁仍关闭 | 2026-07-23 |
+| 92 | `agent-pgvector-rag.md` | `docs/release-evidence/agent-pgvector-rag.md` | 保存 PostgreSQL pgvector、FastEmbed、三业务 SOP 隔离检索、引用返回和重启后可恢复的 RAG 实测证据。 | 本地真实向量检索通过；不是生产知识库质量声明 | 2026-07-22 |
+| 93 | `agent-trace-rbac.md` | `docs/release-evidence/agent-trace-rbac.md` | 保存 Agent Trace 持久化、步骤脱敏、角色可见性、API 读取和前端展示的测试与权限证据。 | 本地 Trace/RBAC 验证通过；演示身份不等于生产 IAM | 2026-07-22 |
+| 94 | `agent-verifier-reapproval.md` | `docs/release-evidence/agent-verifier-reapproval.md` | 保存批准后事实重取、Verifier 判定、事实漂移阻断、重新审批要求和避免使用过期批准执行副作用的证据。 | 本地安全重审批路径已验证 | 2026-07-22 |
+| 95 | `agent-workspace.md` | `docs/release-evidence/agent-workspace.md` | 保存 React Agent 工作台的意图表单、规划、工具观察、审批中断、结果与 Trace 展示测试，证明前端能呈现 Agent 行为。 | 本地 UI 与 API 契约已验证；公网专题仍为只读 | 2026-07-22 |
+| 96 | `signal-reconciliation-successor.md` | `docs/release-evidence/signal-reconciliation-successor.md` | 保存启动时异常信号与处置状态对账、失效信号终止、后继调查 lineage、并发重试及 Compose 重启恢复证据。 | 本地对账和后继调查路径已验证 | 2026-07-25 |
+| 97 | `single-root-agent-loop-case-workspace.md` | `docs/release-evidence/single-root-agent-loop-case-workspace.md` | 保存单根 LangGraph Agent Loop、统一 Observation、case 工作区、按卡片隔离交互和三业务端到端门禁结果。 | 单根 Agent 主线本地验证通过；真实 Kimi 新链路另列失败边界 | 2026-07-26 |
+| 98 | `zero-cost-showcase-engineering-walkthrough.md` | `docs/release-evidence/zero-cost-showcase-engineering-walkthrough.md` | 保存零成本静态专题、本地工程详解、响应式浏览器检查、Compose 恢复、GitHub 门禁和 Netlify 两阶段发布证据。 | 静态公网展示已发布；公开可写后端未开放 | 2026-07-27 |
+| 99 | `2026-07-21-opercerta-agent-core-architecture.md` | `docs/superpowers/plans/2026-07-21-opercerta-agent-core-architecture.md` | 将 Agent 六模块、Prompt、Harness、Tool Loop、MCP、RAG、Memory、审批和 Trace 拆为可执行 TDD 任务与验收命令。 | 计划主体已执行；真实模型兼容限制保留 | 2026-07-21 |
+| 100 | `2026-07-23-opercerta-spec-conformance-audit.md` | `docs/superpowers/plans/2026-07-23-opercerta-spec-conformance-audit.md` | 规定如何对四份顶层设计、现有代码、发布证据和未完成边界进行可重复的规格符合性核验。 | 已执行并形成独立审计记录 | 2026-07-23 |
+| 101 | `2026-07-25-operational-signal-inbox.md` | `docs/superpowers/plans/2026-07-25-operational-signal-inbox.md` | 实施库存、设备和作业异常信号扫描、规则命中、收件箱展示、关联处置创建及首屏可操作修复。 | 已执行本地信号发现与创建路径 | 2026-07-25 |
+| 102 | `2026-07-25-signal-reconciliation-and-successor.md` | `docs/superpowers/plans/2026-07-25-signal-reconciliation-and-successor.md` | 实施历史信号与处置对账、终态同步、后继 operation、数据库约束和多路竞态恢复测试。 | 已执行并形成恢复证据 | 2026-07-25 |
+| 103 | `2026-07-26-single-root-agent-loop-and-case-workspace.md` | `docs/superpowers/plans/2026-07-26-single-root-agent-loop-and-case-workspace.md` | 将原三张场景图收敛为单根 Agent Loop，并实施统一 case 工作区、工具观察、审批续跑和前端卡片隔离。 | Task 0–11 已执行；生产发布未开放 | 2026-07-26 |
+| 104 | `2026-07-21-opercerta-agent-core-architecture-design.md` | `docs/superpowers/specs/2026-07-21-opercerta-agent-core-architecture-design.md` | 定义 OperCerta 感知、LLM、规划、记忆、工具、执行反馈六模块及 LangGraph、LangChain、MCP、RAG 的职责边界。 | 已确认并作为 Agent 纠偏设计基线 | 2026-07-21 |
+| 105 | `2026-07-23-opercerta-value-learning-and-evaluation-design.md` | `docs/superpowers/specs/2026-07-23-opercerta-value-learning-and-evaluation-design.md` | 说明项目业务价值、传统流程痛点、Agent 技术必要性、学习验收方式和不虚构指标的量化评估框架。 | 已确认；用于项目讲解、学习和评测治理 | 2026-07-23 |
+| 106 | `2026-07-25-operational-signal-inbox-design.md` | `docs/superpowers/specs/2026-07-25-operational-signal-inbox-design.md` | 设计三业务异常由确定性扫描发现后再进入 Agent 调查的合理动机、信号状态和前端收件箱交互。 | 已确认并实施本地版本 | 2026-07-25 |
+| 107 | `2026-07-25-signal-reconciliation-and-successor-design.md` | `docs/superpowers/specs/2026-07-25-signal-reconciliation-and-successor-design.md` | 设计异常信号与处置状态的一致性、启动对账、后继调查谱系、并发唯一性和重启恢复契约。 | 已确认并实施 | 2026-07-25 |
+| 108 | `2026-07-26-single-root-agent-loop-and-case-workspace-design.md` | `docs/superpowers/specs/2026-07-26-single-root-agent-loop-and-case-workspace-design.md` | 纠正 LangGraph 被误解为普通节点和卡片串扰问题，定义单根循环 Agent、受控表单输入、case 隔离工作区及技术链路展示。 | 已确认并完成本地实现 | 2026-07-26 |
+| 109 | `analyst-v1.md` | `src/opercerta/prompts/analyst-v1.md` | Analyst 角色版本化 Prompt，约束事实提取、风险识别、结构化输出与不得臆测业务数据。 | v1 已纳入 Prompt 注册表和测试 | 2026-07-21 |
+| 110 | `planner-v1.md` | `src/opercerta/prompts/planner-v1.md` | Planner 角色版本化 Prompt，指导受控目标拆解、工具选择、审批边界和下一步计划生成。 | v1 已纳入 Agent Harness | 2026-07-21 |
+| 111 | `reporter-v1.md` | `src/opercerta/prompts/reporter-v1.md` | Reporter 角色版本化 Prompt，将已验证事实、工具结果和终态组织为面向业务用户的可解释报告。 | v1 已实施；不得把未验证内容写成事实 | 2026-07-21 |
+| 112 | `tool-loop-v1.md` | `src/opercerta/prompts/tool-loop-v1.md` | Tool Loop 主 Prompt，规定模型在 Observation 后选择继续调用只读工具、请求审批或结束，并约束 JSON 工具协议。 | v1 已用于单根 Agent Loop；真实 Kimi 兼容边界另有事件记录 | 2026-07-26 |
+| 113 | `verifier-v1.md` | `src/opercerta/prompts/verifier-v1.md` | Verifier 角色版本化 Prompt，用于批准后重新核对事实、识别漂移并决定执行、重审批或安全终止。 | v1 已实施并有事实漂移回归测试 | 2026-07-21 |
+| 114 | `2026-07-30.md` | `docs/development-log/daily/2026-07-30.md` | 记录新电脑环境最终收口、WSL 登录 shell Node PATH 的 TDD 修复、冻结依赖国内镜像恢复、DrvFS 权限边界、已有业务卷的幂等语义，以及独立 Compose project 中三业务与重启恢复门禁。 | 环境与隔离候选运行门禁已通过；待提交、PR #15 新鲜 CI、main Compose 和后续发布治理 | 2026-07-30 |
+| 115 | `CONTRIBUTING.md` | `CONTRIBUTING.md` | 规定 OperCerta 的分支、最小变更、测试、PR 说明、安全和隐私贡献流程，确保外部协作不引入凭据、客户数据或未经评审的架构扩张。 | 已由 main 的 PR #16 引入；在环境分支同步登记以保证合并态索引一致 | 2026-07-30 |
 
-## Worktree：agent-core-architecture（82 份）
+## 历史 Worktree：agent-core-architecture（82 条记录）
 
 | 序号 | 文件名 | 路径 | 用途（详细） | 状态 | 日期 |
 | ---: | --- | --- | --- | --- | --- |
@@ -184,7 +229,7 @@
 | 81 | `IMPLEMENTATION_HANDOFF.md` | `.worktrees/agent-core-architecture/IMPLEMENTATION_HANDOFF.md` | 跨对话和上下文压缩后的实施交接文件，记录当前分支、已验证事实、未完成事项、下一步动作及禁止越过的发布边界。（本行登记 agent-core-architecture worktree 中的独立物理文件。） | worktree 分支版本，与根工作树文档存在差异；所属分支：agent-core-architecture | 2026-07-14 |
 | 82 | `README.md` | `.worktrees/agent-core-architecture/README.md` | 项目总入口，说明三业务场景、核心技术栈、运行方式、演示边界、学习入口和发布门禁，供开发者、审阅者与面试官快速了解 OperCerta。（本行登记 agent-core-architecture worktree 中的独立物理文件。） | worktree 分支版本，与根工作树文档存在差异；所属分支：agent-core-architecture | 2026-07-14 |
 
-## Worktree：agent-core-implementation（112 份）
+## 历史 Worktree：agent-core-implementation（112 条记录）
 
 | 序号 | 文件名 | 路径 | 用途（详细） | 状态 | 日期 |
 | ---: | --- | --- | --- | --- | --- |
@@ -301,7 +346,7 @@
 | 111 | `2026-07-26.md` | `.worktrees/agent-core-implementation/docs/development-log/daily/2026-07-26.md` | 完整记录单根 Agent Loop 纠偏 Task 0–11、case 工作台、默认运行时、Mock/Compose/Real Kimi 门禁、provider 兼容事故、最终复验和 Git 发布前边界。（本行登记 agent-core-implementation worktree 中的独立物理文件。） | worktree 新增并已完成当日收口；所属分支：agent-core-implementation | 2026-07-26 |
 | 112 | `2026-07-27.md` | `.worktrees/agent-core-implementation/docs/development-log/daily/2026-07-27.md` | 记录 PR #8 合并、main 五项远程门禁、Netlify Preview/Production 两阶段发布、线上资源指纹、静态 API 回退边界、回滚点和下一学习验收任务。（本行登记 agent-core-implementation worktree 中的独立物理文件。） | 发布证据已固化；当前分支：docs/release-readiness-2026-07-27；生产门禁保持 CLOSED | 2026-07-27 |
 
-## Worktree：github-actions-gate（56 份）
+## 历史 Worktree：github-actions-gate（56 条记录）
 
 | 序号 | 文件名 | 路径 | 用途（详细） | 状态 | 日期 |
 | ---: | --- | --- | --- | --- | --- |
@@ -362,7 +407,7 @@
 | 55 | `IMPLEMENTATION_HANDOFF.md` | `.worktrees/github-actions-gate/IMPLEMENTATION_HANDOFF.md` | 跨对话和上下文压缩后的实施交接文件，记录当前分支、已验证事实、未完成事项、下一步动作及禁止越过的发布边界。（本行登记 github-actions-gate worktree 中的独立物理文件。） | worktree 分支版本，与根工作树文档存在差异；所属分支：github-actions-gate | 2026-07-14 |
 | 56 | `README.md` | `.worktrees/github-actions-gate/README.md` | 项目总入口，说明三业务场景、核心技术栈、运行方式、演示边界、学习入口和发布门禁，供开发者、审阅者与面试官快速了解 OperCerta。（本行登记 github-actions-gate worktree 中的独立物理文件。） | worktree 分支版本，与根工作树文档存在差异；所属分支：github-actions-gate | 2026-07-14 |
 
-## Worktree：portfolio-netlify-static-mirror-design（65 份）
+## 历史 Worktree：portfolio-netlify-static-mirror-design（65 条记录）
 
 | 序号 | 文件名 | 路径 | 用途（详细） | 状态 | 日期 |
 | ---: | --- | --- | --- | --- | --- |
@@ -432,7 +477,7 @@
 | 64 | `IMPLEMENTATION_HANDOFF.md` | `.worktrees/portfolio-netlify-static-mirror-design/IMPLEMENTATION_HANDOFF.md` | 跨对话和上下文压缩后的实施交接文件，记录当前分支、已验证事实、未完成事项、下一步动作及禁止越过的发布边界。（本行登记 portfolio-netlify-static-mirror-design worktree 中的独立物理文件。） | worktree 分支版本，与根工作树文档存在差异；所属分支：portfolio-netlify-static-mirror-design | 2026-07-14 |
 | 65 | `README.md` | `.worktrees/portfolio-netlify-static-mirror-design/README.md` | 项目总入口，说明三业务场景、核心技术栈、运行方式、演示边界、学习入口和发布门禁，供开发者、审阅者与面试官快速了解 OperCerta。（本行登记 portfolio-netlify-static-mirror-design worktree 中的独立物理文件。） | worktree 分支版本，与根工作树文档存在差异；所属分支：portfolio-netlify-static-mirror-design | 2026-07-14 |
 
-## Worktree：public-portfolio-showcase（62 份）
+## 历史 Worktree：public-portfolio-showcase（62 条记录）
 
 | 序号 | 文件名 | 路径 | 用途（详细） | 状态 | 日期 |
 | ---: | --- | --- | --- | --- | --- |
@@ -499,7 +544,7 @@
 | 61 | `IMPLEMENTATION_HANDOFF.md` | `.worktrees/public-portfolio-showcase/IMPLEMENTATION_HANDOFF.md` | 跨对话和上下文压缩后的实施交接文件，记录当前分支、已验证事实、未完成事项、下一步动作及禁止越过的发布边界。（本行登记 public-portfolio-showcase worktree 中的独立物理文件。） | worktree 分支版本，与根工作树文档存在差异；所属分支：public-portfolio-showcase | 2026-07-14 |
 | 62 | `README.md` | `.worktrees/public-portfolio-showcase/README.md` | 项目总入口，说明三业务场景、核心技术栈、运行方式、演示边界、学习入口和发布门禁，供开发者、审阅者与面试官快速了解 OperCerta。（本行登记 public-portfolio-showcase worktree 中的独立物理文件。） | worktree 分支版本，与根工作树文档存在差异；所属分支：public-portfolio-showcase | 2026-07-14 |
 
-## Worktree：zero-cost-showcase-walkthrough（79 份）
+## 历史 Worktree：zero-cost-showcase-walkthrough（79 条记录）
 
 | 序号 | 文件名 | 路径 | 用途（详细） | 状态 | 日期 |
 | ---: | --- | --- | --- | --- | --- |
