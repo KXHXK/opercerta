@@ -1,6 +1,12 @@
 # OperCerta 当前状态
 
-## 2026-07-30：换机环境已完成隔离业务门禁，等待 PR #15 新鲜 CI
+## 2026-07-30：换机环境已合并 main，远程与本机 Compose 门禁通过
+
+PR #15 已以普通 merge commit 合并为 main `42ba974`，未删除分支、未强推、未绕过门禁。对应 main run `30525556998` 五个 job 全部成功：repository-safety、python-quality、frontend、backend-tests，以及只在 main push 执行的 compose-smoke。compose-smoke 真实完成镜像构建启动、Agent 轨迹与数据库副作用验证、API/MCP 重启、恢复验证和隔离卷清理。
+
+本地主线已 fast-forward 到同一提交，随后从干净 main 创建 `chore/release-readiness-20260730` 作为下一阶段分支。WSL 登录 shell 可直接使用 Node `24.18.0`、npm `11.16.0` 和 uv `0.11.28`；使用已有已验证镜像且不删除数据卷恢复本机 Compose 后，PostgreSQL、Redis、MCP、API 四服务均 healthy，`/health/ready` 返回 database/checkpoint/MCP 全部 ready。换机环境阶段至此关闭。
+
+下一阶段依次为部署边界复核、公开环境 readiness、固定评测、源码级掌握和简历材料。现有 Netlify 是只读静态专题；公网可写后端、生产身份、限流、备份、高可用和自动部署仍未完成，因此 production release gate 继续 `CLOSED`，不启动 ForenTrail。
 
 当前分支 `chore/new-machine-env-20260729` 与远端同名分支在本轮修改前为 `ahead 0 / behind 0`，Draft PR #15 的 repository-safety、python-quality、backend-tests、frontend 已有绿色基线。新电脑固定工具链为 WSL2 Ubuntu 26.04、uv `0.11.28`、项目 Python `3.12.13`、Node `24.18.0`、npm `11.16.0`、Docker `29.1.3` 和 Compose `2.40.3`。
 

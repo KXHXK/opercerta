@@ -89,12 +89,12 @@ npm run dev
 
 打开 `http://127.0.0.1:5173/console`：
 
-1. 选择库存补货、设备维修或作业异常恢复；
-2. 先点“查询状态”，确认 `completed`、零审批、零工单；
-3. 点“创建处置”，确认进入 `awaiting_approval`；
-4. 切换 approver，核对 binding 后批准；
-5. 确认 `completed`、唯一工单和完整审计时间线；
-6. 再次审批，预期得到冲突而不是第二张工单。
+1. 保持 `operator`，点击“扫描业务异常”；首次点击会自动签发只保存在页面内存中的演示 JWT；
+2. 核对本次扫描范围、6 次只读 MCP 调用和三张合成业务 case；没有异常时不得创建处置；
+3. 选择一张状态为“待调查”的 case，点击“启动 Agent 调查”，确认 Goal、Tool/RAG 证据和 Trace 出现，并进入 `awaiting_approval`；
+4. 切换 `approver`，核对 binding 中的证据、规则版本、事实哈希、计划哈希和参数后批准；
+5. 确认 Verifier 已运行、处置为 `completed`、只有一张工单，并查看完整审计时间线；
+6. 切换 `auditor` 读取同一处置；重复审批预期得到冲突，而不是第二张工单。
 
 若审批窗口过期，控制台应显示“审批已过期”及重新创建处置的操作建议，而不是统一报“审批未提交”。这是安全终态：数据库保持零审批或零新工单，Trace run 结束而不是继续显示 `running`。
 
@@ -217,13 +217,13 @@ docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
 - **常见错误：** 首次机器没有 FastEmbed 缓存却强制 offline；此时先在获准网络下完成一次模型缓存，不要伪造向量。
 - **面试怎么讲：** “Mock 固定模型用于回归确定性，embedding 和数据库仍是真实组件；Real 模型另立报告。”
 
-### 步骤 2：operator 提交有限业务表单
+### 步骤 2：operator 从确定性异常信号启动有限调查
 
-- **输入：** 在 `http://127.0.0.1:5173/console` 选择 operator；任选 `SKU-LOW-001`、`EQ-PUMP-001`、`TASK-BLOCKED-001`，动作选“创建处置”。
+- **输入：** 在 `http://127.0.0.1:5173/console` 保持 operator，点击“扫描业务异常”；从 `SKU-LOW-001`、`EQ-PUMP-001`、`TASK-BLOCKED-001` 的异常 case 中选择一张，再点击“启动 Agent 调查”。
 - **预期：** 请求进入 `awaiting_approval`，页面出现结构化 Goal，而不是开放聊天回复。
-- **为什么：** 场景、动作和对象来自可信枚举，避免自由文本决定高风险写操作。
-- **常见错误：** 只输入 message 而未选对象；严格 API 会返回 422，且不应创建 operation。
-- **面试怎么讲：** “感知层接受有限表单，LLM 只编码受控目标，Harness 禁止对象漂移。”
+- **为什么：** 确定性检测先从业务事实产生信号，场景、动作和对象来自可信 case；LLM 只调查已确认异常，不负责猜测是否异常。
+- **常见错误：** 跳过 signal 直接请求生产写处置；严格 API 会返回 422，且不应创建 operation。
+- **面试怎么讲：** “感知层先用规则发现异常，再把有限 case 交给 LLM 编码 Goal，Harness 禁止对象漂移。”
 
 ### 步骤 3：查看 Goal、Tool、RAG 与 Observation
 
@@ -300,7 +300,7 @@ docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
 不要只背架构图。进入 WSL 工作树后，按一次真实请求的顺序阅读：
 
 ```bash
-cd /mnt/d/CODEX/agent-portfolio/opercerta/.worktrees/agent-core-implementation
+cd /mnt/d/CODEX/agent-portfolio/opercerta
 rg -n "ControlledAgentRootRunner|ControlledAgentRootRecoveryCoordinator" src/opercerta/api/app.py src/opercerta/application
 rg -n "model_decide|authorize_tools|execute_read_tools|approval_interrupt|verify_current_facts|execute_controlled_action" src/opercerta/workflow
 rg -n "class ToolPolicy|class ToolExecutor|class CachedReadToolGateway" src/opercerta
@@ -325,7 +325,7 @@ rg -n "create_or_get|FOR UPDATE|idempot" src/opercerta/infrastructure src/operce
 ```bash
 PYTHONPATH=.:src uv run pytest tests/unit -q
 PYTHONPATH=.:src uv run pytest tests/integration -q
-cd frontend && npm test -- --run && npm run build && cd ..
+cd web && npm run test:run && npm run build && cd ..
 docker compose up -d --build
 python3 scripts/verify_agent_compose.py
 docker compose restart api mcp

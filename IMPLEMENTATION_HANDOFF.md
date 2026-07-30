@@ -2,6 +2,8 @@
 
 ## 当前检查点
 
+- 2026-07-30：换机环境分支经 [PR #15](https://github.com/KXHXK/opercerta/pull/15) 合并为 main 提交 `42ba974`；对应 [main run 30525556998](https://github.com/KXHXK/opercerta/actions/runs/30525556998) 的 repository-safety、python-quality、frontend、backend-tests 和实际 compose-smoke 全部成功。compose-smoke 已执行镜像构建、三业务 Agent 轨迹与数据库副作用、API/MCP 重启、恢复验证和隔离卷清理。本地 main 已 fast-forward 到同一提交；WSL 的 Node `24.18.0`、npm `11.16.0`、uv `0.11.28` 可用，PostgreSQL/Redis/MCP/API 四服务均 healthy，readiness 为 database/checkpoint/MCP 全部 ready。当前后续分支为 `chore/release-readiness-20260730`，用于部署、评测、源码掌握和简历材料收口；公网可写后端和生产 IAM/限流/备份仍未实现，production release gate 保持 `CLOSED`，不启动 ForenTrail。
+
 - 2026-07-27：[PR #8](https://github.com/KXHXK/opercerta/pull/8) 已合并为 `609f8f7`；[main run 30203438564](https://github.com/KXHXK/opercerta/actions/runs/30203438564) 五项门禁全绿，包含完整后端、三业务/Agent 评测和实际 Compose 重启恢复。新版静态专题已从 preview `6a660a8f77aa692302ad00aa` 提升为 production deploy `6a6631d24958714a43ddc508`，线上资源 `index-Ckvsq13U.js` 的 SHA-256 与本地产物一致；上一 production `6a5e0bb5563acf4706a09c0d` 是回滚点。公开站点仍无可写 API；生产 IAM、公网后端、限流、备份、高可用、自动部署和 Release Tag 未完成，门禁 `CLOSED`。下一步进入用户手动演示、源码讲解与面试掌握验收，不启动 ForenTrail。
 
 - 2026-07-26 单根 Agent Loop 与业务对象 case 工作台 Task 0–11 已在本地完成。production runtime 仅构造一个根 LangGraph，三业务共享 Model↔MCP Observation 循环、确定性 Policy、HITL、批准后刷新、Kimi Verifier、binding、幂等写入与 readback；历史图只用于回归/等价测试。最终单元 `395 passed`，受影响隔离 PostgreSQL 集成 `32 passed`；Task 9 完整集成 `260 passed`，前端 19 文件 `60 passed` 且 build，Ruff/format/Mypy（85 个源文件）和仓库安全通过；隔离 Compose 三业务、RAG、数据库和 API/MCP 重启恢复通过。少量真实 Moonshot `kimi-k2.6` 的三业务只读、库存批准写入和无效 provider fail-closed 已通过，修复模型/MCP timeout 耦合、thinking/tool-call 不兼容和 Final/Verifier structured output 波动。证据见 `docs/release-evidence/single-root-agent-loop-case-workspace.md`，事故见 `docs/development-log/incidents/2026-07-26-kimi-tool-loop-compatibility.md`。所有修改尚未 commit/push/merge；公网可写后端与生产 IAM/限流/备份/自动发布仍未完成，门禁 `CLOSED`，不启动 ForenTrail。
@@ -65,7 +67,7 @@
 ## 新对话必须先做
 
 1. 先阅读 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md` 和最近每日日志，再阅读相关设计、计划、交接和 Git 状态。
-2. 只实施 OperCerta；规格一致性本地修复尚未 commit/push，下一步先由用户审查并批准提交，再运行 Draft PR 快速 Actions；之后才进入用户掌握检查、合并审批和 main Compose。生产门禁关闭前不启动其他项目。
+2. 只实施 OperCerta；换机环境 PR #15 与 main Compose 已全绿。下一步在 `chore/release-readiness-20260730` 先复核部署目标、公开边界与剩余生产治理，再依次完成部署/readiness、固定评测、源码掌握和简历材料。生产门禁关闭前不启动其他项目。
 3. 运行集成测试前，以不回显方式从已忽略 `.env.local` 加载 `OPERCERTA_DATABASE_URL`；不得提交该文件或任何凭据。
 4. 每个效果数字都保留基线、测试数据、测量脚本和结果证据；指标未测出前使用目标值或空值，不写成已实现结果。
 5. 使用公开或合成数据，从零编写全部代码和文档，不导入任何原单位源码、数据、截图、模型、品牌或内部规则。
@@ -79,4 +81,4 @@
 
 ## 可复制到新对话的启动语
 
-> 工作目录为本 OperCerta 仓库根目录。请先读取 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md`、最近每日日志、`README.md`、`IMPLEMENTATION_HANDOFF.md`、`docs/specs/` 下的四份设计文件及当前相关规格、计划和证据；Agent 核心 Draft PR #8 既有快速 Actions 已全绿，规格一致性本地修复尚未 commit/push，Real Kimi 完整 Compose 路径仍为 failed。下一步先审查并批准本地修复提交，再跑 PR CI、用户手动演示/口述掌握检查、合并审批和 main Compose。公开根路径只读、`/engineering` 仅 localhost、`/console` 仅本地真实演示；不复用旧公司材料，不虚构指标，不启动其他项目。
+> 工作目录为本 OperCerta 仓库根目录。请先读取 `DOCUMENT_INDEX.md`、`docs/development-log/current-state.md`、最近每日日志、`README.md`、`IMPLEMENTATION_HANDOFF.md`、`docs/specs/` 下的四份设计文件及当前相关规格、计划和证据；换机环境 PR #15 已合并为 main `42ba974`，main run `30525556998` 五项全绿并包含真实 Compose 构建、三业务数据库副作用和重启恢复，本机四服务 healthy。当前分支 `chore/release-readiness-20260730` 继续部署、评测、源码掌握和简历材料收口。公开根路径只读、`/engineering` 仅 localhost、`/console` 仅本地真实演示；不复用旧公司材料，不虚构指标，不启动其他项目。

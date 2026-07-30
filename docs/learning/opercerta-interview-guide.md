@@ -2,7 +2,7 @@
 
 ## 30 秒版本
 
-“OperCerta 是我用 FastAPI、LangGraph、最小 LangChain、FastMCP、PostgreSQL/pgvector、Redis 和 React 实现的可恢复运营处置 Agent。它跑通库存补货、设备维修、作业异常恢复三条闭环：Plan-and-Execute Agent 受控取证，人工审批绑定快照，批准后重新复核，再幂等写工单。567 条后端测试、9/9 Agent 冻结评测和真实 Compose 重启证明本地可靠性；真实 Kimi Tool Calling 的新端到端路径目前未通过严格规划契约，我把它保留为兼容性问题，没有用 Mock 冒充。公网可写后端仍未上线。”
+“OperCerta 是我用 FastAPI、LangGraph、最小 LangChain、FastMCP、PostgreSQL/pgvector、Redis 和 React 实现的可恢复运营处置 Agent。它跑通库存补货、设备维修、作业异常恢复三条闭环：确定性检测先发现异常，Plan-and-Execute Agent 受控取证，人工审批绑定快照，批准后重新复核，再幂等写工单。最新 main 有 665 条后端测试、19 个前端测试文件/60 条用例、9/9 Agent 冻结评测和真实 Compose 重启证据；Real Kimi 的三业务只读、库存批准写入和无效 provider fail-closed 做过少量代表验证。公网可写后端仍未上线。”
 
 ## 3 分钟版本
 
@@ -11,7 +11,7 @@
 3. **可靠性：** 非法输入在边界失败；审批用行锁保证一个胜者；审批绑定包含证据/规则/事实/计划哈希；批准后绕过缓存重读 MCP；工单用确定性幂等键和唯一约束保证重放不多写。
 4. **恢复：** 业务 operation UUID 同时作为 LangGraph thread ID。启动扫描非终态业务表，再从 checkpoint 继续；业务表是真相，checkpoint 是执行进度。
 5. **证据：** 原三业务 42 条固定合成评测之外，新增 9 类 Agent 轨迹评测，覆盖非法 schema、提示注入、未知工具、对象漂移、RAG 隔离、审批后漂移、竞态、幂等和重启；Compose 使用真实 FastEmbed/pgvector RAG。
-6. **边界：** 本地 Mock Agent 闭环和真实 RAG 已验证；新 Agent 核心的 Kimi Tool Calling 集成未通过。生产 IAM、公开 HTTPS 后端、高可用和 Release Tag 尚未完成。
+6. **边界：** 本地 Mock 闭环、真实 RAG/数据库/MCP 和少量 Kimi 兼容路径已验证；真实调用样本不足以形成准确率、SLA 或成本结论。生产 IAM、公开 HTTPS 后端、高可用和 Release Tag 尚未完成。
 
 ## 10 分钟深挖提纲
 
@@ -69,11 +69,11 @@ request ID 和 W3C trace context 关联 API/MCP；span 跨 LangGraph、Redis、S
 
 这说明 Mock 用于确定性契约回归，Real 用于供应商协议兼容；两类证据都必要但不能互相替代。
 
-## 更新后的 30 秒讲法
+## 偏业务岗位的 30 秒讲法
 
 OperCerta 不是把聊天框贴到工单系统上，而是解决仓储异常调查跨系统、证据易过期、审批与执行容易脱节的问题。确定性监控先发现库存、设备和任务异常；单根 LangGraph 让 LLM 在受控 ToolPolicy 下通过 MCP 循环取证，结合 pgvector SOP 给建议，再由确定性规则和人工审批决定是否执行。批准后系统绕过 Redis 重新取证，由 Verifier 和审批 binding 双重校验，最后通过 PostgreSQL 唯一约束幂等写工单，并把 Trace、审计与恢复证据反馈到 React 工作台。
 
-## 更新后的 3 分钟讲法
+## 偏业务岗位的 3 分钟讲法
 
 先讲业务痛点：传统工单的难点不是表单录入，而是异常事实分散、调查步骤依赖经验、审批等待期间事实变化，以及重试可能重复落单。OperCerta 因此把“可解释调查”交给 LLM，把“能否写入”留给确定性安全内核。
 
@@ -104,11 +104,11 @@ OperCerta 不是把聊天框贴到工单系统上，而是解决仓储异常调�
 ## 面试现场演示顺序
 
 1. 先讲 30 秒架构和边界；
-2. 在同一页面做一次只读 query，说明零审批零工单；
-3. 做设备或作业创建处置，展示等待审批；
-4. 批准并展示唯一工单、审计和绑定；
+2. 点击“扫描业务异常”，解释 6 次只读 MCP 与确定性信号规则；
+3. 从设备或作业 case 点击“启动 Agent 调查”，展示 Goal、Tool/RAG、Trace 与等待审批；
+4. 批准并展示 Verifier、唯一工单、审计和绑定；
 5. 展示一个自动化测试或 42 条报告，而不是滚动大量终端；
-6. 主动说明真实模型只做过本地代表性验证，公网后端/生产 IAM 仍未完成。
+6. 主动说明三业务只读、库存批准写入和无效 provider fail-closed 只做过本地代表性验证，公网后端/生产 IAM 仍未完成。
 
 ## 个人掌握检查
 

@@ -1,5 +1,14 @@
 # GitHub Actions 分层 CI：远程验证证据
 
+## 2026-07-30 换机收口与最新 main 总门禁
+
+- [PR #15](https://github.com/KXHXK/opercerta/pull/15) 以普通 merge commit 合入 main `42ba9744ca91b4d6e2ade7dd81d6a7752ec40a1c`，未强推、未绕过检查。
+- 对应 [main run 30525556998](https://github.com/KXHXK/opercerta/actions/runs/30525556998) 的 `repository-safety`、`python-quality`、`frontend`、`backend-tests`、`compose-smoke` 五个 job 全部为 `success`。
+- 远程日志记录完整后端 `665 passed in 75.48s`；三业务契约评测 `1 passed`；冻结 Agent 安全/恢复评测 `9/9 passed`。前端为 19 个测试文件、60 条用例全部通过，Vite production build 成功。
+- `compose-smoke` 从隔离环境和新数据卷构建、启动服务，验证 Agent 轨迹与三业务数据库副作用，重启 API/MCP 后再验证恢复，最后无条件删除临时服务、网络和卷。
+- 本机随后 fast-forward 到同一 main，并在不删除原开发卷的前提下恢复 PostgreSQL、Redis、MCP、API 四服务；四者均 healthy，readiness 返回 database/checkpoint/MCP 全部 ready。
+- 以上证据关闭换机环境风险和单节点发布候选门禁；它不证明公网可写后端、生产 IAM、限流、备份、高可用或 SLA。
+
 ## 2026-07-27 PR #8 与 main 单根 Agent 总门禁
 
 - [PR #8](https://github.com/KXHXK/opercerta/pull/8) head `d22d247db2329f81f927866dde4ff3f59d5a2f8d` 在合并前状态为 `CLEAN`；PR run [30201946098](https://github.com/KXHXK/opercerta/actions/runs/30201946098) 的 `repository-safety`、`python-quality`、`backend-tests`、`frontend` 全部成功，`compose-smoke` 按 PR 条件跳过。
