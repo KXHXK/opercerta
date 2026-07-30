@@ -187,7 +187,7 @@ def test_current_demo_and_learning_docs_match_the_single_root_agent_release() ->
         assert "三业务只读、库存批准写入和无效 provider fail-closed" in content
         assert "新 Agent 核心的 Real Kimi Tool Calling 代表 query 为 failed" not in content
 
-    assert "665 条后端测试" in interview
+    assert "667 条后端测试" in interview
     assert ".worktrees/agent-core-implementation" not in manual
     assert "cd frontend" not in manual
     assert "cd web" in manual

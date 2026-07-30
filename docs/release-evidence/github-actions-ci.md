@@ -1,6 +1,14 @@
 # GitHub Actions 分层 CI：远程验证证据
 
-## 2026-07-30 换机收口与最新 main 总门禁
+## 2026-07-30 发布准备 PR #17 与最新 main 总门禁
+
+- [PR #17](https://github.com/KXHXK/opercerta/pull/17) 的 `repository-safety`、`python-quality`、`frontend`、`backend-tests` 全部成功，`compose-smoke` 按 PR 事件规则跳过；随后以普通 merge commit `b6aa5fa13c7645bd3351092fc23b6c3e132a284d` 合入 main，未绕过检查。
+- 对应 [main run 30539160493](https://github.com/KXHXK/opercerta/actions/runs/30539160493) 的五个 job 全部为 `success`。
+- 远程日志记录完整后端 `667 passed in 73.95s`、三业务契约评测 `1 passed in 8.61s`、冻结 Agent 安全/恢复评测 `9/9 passed`；前端 19 个测试文件、60 条用例和 Vite production build 均成功。
+- `compose-smoke` 在隔离环境构建并启动 PostgreSQL、Redis、MCP、API，验证 Agent 轨迹与三业务数据库副作用，重启 API/MCP 后执行恢复检查，最后删除临时服务、网络和数据卷；总 job 用时约 1 分 10 秒。
+- 本轮证明 main 的单节点发布候选和静态求职展示可晋级；不证明公网可写后端、生产 IAM、限流、备份、高可用或 SLA。
+
+## 2026-07-30 换机收口 main 总门禁
 
 - [PR #15](https://github.com/KXHXK/opercerta/pull/15) 以普通 merge commit 合入 main `42ba9744ca91b4d6e2ade7dd81d6a7752ec40a1c`，未强推、未绕过检查。
 - 对应 [main run 30525556998](https://github.com/KXHXK/opercerta/actions/runs/30525556998) 的 `repository-safety`、`python-quality`、`frontend`、`backend-tests`、`compose-smoke` 五个 job 全部为 `success`。

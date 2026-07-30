@@ -1,5 +1,13 @@
 # OperCerta 当前状态
 
+## 2026-07-30：发布准备已合并，静态 Production 已晋级
+
+[PR #17](https://github.com/KXHXK/opercerta/pull/17) 全部必需检查通过，并以普通 merge commit `b6aa5fa13c7645bd3351092fc23b6c3e132a284d` 合入 main。[main run 30539160493](https://github.com/KXHXK/opercerta/actions/runs/30539160493) 五项全绿：完整后端 `667 passed`、三业务契约 `1 passed`、冻结 Agent 评测 `9/9`、前端 19 文件/60 条，以及实际 Compose 构建、三业务数据库副作用、API/MCP 重启恢复与清理。
+
+已验证 Preview `6a6b17cf496c38056f737264` 通过 Netlify 官方 `restoreSiteDeploy` 晋级为 production；公网根页、`/console`、静态 API 回退均为 `200 text/html`，六项安全响应头和 JS SHA-256 与 main 本地产物一致。上一 production `6a6631d24958714a43ddc508` 保留为回滚点。
+
+当前完成的是“本地完整三业务 Agent 闭环 + 公开静态求职展示”，不是公网可写生产系统。下一优先级是固定项目评测口径、用户源码级掌握验收、演示素材与简历材料；公网 FastAPI、生产 IAM、限流、备份、高可用和自动部署仍未完成，产品 production release gate 继续 `CLOSED`，不启动 ForenTrail。
+
 ## 2026-07-30：换机环境已合并 main，远程与本机 Compose 门禁通过
 
 PR #15 已以普通 merge commit 合并为 main `42ba974`，未删除分支、未强推、未绕过门禁。对应 main run `30525556998` 五个 job 全部成功：repository-safety、python-quality、frontend、backend-tests，以及只在 main push 执行的 compose-smoke。compose-smoke 真实完成镜像构建启动、Agent 轨迹与数据库副作用验证、API/MCP 重启、恢复验证和隔离卷清理。
