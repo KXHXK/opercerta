@@ -10,7 +10,16 @@
 - 真实 HTTP 核验：`GET /`、`GET /console`、`GET /api/v1/auth/demo-token` 均为 `200 text/html`。第三项证明该站仍是 SPA 静态回退，没有伪装公开业务 API。
 - Preview 已实际返回 `Content-Security-Policy`、`Cross-Origin-Opener-Policy`、`Permissions-Policy`、`Referrer-Policy`、`X-Content-Type-Options` 和 `X-Frame-Options`；Preview 自带 `X-Robots-Tag: noindex`，符合预览环境预期。
 - 线上 JS 为 `index-Ckvsq13U.js`，大小 `254,845 bytes`，SHA-256 为 `dcd31a4d6e1c53f06c1a16cc6fb65f7f5d347926a078dc56fe08606c8052abb1`，与本地已验证产物完全一致。
-- 当前仅完成 Preview 验证，尚未替换 production。FastAPI、LangGraph、MCP、PostgreSQL、Redis 与模型密钥仍未部署到公网；OperCerta 原产品 release gate 保持 `CLOSED`。
+- 在该核验时点仅完成 Preview，尚未替换 production。FastAPI、LangGraph、MCP、PostgreSQL、Redis 与模型密钥仍未部署到公网；OperCerta 原产品 release gate 保持 `CLOSED`。
+
+### 主线门禁与 Production 晋级
+
+- [PR #17](https://github.com/KXHXK/opercerta/pull/17) 全部必需检查通过，并以普通 merge commit `b6aa5fa13c7645bd3351092fc23b6c3e132a284d` 合入 main。
+- [main run 30539160493](https://github.com/KXHXK/opercerta/actions/runs/30539160493) 五项全部成功：完整后端 `667 passed`、三业务契约 `1 passed`、冻结 Agent 评测 `9/9`、前端 19 文件/60 条，以及真实 Compose 构建、数据库副作用、API/MCP 重启恢复和清理。
+- Windows CLI 直接执行 `netlify deploy --prod` 返回 `403 Forbidden`，没有替换线上版本。站点 owner、active 状态和 `prevent_non_git_prod_deploys=false` 均经 API 核对；随后使用 Netlify 官方、可回滚的 `restoreSiteDeploy` 把已验证 Preview 晋级，没有重传或重新构建产物。
+- 当前 production deploy：`6a6b17cf496c38056f737264`；发布时间：`2026-07-30T11:54:34.258Z`；上一 production `6a6631d24958714a43ddc508` 保留为回滚目标。
+- 生产根页、`/console` 与 `/api/v1/auth/demo-token` 均为 `200 text/html`；六项安全响应头全部存在。线上 JS 仍为 `254,845 bytes`，SHA-256 仍为 `dcd31a4d6e1c53f06c1a16cc6fb65f7f5d347926a078dc56fe08606c8052abb1`。
+- 这里的 production 仅指 Netlify 静态站生产别名。公网 FastAPI、LangGraph、MCP、PostgreSQL、Redis、模型密钥和生产身份仍未发布，OperCerta 产品 release gate 继续 `CLOSED`。
 
 ## 2026-07-27 单根 Agent 版本生产替换
 

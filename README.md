@@ -14,7 +14,7 @@ and audit-focused observability in a reproducible reference implementation.
 
 OperCerta 是面向库存异常、设备告警和运营工单的智能运营处置 Agent 独立作品仓库。
 
-> 当前状态：库存补货、设备维修、作业异常恢复三条 FastAPI + 单根 LangGraph + 最小 LangChain + FastMCP + PostgreSQL/pgvector 闭环、演示 JWT/RBAC、Agent Trace、本地 React 控制台、Redis 只读证据缓存和真实 FastEmbed RAG 已有自动化证据。少量 Moonshot AI `kimi-k2.6` 代表验证覆盖三业务只读、库存批准写入和无效 provider fail-closed，未回退 Mock 冒充成功。[PR #8](https://github.com/KXHXK/opercerta/pull/8) 合入单根 Agent 架构；最新 [main CI](https://github.com/KXHXK/opercerta/actions/runs/30525556998) 在 `42ba974` 上通过 665 条后端测试、19 个前端测试文件/60 条用例、9/9 冻结 Agent 评测和真实 Compose 构建、三业务数据库副作用与 API/MCP 重启恢复。新版[零成本静态项目专题](https://opercerta-kxh.netlify.app)已于 2026-07-27 发布 deploy `6a6631d24958714a43ddc508`，[单页作品集](https://kxh-agent-portfolio.netlify.app)继续可只读访问；公开页面不提供后端写入口。生产身份、交互 HTTPS 后端、自动部署和公开 API 尚未完成，生产发布门禁：`CLOSED`。
+> 当前状态：库存补货、设备维修、作业异常恢复三条 FastAPI + 单根 LangGraph + 最小 LangChain + FastMCP + PostgreSQL/pgvector 闭环、演示 JWT/RBAC、Agent Trace、本地 React 控制台、Redis 只读证据缓存和真实 FastEmbed RAG 已有自动化证据。少量 Moonshot AI `kimi-k2.6` 代表验证覆盖三业务只读、库存批准写入和无效 provider fail-closed，未回退 Mock 冒充成功。[PR #17](https://github.com/KXHXK/opercerta/pull/17) 合入发布准备修订；最新 [main CI](https://github.com/KXHXK/opercerta/actions/runs/30539160493) 在 `b6aa5fa` 上通过 667 条后端测试、19 个前端测试文件/60 条用例、9/9 冻结 Agent 评测和真实 Compose 构建、三业务数据库副作用与 API/MCP 重启恢复。[零成本静态项目专题](https://opercerta-kxh.netlify.app)已于 2026-07-30 晋级 deploy `6a6b17cf496c38056f737264`，安全头和资源 SHA-256 已经公网复验；[单页作品集](https://kxh-agent-portfolio.netlify.app)继续可只读访问。公开页面不提供后端写入口；生产身份、交互 HTTPS 后端、自动部署和公开 API 尚未完成，生产发布门禁：`CLOSED`。
 
 ## 当前已验证范围
 
@@ -34,7 +34,7 @@ OperCerta 是面向库存异常、设备告警和运营工单的智能运营处�
 - Netlify 公开静态专题、真实部署资源指纹和证据图片响应验证；该站点不连接 API、数据库或 MCP。
 - 新 Plan-and-Execute Agent 的 Real Kimi 首轮三业务报告为 failed；修复模型/MCP timeout 耦合、thinking/tool-call 兼容和内部结构化提交边界后，三业务只读、库存批准写入和无效 provider fail-closed 代表路径通过。首轮失败报告继续保留为修复前证据；少量通过不解释为准确率、SLA 或成本指标。
 - 冻结 Agent 轨迹评测 9/9，覆盖非法 schema、提示注入、未知工具、对象漂移、RAG 隔离、批准后事实漂移、审批竞态、幂等写入与关键重启；这不是生产准确率。
-- 最新 main 求职展示门禁：后端 665 条测试、前端 19 个测试文件/60 条用例、三业务契约评测、冻结 Agent 评测 9/9、Ruff、mypy、仓库安全和 Compose 重启恢复全部通过；公开专题与本机构建 JS 的 SHA-256 一致。固定用例只证明已声明的合成契约，不是生产准确率或 SLA。
+- 最新 main 求职展示门禁：后端 667 条测试、前端 19 个测试文件/60 条用例、三业务契约评测、冻结 Agent 评测 9/9、Ruff、mypy、仓库安全和 Compose 重启恢复全部通过；公开专题与本机构建 JS 的 SHA-256 一致。固定用例只证明已声明的合成契约，不是生产准确率或 SLA。
 
 新 Agent 核心的修复前失败边界见 [Agent 核心架构交付证据](docs/release-evidence/agent-core-architecture.md)，修复后的单根路径与真实 Kimi 代表通过项见 [单根 Agent Loop 与 Case 工作台证据](docs/release-evidence/single-root-agent-loop-case-workspace.md)。旧阶段报告保留为时间顺序证据，不能覆盖后续结果。中文学习入口为 [核心技术手册](docs/learning/opercerta-core-technical-guide.md)、[手动实验手册](docs/learning/opercerta-manual-experiment-guide.md)和[面试讲解](docs/learning/opercerta-interview-guide.md)。这些不是生产 IAM、交互 HTTPS 后端或公开 API 完成声明。
 

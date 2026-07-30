@@ -2,7 +2,7 @@
 
 ## 30 秒版本
 
-“OperCerta 是我用 FastAPI、LangGraph、最小 LangChain、FastMCP、PostgreSQL/pgvector、Redis 和 React 实现的可恢复运营处置 Agent。它跑通库存补货、设备维修、作业异常恢复三条闭环：确定性检测先发现异常，Plan-and-Execute Agent 受控取证，人工审批绑定快照，批准后重新复核，再幂等写工单。最新 main 有 665 条后端测试、19 个前端测试文件/60 条用例、9/9 Agent 冻结评测和真实 Compose 重启证据；Real Kimi 的三业务只读、库存批准写入和无效 provider fail-closed 做过少量代表验证。公网可写后端仍未上线。”
+“OperCerta 是我用 FastAPI、LangGraph、最小 LangChain、FastMCP、PostgreSQL/pgvector、Redis 和 React 实现的可恢复运营处置 Agent。它跑通库存补货、设备维修、作业异常恢复三条闭环：确定性检测先发现异常，Plan-and-Execute Agent 受控取证，人工审批绑定快照，批准后重新复核，再幂等写工单。最新 main 有 667 条后端测试、19 个前端测试文件/60 条用例、9/9 Agent 冻结评测和真实 Compose 重启证据；Real Kimi 的三业务只读、库存批准写入和无效 provider fail-closed 做过少量代表验证。公网可写后端仍未上线。”
 
 ## 3 分钟版本
 
