@@ -26,7 +26,7 @@ Typora 显示：首次运行 `powershell -ExecutionPolicy Bypass -File scripts/i
 
 | 序号 | 文件名 | 路径 | 用途（详细） | 状态 | 日期 |
 | ---: | --- | --- | --- | --- | --- |
-| 1 | `README.md` | `README.md` | 项目总入口，说明三业务场景、核心技术栈、运行方式、演示边界、学习入口和发布门禁，供开发者、审阅者与面试官快速了解 OperCerta。 | 已同步三业务、本地发布候选、学习入口与剩余门禁 | 2026-07-14 |
+| 1 | `README.md` | `README.md` | 项目总入口，说明三业务场景、核心技术栈、运行方式、演示边界、学习入口和发布门禁，供开发者、审阅者与面试官快速了解 OperCerta。 | 已同步最新 main 665 条后端、60 条前端、9/9 Agent、Real Kimi 代表范围与剩余门禁 | 2026-07-14 |
 | 2 | `IMPLEMENTATION_HANDOFF.md` | `IMPLEMENTATION_HANDOFF.md` | 跨对话和上下文压缩后的实施交接文件，记录当前分支、已验证事实、未完成事项、下一步动作及禁止越过的发布边界。 | 已同步 PR #15、main Compose、换机收口与发布准备分支 | 2026-07-14 |
 | 3 | `DOCUMENT_INDEX.md` | `DOCUMENT_INDEX.md` | OperCerta 全部项目文档的唯一总登记表，用于按文件名、路径、用途、状态和日期统一检索、复查与交接。 | 当前根工作树 115 份文档已完整登记；另保留 6 个旧 worktree 的 456 条历史记录 | 2026-07-15 |
 | 4 | `2026-07-14-agent-project-naming-design.md` | `docs/specs/2026-07-14-agent-project-naming-design.md` | 定义 OperCerta、ForenTrail、SiteVerum、Federune 四个项目的命名原则、语义边界与品牌一致性，防止项目职责和名称漂移。 | 已冻结为命名基线 | 2026-07-14 |
@@ -83,14 +83,14 @@ Typora 显示：首次运行 `powershell -ExecutionPolicy Bypass -File scripts/i
 | 55 | `interview-casebook.md` | `docs/development-log/interview-casebook.md` | 将真实实施问题整理为面试案例，按现象、根因、诊断、修复、验证和经验总结记录可讨论的工程话题；覆盖 Agent 契约、数据库可靠性、跨平台环境、供应链和发布证据边界。 | 已新增 `.gitattributes` 与既有 CRLF 的差异、冷构建和候选镜像分层举证案例 | 2026-07-17 |
 | 56 | `learning-method.md` | `docs/development-log/learning-method.md` | 规定源码阅读、手动命令、单变量实验、复述、故障演练和面试问答结合的项目掌握方法。 | 已加入三业务学习与手动闭环建议；需持续实践 | 2026-07-17 |
 | 57 | `opercerta-core-technical-guide.md` | `docs/learning/opercerta-core-technical-guide.md` | 从一次业务请求出发解释 FastAPI、LangGraph、MCP、PostgreSQL、审批、幂等、恢复、容器和可观测性的代码链路与底层思想。 | 本地学习材料已完成；文件名已统一为英文路径，需结合源码实践 | 2026-07-20 |
-| 58 | `opercerta-manual-experiment-guide.md` | `docs/learning/opercerta-manual-experiment-guide.md` | 提供 WSL2/Compose 启停、三业务操作、数据库核对、MCP 调用、故障注入和恢复验证的可复制命令与观察点。 | 已记录命令；文件名已统一为英文路径，用户掌握检查待继续 | 2026-07-20 |
-| 59 | `opercerta-interview-guide.md` | `docs/learning/opercerta-interview-guide.md` | 提供 30 秒、3 分钟、10 分钟项目介绍、架构解释、技术取舍、可靠性证据和常见追问回答框架。 | 材料已完成；文件名已统一为英文路径，需口述演练和源码补强 | 2026-07-20 |
-| 60 | `demo-script.md` | `docs/demo-script.md` | 规定面向 HR 与面试官的展示顺序、演示前检查、业务闭环操作、异常备用方案和诚实边界。 | 静态展示脚本可用；本地三业务演示需按环境复验 | 2026-07-18 |
+| 58 | `opercerta-manual-experiment-guide.md` | `docs/learning/opercerta-manual-experiment-guide.md` | 提供 WSL2/Compose 启停、三业务操作、数据库核对、MCP 调用、故障注入和恢复验证的可复制命令与观察点。 | 已同步 signal → case → Agent 调查主流程和根工作树/web 路径；用户掌握检查待继续 | 2026-07-20 |
+| 59 | `opercerta-interview-guide.md` | `docs/learning/opercerta-interview-guide.md` | 提供 30 秒、3 分钟、10 分钟项目介绍、架构解释、技术取舍、可靠性证据和常见追问回答框架。 | 已统一最新 CI 数量与 Real Kimi 先失败后通过口径；需口述演练和源码补强 | 2026-07-20 |
+| 60 | `demo-script.md` | `docs/demo-script.md` | 规定面向 HR 与面试官的展示顺序、演示前检查、业务闭环操作、异常备用方案和诚实边界。 | 已同步扫描异常、case 调查、审批、Verifier 与幂等工单流程；待用户实演 | 2026-07-18 |
 | 61 | `approval-atomicity.md` | `docs/release-evidence/approval-atomicity.md` | 保存 PostgreSQL 迁移、审批原子更新、并发批准竞态和业务事实绑定的实际测试命令与结果。 | 本地证据已归档；不代表生产发布 | 2026-07-15 |
 | 62 | `cache-tracing-model-adapter.md` | `docs/release-evidence/cache-tracing-model-adapter.md` | 保存 Redis 只读缓存、审批后绕过、OpenTelemetry 脱敏关联、严格真实模型适配器及未验证边界的阶段证据。 | 阶段证据已归档；真实模型另有独立证据 | 2026-07-20 |
 | 63 | `demo-jwt-rbac.md` | `docs/release-evidence/demo-jwt-rbac.md` | 保存本地 JWT 签发、四角色权限矩阵、审批身份绑定、安全拒绝和 Compose 回归结果。 | 本地验证通过；不代表生产身份系统 | 2026-07-18 |
 | 64 | `docker-linux-runtime.md` | `docs/release-evidence/docker-linux-runtime.md` | 保存 WSL2 Ubuntu 下 Compose 构建、服务健康、数据库初始化、业务 smoke 和重启恢复的实际输出。 | 单节点本地验证通过；发布门禁仍关闭 | 2026-07-17 |
-| 65 | `github-actions-ci.md` | `docs/release-evidence/github-actions-ci.md` | 保存 GitHub PR/main Actions、后端与前端测试、PostgreSQL/Compose smoke、仓库可见性变化和分支保护能力核验。 | 远程 CI 已通过；main 保护尚未配置 | 2026-07-18 |
+| 65 | `github-actions-ci.md` | `docs/release-evidence/github-actions-ci.md` | 保存 GitHub PR/main Actions、后端与前端测试、PostgreSQL/Compose smoke、仓库可见性变化和分支保护能力核验。 | 已追加 PR #15、main run 30525556998、665/60/9-of-9 与 Compose 重启恢复证据；main 保护尚未配置 | 2026-07-18 |
 | 66 | `inventory-replenishment-vertical-slice.md` | `docs/release-evidence/inventory-replenishment-vertical-slice.md` | 汇总库存查询、规则判断、审批、执行、唯一工单、审计和 API 的首条端到端后端闭环证据。 | Windows 本地后端闭环已验证；发布门禁仍关闭 | 2026-07-16 |
 | 67 | `langgraph-restart-recovery.md` | `docs/release-evidence/langgraph-restart-recovery.md` | 保存 LangGraph 四点 A/B 重启测试、checkpointer 状态、审批中断恢复和副作用不重复的数据库断言。 | 本地恢复证据已归档；不代表生产高可用 | 2026-07-16 |
 | 68 | `native-postgres-environment.md` | `docs/release-evidence/native-postgres-environment.md` | 保存 Windows 原生 PostgreSQL 版本、服务、数据库、角色、认证规则和连接验证结果。 | 历史环境证据已归档；当前主运行时已迁移 | 2026-07-15 |
@@ -139,7 +139,7 @@ Typora 显示：首次运行 `powershell -ExecutionPolicy Bypass -File scripts/i
 | 111 | `reporter-v1.md` | `src/opercerta/prompts/reporter-v1.md` | Reporter 角色版本化 Prompt，将已验证事实、工具结果和终态组织为面向业务用户的可解释报告。 | v1 已实施；不得把未验证内容写成事实 | 2026-07-21 |
 | 112 | `tool-loop-v1.md` | `src/opercerta/prompts/tool-loop-v1.md` | Tool Loop 主 Prompt，规定模型在 Observation 后选择继续调用只读工具、请求审批或结束，并约束 JSON 工具协议。 | v1 已用于单根 Agent Loop；真实 Kimi 兼容边界另有事件记录 | 2026-07-26 |
 | 113 | `verifier-v1.md` | `src/opercerta/prompts/verifier-v1.md` | Verifier 角色版本化 Prompt，用于批准后重新核对事实、识别漂移并决定执行、重审批或安全终止。 | v1 已实施并有事实漂移回归测试 | 2026-07-21 |
-| 114 | `2026-07-30.md` | `docs/development-log/daily/2026-07-30.md` | 记录新电脑环境最终收口、WSL 登录 shell Node PATH 的 TDD 修复、冻结依赖国内镜像恢复、DrvFS 权限边界、已有业务卷幂等语义、PR 合并态索引故障，以及 main Compose 重启恢复门禁。 | PR #15 已合并，main 五项 CI 与本机四服务健康通过；部署和生产治理待继续 | 2026-07-30 |
+| 114 | `2026-07-30.md` | `docs/development-log/daily/2026-07-30.md` | 记录新电脑环境最终收口、WSL 登录 shell Node PATH 的 TDD 修复、冻结依赖国内镜像恢复、DrvFS 权限边界、PR/main 门禁，以及发布材料防漂移与静态安全头修订。 | PR #15/main 五项 CI 与本机四服务健康通过；求职材料口径已校正，公网安全头待部署验证 | 2026-07-30 |
 | 115 | `CONTRIBUTING.md` | `CONTRIBUTING.md` | 规定 OperCerta 的分支、最小变更、测试、PR 说明、安全和隐私贡献流程，确保外部协作不引入凭据、客户数据或未经评审的架构扩张。 | 已由 main 的 PR #16 引入；在环境分支同步登记以保证合并态索引一致 | 2026-07-30 |
 
 ## 历史 Worktree：agent-core-architecture（82 条记录）

@@ -155,7 +155,7 @@ def test_agent_delivery_documents_cover_architecture_learning_and_truthful_evide
     assert "Plan-and-Execute" in interview
     assert "六层 Agent" in interview
     assert "真实 Kimi Tool Calling" in interview
-    assert "未通过" in interview
+    assert "三业务只读、库存批准写入和无效 provider fail-closed" in interview
 
     for phrase in (
         "642d3ba",
@@ -168,3 +168,26 @@ def test_agent_delivery_documents_cover_architecture_learning_and_truthful_evide
         "CLOSED",
     ):
         assert phrase in evidence
+
+
+def test_current_demo_and_learning_docs_match_the_single_root_agent_release() -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    demo = (ROOT / "docs" / "demo-script.md").read_text(encoding="utf-8")
+    manual = (ROOT / "docs" / "learning" / "opercerta-manual-experiment-guide.md").read_text(
+        encoding="utf-8"
+    )
+    interview = (ROOT / "docs" / "learning" / "opercerta-interview-guide.md").read_text(
+        encoding="utf-8"
+    )
+
+    for content in (demo, manual):
+        assert "扫描业务异常" in content
+        assert "启动 Agent 调查" in content
+    for content in (readme, demo, interview):
+        assert "三业务只读、库存批准写入和无效 provider fail-closed" in content
+        assert "新 Agent 核心的 Real Kimi Tool Calling 代表 query 为 failed" not in content
+
+    assert "665 条后端测试" in interview
+    assert ".worktrees/agent-core-implementation" not in manual
+    assert "cd frontend" not in manual
+    assert "cd web" in manual

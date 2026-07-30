@@ -13,6 +13,20 @@ def test_netlify_build_is_static_and_supports_console_route() -> None:
     assert 'to = "/index.html"' in content
 
 
+def test_netlify_static_showcase_sets_browser_security_headers() -> None:
+    content = (ROOT / "netlify.toml").read_text(encoding="utf-8")
+
+    for header in (
+        "Content-Security-Policy",
+        "Cross-Origin-Opener-Policy",
+        "Permissions-Policy",
+        "Referrer-Policy",
+        "X-Content-Type-Options",
+        "X-Frame-Options",
+    ):
+        assert header in content
+
+
 def test_vite_local_proxy_targets_the_compose_api_port() -> None:
     content = (ROOT / "web" / "vite.config.ts").read_text(encoding="utf-8")
 
