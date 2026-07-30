@@ -109,8 +109,10 @@ if [[ ! -x "${node_home}/bin/node" ]]; then
 fi
 
 node_path_line='export PATH="$HOME/.local/opt/node-v24.18.0-linux-x64/bin:$HOME/.local/bin:$PATH"'
-grep -Fqx "${node_path_line}" "${HOME}/.bashrc" || \
-  printf '\n%s\n' "${node_path_line}" >>"${HOME}/.bashrc"
+for shell_profile in "${HOME}/.bashrc" "${HOME}/.profile"; do
+  grep -Fqx "${node_path_line}" "${shell_profile}" || \
+    printf '\n%s\n' "${node_path_line}" >>"${shell_profile}"
+done
 export PATH="${node_home}/bin:${HOME}/.local/bin:${PATH}"
 
 [[ "$(node --version)" == "v${NODE_VERSION}" ]] || \

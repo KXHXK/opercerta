@@ -28,6 +28,13 @@ def test_wsl_bootstrap_pins_the_project_development_toolchain() -> None:
     assert "npm --version" in text
 
 
+def test_wsl_bootstrap_persists_node_path_for_interactive_and_login_shells() -> None:
+    text = bootstrap_text()
+
+    assert '"${HOME}/.bashrc"' in text
+    assert '"${HOME}/.profile"' in text
+
+
 def test_wsl_bootstrap_uses_verified_domestic_download_boundaries() -> None:
     text = bootstrap_text()
 

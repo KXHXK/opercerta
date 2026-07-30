@@ -1,5 +1,13 @@
 # OperCerta 当前状态
 
+## 2026-07-30：换机环境已完成隔离业务门禁，等待 PR #15 新鲜 CI
+
+当前分支 `chore/new-machine-env-20260729` 与远端同名分支在本轮修改前为 `ahead 0 / behind 0`，Draft PR #15 的 repository-safety、python-quality、backend-tests、frontend 已有绿色基线。新电脑固定工具链为 WSL2 Ubuntu 26.04、uv `0.11.28`、项目 Python `3.12.13`、Node `24.18.0`、npm `11.16.0`、Docker `29.1.3` 和 Compose `2.40.3`。
+
+换机收口发现 Node PATH 只持久化到 `.bashrc`，导致非交互 `bash -lc` 找不到 Node。已按 TDD 把引导契约修复为同时维护 `.bashrc` 与 `.profile`，真实登录 shell 和定向 7 条测试均通过。新机空虚拟环境使用从冻结锁导出的带 hash 临时清单和清华 PyPI 镜像恢复 109 个依赖，未改写 `uv.lock`。DrvFS chmod 不持久化继续作为已知约束管理，不在本轮扩大系统配置变更。
+
+已有开发卷因三条 signal 已完成而返回预期幂等 `409`，不能复用为首次调查测试。改用独立 Compose project 和新鲜临时卷后，三业务 Agent、RAG/Trace、审批、Verifier、工单数据库断言、API/MCP 重启及 recovery-only 全部通过，退出码 0；原开发卷未删除并已恢复四服务 healthy。当前 Ruff、216 文件格式、Mypy 85 个源文件、仓库安全与文档索引门禁均通过。下一步提交本轮修复并等待 PR #15 新鲜 CI；PR 合并后再执行 main Compose、部署与掌握验收。空缓存 Docker 冷构建和公网生产治理仍未关闭，production release gate 保持 `CLOSED`，不启动 ForenTrail。
+
 ## 2026-07-29：换机本地门禁已通过，冷缓存构建与远程 PR 门禁待关闭
 
 当前分支 `chore/new-machine-env-20260729` 已通过普通 fast-forward push 把本地门禁提交 `08e113b` 同步到远端同名分支。此前的连接重置来自受限命令环境；获得窄范围 `git push` 网络授权后推送成功。GitHub App 因安装权限不足无法创建 Draft PR，内置浏览器连接 GitHub 超时，本机 `gh` 已安装但尚未登录，因此 PR 与远程 Actions 门禁仍待完成。换机后的固定工具链可用：WSL2 Ubuntu 26.04、Docker/Compose、uv `0.11.28`、项目 Python `3.12.13`、Node `24.18.0` 与 npm `11.16.0`。后端在随机短生命周期 pgvector 容器上完成 `664 passed`，固定业务评估 `1 passed`，Agent 评估 `9/9 passed`；前端完成 `19` 个测试文件、`60` 条用例和 production build。PyJWT 测试弱密钥警告已消除并以 warning-as-error 定向复验。
