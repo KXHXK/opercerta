@@ -124,10 +124,11 @@ def test_public_entry_documents_show_one_language_and_use_standard_switch_links(
     contributing = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
     contributing_zh = (ROOT / "CONTRIBUTING.zh-CN.md").read_text(encoding="utf-8")
 
-    assert "**English**｜[简体中文](README.zh-CN.md)" in readme
-    assert "[English](README.md)｜**简体中文**" in readme_zh
-    assert "**English**｜[简体中文](CONTRIBUTING.zh-CN.md)" in contributing
-    assert "[English](CONTRIBUTING.md)｜**简体中文**" in contributing_zh
+    separator = "\uff5c"
+    assert f"**English**{separator}[简体中文](README.zh-CN.md)" in readme
+    assert f"[English](README.md){separator}**简体中文**" in readme_zh
+    assert f"**English**{separator}[简体中文](CONTRIBUTING.zh-CN.md)" in contributing
+    assert f"[English](CONTRIBUTING.md){separator}**简体中文**" in contributing_zh
     for content in (readme, readme_zh, contributing, contributing_zh):
         assert "<details" not in content
         assert "<summary" not in content
