@@ -1,63 +1,244 @@
-# OperCerta | Auditable Operations Agent
+# OperCerta
 
-OperCerta is a controlled AI operations agent for inventory exceptions,
-equipment alerts, and operational work orders. It combines FastAPI,
-LangGraph, FastMCP, PostgreSQL, approval checkpoints, idempotent tool calls,
-and audit-focused observability in a reproducible reference implementation.
+**English** | [简体中文](README.zh-CN.md)
 
-- [Project showcase](https://opercerta-kxh.netlify.app)
-- [Portfolio overview](https://kxh-agent-portfolio.netlify.app)
-- [Showcase pre-release](https://github.com/KXHXK/opercerta/releases/tag/v0.1.0-showcase.1)
-- Status: engineering showcase; the public site is read-only and the
-  production release gate remains closed.
+[![OperCerta CI](https://github.com/KXHXK/opercerta/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/KXHXK/opercerta/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=111)
+![Docker Compose](https://img.shields.io/badge/Docker_Compose-supported-2496ED?logo=docker&logoColor=white)
 
-## 中文说明
+OperCerta is a controlled, auditable operations agent for inventory shortages,
+equipment incidents, and blocked operational tasks. It combines bounded LLM
+reasoning with deterministic policy, human approval, durable workflow state,
+and idempotent business writes.
 
-OperCerta 是面向库存异常、设备告警和运营工单的智能运营处置 Agent 独立作品仓库。
+[Read-only project page](https://opercerta-kxh.netlify.app) ·
+[Release `v0.1.0-showcase.1`](https://github.com/KXHXK/opercerta/releases/tag/v0.1.0-showcase.1)
 
-> 当前状态：库存补货、设备维修、作业异常恢复三条 FastAPI + 单根 LangGraph + 最小 LangChain + FastMCP + PostgreSQL/pgvector 闭环、演示 JWT/RBAC、Agent Trace、本地 React 控制台、Redis 只读证据缓存和真实 FastEmbed RAG 已有自动化证据。少量 Moonshot AI `kimi-k2.6` 代表验证覆盖三业务只读、库存批准写入和无效 provider fail-closed，未回退 Mock 冒充成功。[PR #18](https://github.com/KXHXK/opercerta/pull/18) 合入最终静态发布证据；最新 [main CI](https://github.com/KXHXK/opercerta/actions/runs/30541088053) 在 `298fc59` 上通过 667 条后端测试、19 个前端测试文件/60 条用例、9/9 冻结 Agent 评测和真实 Compose 构建、三业务数据库副作用与 API/MCP 重启恢复。[零成本静态项目专题](https://opercerta-kxh.netlify.app)已晋级 deploy `6a6b17cf496c38056f737264`，安全头和资源 SHA-256 已经公网复验；[Showcase 预发布 v0.1.0-showcase.1](https://github.com/KXHXK/opercerta/releases/tag/v0.1.0-showcase.1)精确指向该已验证提交。公开页面不提供后端写入口；生产身份、交互 HTTPS 后端、自动部署和公开 API 尚未完成，产品生产发布门禁：`CLOSED`。
+> **Development status:** the complete three-business workflow runs locally in
+> a single-node Docker Compose environment. The public project page is static
+> and does not expose the API or database. **Not production-ready:** production
+> identity, public ingress, rate limiting, backups, high availability, and
+> automated deployment are not implemented.
 
-## 当前已验证范围
+## Why OperCerta
 
-- 严格非法输入与 JSON-only 恢复快照；
-- 确定性恢复决策矩阵；
-- PostgreSQL Schema、Alembic 升降级和审批原子竞态；
-- 授权后幂等工单写入与并发安全重放；
-- 独立 `langgraph` Schema checkpointer；
-- LangGraph interrupt、审批绑定、批准后事实重取、拒绝终止和 A/B 重启恢复；
-- 真实 MCP 工单幂等写入、写后读验证、预写工单安全重放和审批过期扫描；
-- FastAPI 操作创建、业务事实查询、绑定审批、固定安全错误映射和生产 lifespan 启动恢复。
-- 冻结依赖、`0002` 迁移升降级、审批竞态与 A/B 重启重复、真实 FastMCP + FastAPI 双服务进程和 PostgreSQL 终态事实。
-- WSL2 Ubuntu Compose 的非 root 应用镜像、PostgreSQL/Redis、API/MCP 健康检查、三业务审批/拒绝/唯一工单、数据库断言和 API/MCP 重启恢复。
-- 版本化 42 条固定评测（库存 30、设备 6、作业 6）与 2×2 缓存/工具模式矩阵；小样本只证明调用/命中行为，不作为生产 SLA。
-- 服务端 UUIDv4 request_id、异常后上下文清理、安全 JSON 日志、应用级低基数 Prometheus 指标、SSE 实际回放计数，以及默认关闭的 `/metrics`。
-- Public GitHub remote、只读且固定 Action SHA 的四个 PR 快速门禁，以及 `main` 上实际通过的 Compose 业务 smoke、API/MCP 重启恢复和无条件清理。
-- Netlify 公开静态专题、真实部署资源指纹和证据图片响应验证；该站点不连接 API、数据库或 MCP。
-- 新 Plan-and-Execute Agent 的 Real Kimi 首轮三业务报告为 failed；修复模型/MCP timeout 耦合、thinking/tool-call 兼容和内部结构化提交边界后，三业务只读、库存批准写入和无效 provider fail-closed 代表路径通过。首轮失败报告继续保留为修复前证据；少量通过不解释为准确率、SLA 或成本指标。
-- 冻结 Agent 轨迹评测 9/9，覆盖非法 schema、提示注入、未知工具、对象漂移、RAG 隔离、批准后事实漂移、审批竞态、幂等写入与关键重启；这不是生产准确率。
-- 最新 main 求职展示门禁：后端 667 条测试、前端 19 个测试文件/60 条用例、三业务契约评测、冻结 Agent 评测 9/9、Ruff、mypy、仓库安全和 Compose 重启恢复全部通过；公开专题与本机构建 JS 的 SHA-256 一致。固定用例只证明已声明的合成契约，不是生产准确率或 SLA。
+Operational systems often detect an exception before an operator knows how to
+resolve it. The evidence may be spread across inventory, equipment, task, and
+procedure systems; it may also change while approval is pending. An unrestricted
+agent that writes directly to those systems would create unacceptable safety and
+audit risks.
 
-新 Agent 核心的修复前失败边界见 [Agent 核心架构交付证据](docs/release-evidence/agent-core-architecture.md)，修复后的单根路径与真实 Kimi 代表通过项见 [单根 Agent Loop 与 Case 工作台证据](docs/release-evidence/single-root-agent-loop-case-workspace.md)。旧阶段报告保留为时间顺序证据，不能覆盖后续结果。中文学习入口为 [核心技术手册](docs/learning/opercerta-core-technical-guide.md)、[手动实验手册](docs/learning/opercerta-manual-experiment-guide.md)和[面试讲解](docs/learning/opercerta-interview-guide.md)。这些不是生产 IAM、交互 HTTPS 后端或公开 API 完成声明。
+OperCerta separates responsibilities:
 
-## 下一实施边界
+- deterministic detectors discover bounded operational signals;
+- an LLM-assisted agent gathers evidence and explains a proposed action;
+- policy code decides whether approval is required and validates parameters;
+- a human approves a binding of facts, rules, and the proposed plan;
+- the system fetches fresh evidence before execution;
+- PostgreSQL transactions and unique constraints make retries safe.
 
-下一阶段仍只实施 OperCerta。单根 Agent 纠偏、main Compose、静态专题发布与 `v0.1.0-showcase.1` Showcase 预发布均已通过；下一步只做用户手动业务演示、源码讲解与口述掌握检查，并录制 3–5 分钟演示、定稿简历话术。是否建设公网可写 HTTPS 后端仍需单独选择托管环境并审批成本与安全治理。生产 IAM、限流/防滥用、备份、高可用、自动部署和产品级正式 Release 仍待完成。产品生产发布门禁为 `CLOSED`，关闭前不把静态展示误报为生产系统。
+The result is an agent that can assist with investigation and planning without
+becoming the authority for high-risk writes.
 
-三业务收口规格与八项 TDD 主计划见 [设计](docs/superpowers/specs/2026-07-20-opercerta-three-business-release-design.md)和[计划](docs/superpowers/plans/2026-07-20-opercerta-three-business-release.md)。历史库存切片设计仍作为可靠性内核演进记录保留。
+## Supported Workflows
 
-## 实施依据
+| Workflow | Trigger | Agent investigation | Controlled outcome |
+| --- | --- | --- | --- |
+| Inventory replenishment | Available stock falls below the reorder point | Read inventory and policy evidence, calculate a bounded recommendation, retrieve the relevant procedure | Create one replenishment work order after approval and fresh-fact validation |
+| Equipment maintenance | Equipment is offline or reports an alert | Read equipment status and maintenance policy, retrieve an isolation/repair procedure | Create one maintenance work order, or stop safely when facts no longer match |
+| Task recovery | An operational task remains blocked | Read task state and recovery policy, retrieve a recovery procedure | Create one recovery work order, or escalate when automatic recovery is not allowed |
 
-按以下顺序阅读并实施：
+## Agent Loop
 
-1. [AI Agent 四项目命名设计规格](docs/specs/2026-07-14-agent-project-naming-design.md)
-2. [AI Agent 四项目总体设计规格](docs/specs/ai-agent-portfolio-overall-design.md)
-3. [AI Agent 四项目作品集组合设计](docs/specs/2026-07-14-agent-portfolio-design.md)
-4. [OperCerta 详细设计](docs/specs/2026-07-14-opercerta-design.md)
+```mermaid
+flowchart LR
+    UI["React console"] --> API["FastAPI boundary"]
+    API --> SIGNAL["Deterministic signal scan"]
+    SIGNAL --> GOAL["Typed goal encoding"]
+    GOAL --> GRAPH["LangGraph plan-and-execute loop"]
+    GRAPH --> LLM["LLM reasoning"]
+    LLM --> POLICY["Tool policy and harness"]
+    POLICY --> MCP["FastMCP read tools"]
+    MCP --> FACTS["Business facts and pgvector procedures"]
+    FACTS --> GRAPH
+    GRAPH --> HITL["Human approval interrupt"]
+    HITL --> FRESH["Fresh evidence and verifier"]
+    FRESH --> WRITE["Controlled idempotent write"]
+    WRITE --> DB["PostgreSQL and checkpoint state"]
+    DB --> TRACE["Agent trace, audit, and feedback"]
+    TRACE --> UI
+```
 
-新对话的启动约束和交接清单见 [IMPLEMENTATION_HANDOFF.md](IMPLEMENTATION_HANDOFF.md)。
+The model is not the source of truth for quantities, permissions, or state
+transitions. LangGraph owns the durable execution flow; MCP exposes a small
+allowlist of typed tools; deterministic code and the database enforce the write
+boundary.
 
-## 仓库边界
+## Architecture
 
-- 本仓库包含从零实现的可靠性内核代码、测试、设计、计划、开发日志、本地证据和公开静态专题；尚不包含可公开写入的完整生产应用。
-- 代码、接口、数据和展示材料均从零实现，只使用公开或合成数据，不复制或依赖任何原单位资产。
-- 性能、准确率、成本和稳定性数字只能引用可复现评测的实测结果。
+| Area | Implementation | Responsibility |
+| --- | --- | --- |
+| Web console | React 19, TypeScript, Vite | Signal inbox, case workspace, approvals, results, trace, and audit views |
+| API boundary | FastAPI, Pydantic | Authentication, strict request validation, RBAC, stable errors, health endpoints, SSE audit replay |
+| Agent runtime | LangGraph, minimal LangChain Tool Calling | Bounded planning, tool observation loop, interrupt/resume, revalidation, and recovery |
+| Tool protocol | FastMCP | Typed inventory, equipment, task, policy, knowledge, and work-order tools |
+| Persistence | PostgreSQL 18, pgvector, Alembic | Business truth, approval locks, unique work orders, checkpoints, trace, and procedure retrieval |
+| Cache | Redis | Read-only evidence caching; approval-time validation bypasses the cache |
+| Model adapter | OpenAI-compatible API | Mock mode by default; explicit timeout and fail-closed behavior in real mode |
+| Runtime | Docker Compose | Reproducible PostgreSQL, Redis, MCP, bootstrap, and API services |
+| Delivery | GitHub Actions | Repository safety, Python quality, backend tests, frontend tests, and main-branch Compose recovery smoke |
+
+## Quick Start
+
+### Prerequisites
+
+- Linux or WSL2
+- Docker Engine with Docker Compose v2
+- Node.js 24 and npm 11 for the local web console
+- `uv` 0.11 and Python 3.12 for source-level tests
+
+### 1. Configure local-only credentials
+
+```bash
+cp .env.compose.example .env.compose
+```
+
+Replace every `CHANGE_ME` placeholder in `.env.compose`. Use the same strong
+database password in `POSTGRES_PASSWORD` and `OPERCERTA_DATABASE_URL`, generate
+a separate signing key, and set the Mock-only model values to a non-secret name
+such as `mock` and `not-used-in-mock-mode`. The file is ignored by Git. Mock
+model mode is enabled by default and does not require a real API key.
+
+### 2. Start the backend stack
+
+```bash
+OPERCERTA_HF_HUB_OFFLINE=false docker compose up --build -d --wait
+curl http://127.0.0.1:8080/health/ready
+```
+
+The first run downloads the embedding model. Later runs can set
+`OPERCERTA_HF_HUB_OFFLINE=true` when the FastEmbed cache is already populated.
+A ready response reports `database`, `checkpoint`, and `mcp` as `ready`.
+
+### 3. Start the web console
+
+```bash
+cd web
+npm ci
+npm run dev
+```
+
+Open <http://127.0.0.1:5173/console>. Vite proxies `/api` to the local FastAPI
+service, so no browser-side CORS configuration is required.
+
+## Use the Application
+
+1. Select the `operator` demo account and scan operational signals.
+2. Open an inventory, equipment, or task case and start the Agent investigation.
+3. Inspect the typed goal, tool plan, MCP observations, procedure citations, and Agent Trace.
+4. Switch to `approver` and approve or reject the bound proposal.
+5. Switch to `auditor` to inspect fresh-fact verification, the resulting work order, and the audit sequence.
+6. Repeat or restart services to observe idempotency and durable recovery.
+
+The demo JWT issuer is local-only and is not a production identity system.
+
+## Model Modes
+
+- **Mock mode** is deterministic, credential-free, and used for repeatable
+  contract, safety, and recovery tests.
+- **Real mode** uses an OpenAI-compatible endpoint and fails closed when the
+  provider, output contract, or tool loop is invalid. Secrets stay in ignored
+  local environment files.
+
+Representative Moonshot/Kimi K2.6 validation passed for three read-only
+business paths, an approved inventory write, and invalid-provider fail-closed.
+This limited sample verifies provider compatibility; it is not a model accuracy,
+latency, cost, or SLA claim.
+
+## Verification
+
+| Gate | Current verified result |
+| --- | ---: |
+| Backend suite | 667 tests passed |
+| Frontend suite | 19 test files, 60 tests passed |
+| Three-business fixed contracts | 42/42 passed |
+| Frozen Agent safety and recovery evaluation | 9/9 passed |
+| Main Compose smoke | Build, business database effects, API/MCP restart, recovery, and cleanup passed |
+
+Run the local gates:
+
+```bash
+uv sync --frozen --all-groups
+uv run ruff check .
+uv run ruff format --check .
+uv run mypy src
+uv run pytest -q
+uv run python scripts/run_opercerta_evaluation.py
+uv run python scripts/run_agent_evaluation.py
+
+cd web
+npm ci
+npm run test:run
+npm run build
+```
+
+With a fresh Compose database, `python3 scripts/verify_agent_compose.py` also
+asserts Agent trajectories and the resulting PostgreSQL facts. Fixed synthetic
+cases verify declared contracts; they do not represent production traffic or an
+independent accuracy benchmark.
+
+## Reliability and Safety Properties
+
+- strict input schemas and stable safe error envelopes;
+- tool allowlists, typed arguments, bounded retries, and explicit timeouts;
+- human approval bound to evidence, rule, fact, and plan hashes;
+- approval-time cache bypass and fresh-fact revalidation;
+- PostgreSQL row locking for approval races;
+- deterministic idempotency keys, unique constraints, and write-after-read verification;
+- durable LangGraph checkpoints and business-table-led restart recovery;
+- request IDs, trace context, safe structured logs, and low-cardinality metrics;
+- synthetic data only; no customer records or confidential company material.
+
+## Repository Layout
+
+```text
+src/opercerta/     API, Agent runtime, policies, persistence, MCP, and observability
+web/               React console and static project page
+tests/             Unit, integration, database, API, Agent, and runtime tests
+data/              Versioned synthetic evaluation cases and procedure knowledge
+migrations/        Alembic database migrations
+scripts/           Bootstrap, evaluation, safety, and Compose verification tools
+docs/              Technical guides, development records, and release evidence
+```
+
+## Documentation
+
+- [Core technical guide](docs/learning/opercerta-core-technical-guide.md)
+- [Manual experiment guide](docs/learning/opercerta-manual-experiment-guide.md)
+- [Current implementation state](docs/development-log/current-state.md)
+- [Single-root Agent loop evidence](docs/release-evidence/single-root-agent-loop-case-workspace.md)
+- [GitHub Actions evidence](docs/release-evidence/github-actions-ci.md)
+
+## Development Status and Roadmap
+
+Completed locally:
+
+- three bounded business workflows and the shared Agent loop;
+- approval binding, revalidation, idempotent writes, and restart recovery;
+- real PostgreSQL/pgvector, Redis, FastMCP, FastEmbed retrieval, and React console;
+- fixed contract/evaluation suites and main-branch Compose recovery evidence;
+- read-only public project page and a reproducible pre-release.
+
+Open work before a production deployment:
+
+- production identity and authorization lifecycle;
+- public HTTPS API ingress, exact-origin CORS, rate limiting, and abuse controls;
+- managed secrets, backups, restore drills, and high-availability coordination;
+- automated deployment, migration orchestration, and operational alerting;
+- broader independent model and business-quality evaluation.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, quality gates,
+pull-request expectations, and Agent safety rules.
