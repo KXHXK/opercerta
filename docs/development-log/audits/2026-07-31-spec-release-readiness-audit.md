@@ -60,8 +60,9 @@ release Compose 中运行。
 - GitHub PR #20 已合并为 main `764f4b5`，main Actions run `30614799180` 五项成功：
   repository safety、Python quality、完整 backend、frontend、真实 Compose restart/recovery。
 - 本分支 README/CONTRIBUTING/文档索引定向测试：`14 passed`。
-- GitHub Markdown API 保留两个同名 `<details>` 分组和默认 `open` 属性，中英文可在同一
-  README/CONTRIBUTING 页面互斥展开，不跳转独立语言文件。
+- GitHub 原生 README 不支持 JavaScript/CSS 标签页。最终采用标准
+  `English｜简体中文` 双文件互链，README/CONTRIBUTING 每个页面只显示一种语言，
+  不使用 `<details>` 折叠框；两种语言的结构和事实由自动化测试约束。
 - `https://opercerta-kxh.netlify.app/`、`/console` 和 `/api/v1/auth/demo-token` 均返回
   `200 text/html`；最后一项再次证明公网是静态 SPA，不是 API。
 - 本机 `opercerta-demo` PostgreSQL、Redis、MCP、API 四容器 healthy；readiness 返回
@@ -124,4 +125,3 @@ release Compose 中运行。
 | 无密钥、无旧单位专有内容、无未授权材料 | 仓库安全门禁通过 |
 | Release tag 与验收记录 | 通过，现有 Showcase pre-release |
 | 可重复演示与学习材料 | 材料通过；个人脱稿掌握仍需本人验收 |
-

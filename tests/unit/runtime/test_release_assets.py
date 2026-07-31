@@ -107,32 +107,39 @@ def test_learning_pack_covers_three_business_manual_failure_and_interview_explan
 
 def test_release_documents_keep_verified_boundaries_truthful() -> None:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    readme_zh = (ROOT / "README.zh-CN.md").read_text(encoding="utf-8")
     state = (ROOT / "docs" / "development-log" / "current-state.md").read_text(encoding="utf-8")
 
     assert "Private GitHub" not in readme
     assert "Private GitHub" not in state
     assert "Not production-ready" in readme
-    assert "尚未达到生产就绪" in readme
+    assert "尚未达到生产就绪" in readme_zh
     assert "真实模型代表性" in state
     assert "尚未" in state
 
 
-def test_public_entry_documents_switch_language_in_place_and_are_project_focused() -> None:
+def test_public_entry_documents_show_one_language_and_use_standard_switch_links() -> None:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    readme_zh = (ROOT / "README.zh-CN.md").read_text(encoding="utf-8")
     contributing = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
+    contributing_zh = (ROOT / "CONTRIBUTING.zh-CN.md").read_text(encoding="utf-8")
 
-    assert not (ROOT / "README.zh-CN.md").exists()
-    assert not (ROOT / "CONTRIBUTING.zh-CN.md").exists()
-    assert readme.count('<details name="readme-language"') == 2
-    assert contributing.count('<details name="contributing-language"') == 2
-    assert "README.zh-CN.md" not in readme
-    assert "CONTRIBUTING.zh-CN.md" not in contributing
-    for content, labels in (
-        (readme, ("简体中文", "English", "快速启动", "Quick Start")),
-        (contributing, ("简体中文", "English", "开发环境", "Development Environment")),
-    ):
-        for label in labels:
-            assert label in content
+    separator = "\uff5c"
+    assert f"**English**{separator}[简体中文](README.zh-CN.md)" in readme
+    assert f"[English](README.md){separator}**简体中文**" in readme_zh
+    assert f"**English**{separator}[简体中文](CONTRIBUTING.zh-CN.md)" in contributing
+    assert f"[English](CONTRIBUTING.md){separator}**简体中文**" in contributing_zh
+    for content in (readme, readme_zh, contributing, contributing_zh):
+        assert "<details" not in content
+        assert "<summary" not in content
+    assert "## Quick Start" in readme
+    assert "## 快速启动" not in readme
+    assert "## 快速启动" in readme_zh
+    assert "## Quick Start" not in readme_zh
+    assert "## Development Environment" in contributing
+    assert "## 开发环境" not in contributing
+    assert "## 开发环境" in contributing_zh
+    assert "## Development Environment" not in contributing_zh
 
     for phrase in (
         "FastAPI",
@@ -148,6 +155,7 @@ def test_public_entry_documents_switch_language_in_place_and_are_project_focused
         "GitHub Actions",
     ):
         assert phrase in readme
+        assert phrase in readme_zh
 
     assert "[https://opercerta-kxh.netlify.app/](https://opercerta-kxh.netlify.app/)" in readme
     assert "Read-only project page" not in readme
@@ -164,6 +172,7 @@ def test_public_entry_documents_switch_language_in_place_and_are_project_focused
         "作品集",
     ):
         assert forbidden.lower() not in readme.lower()
+        assert forbidden.lower() not in readme_zh.lower()
 
 
 def test_agent_delivery_documents_cover_architecture_learning_and_truthful_evidence() -> None:
@@ -221,6 +230,7 @@ def test_agent_delivery_documents_cover_architecture_learning_and_truthful_evide
 
 def test_current_demo_and_learning_docs_match_the_single_root_agent_release() -> None:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    readme_zh = (ROOT / "README.zh-CN.md").read_text(encoding="utf-8")
     demo = (ROOT / "docs" / "demo-script.md").read_text(encoding="utf-8")
     manual = (ROOT / "docs" / "learning" / "opercerta-manual-experiment-guide.md").read_text(
         encoding="utf-8"
@@ -237,11 +247,12 @@ def test_current_demo_and_learning_docs_match_the_single_root_agent_release() ->
         assert "新 Agent 核心的 Real Kimi Tool Calling 代表 query 为 failed" not in content
 
     normalized_readme = " ".join(readme.split())
+    normalized_readme_zh = " ".join(readme_zh.split())
     assert (
         "three read-only business paths, an approved inventory write, and "
         "invalid-provider fail-closed" in normalized_readme
     )
-    assert "三业务只读、库存批准写入和无效 provider fail-closed" in normalized_readme
+    assert "三业务只读、库存批准写入和无效 provider fail-closed" in normalized_readme_zh
 
     assert "667 条后端测试" in interview
     assert "v0.1.0-showcase.1" in interview
