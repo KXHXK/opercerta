@@ -14,7 +14,7 @@ OperCerta 的三业务共享 Agent 主线、可靠性内核、前后端、本地
 
 | 门禁 | 状态 | 判定依据 |
 | --- | --- | --- |
-| 工程与本地自动化门禁 | `PASSED` | 当前 main `61d5fa0`；PR #22 合并；main run `30622621533` 五项成功；本分支本地后端 671；前端 60、三业务 42/42、Agent 9/9、Compose 重启恢复通过 |
+| 工程与本地自动化门禁 | `PASSED` | 当前 main `7bb9ecd`；PR #23 合并；main run `30629194460` 五项成功；后端 671、前端 60、三业务 42/42、Agent 9/9、Compose 重启恢复通过 |
 | Showcase Release gate | `AWAITING_OWNER_VALIDATION` | 静态站点和本地 MVP 已具备；仍需项目所有者独立完成业务实演、源码讲解、恢复实验和录屏 |
 | Product Release gate | `CLOSED` | 未部署公网可写后端、生产身份、限流、防滥用、托管数据库备份、高可用与线上告警 |
 
@@ -22,7 +22,7 @@ OperCerta 的三业务共享 Agent 主线、可靠性内核、前后端、本地
 
 `Product Release gate: CLOSED`
 
-最新 main 的后端基线为 668；本分支新增 3 条发布/安全契约后，使用一次性 pgvector 测试库得到 `671 passed in 112.07s`。合并后仍须用最终 main CI 复核该数字。
+本分支新增 3 条发布/安全契约后，本地一次性 pgvector 测试库得到 `671 passed in 112.07s`；main backend job 随后复核通过。
 
 ## 已实现范围
 
@@ -38,8 +38,9 @@ OperCerta 的三业务共享 Agent 主线、可靠性内核、前后端、本地
 
 ## 当前运行与发布证据
 
-- GitHub main：`61d5fa0`；PR #22；Actions run `30622621533` 五项全绿。
-- 自动化基线：本分支本地后端 `671 passed`；前端 19 文件/60 条；三业务固定契约 42/42；冻结 Agent 安全恢复 9/9；收口前 main Compose smoke 通过。
+- GitHub main：`7bb9ecda8170ed8752049331f5597ea2368d77b1`；PR #23；Actions run `30629194460` 五项全绿。
+- 自动化基线：后端 `671 passed`；前端 19 文件/60 条；三业务固定契约 42/42；冻结 Agent 安全恢复 9/9；main Compose smoke 通过。
+- main Compose 在干净 GitHub Linux 环境构建 uv `0.11.28` 镜像，验证三业务数据库副作用、API/MCP 重启、恢复和隔离卷清理，关闭了本机 GHCR 拉取超时留下的容器证据缺口。
 - 本机 WSL2 Ubuntu 26.04 的 `opercerta-demo` PostgreSQL、Redis、MCP、API 四服务 healthy；readiness 中 database、checkpoint、MCP 均 ready。
 - Netlify 为静态站点；`/console` 与 `/api/*` 在公网均是 SPA 静态回退，不是可写后端。
 - 旧预发布 `v0.1.0-showcase.1` 指向较早提交，只保留历史；最终 Showcase tag 必须在本轮合并、本人验收和录屏后创建。

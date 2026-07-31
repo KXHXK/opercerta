@@ -14,7 +14,7 @@ OperCerta 当前实现与“受控单 Agent + 三业务共享可靠性内核”�
 
 | 门禁 | 状态 | 剩余条件 |
 | --- | --- | --- |
-| 工程与本地自动化 | `PASSED` | 本收口分支合并后补录新鲜 main CI/Compose 结果 |
+| 工程与本地自动化 | `PASSED` | PR #23、main `7bb9ecd`、run `30629194460` 五项全绿 |
 | Showcase Release | `AWAITING_OWNER_VALIDATION` | 本人完整实演、源码讲解、恢复/幂等验证和录屏 |
 | Product Release | `CLOSED` | 公网可写后端及完整生产治理未实现 |
 
@@ -44,7 +44,7 @@ OperCerta 当前实现与“受控单 Agent + 三业务共享可靠性内核”�
 | 前后端 | FastAPI 安全边界、React Case 工作台、SSE/Trace/审计 | 本地一致；公网 API 未部署 |
 | 基础设施 | PostgreSQL 18/pgvector、Redis、Docker Compose、Caddy | 本地与 CI 一致 |
 | 可观测性 | 关联 ID、结构化日志、OpenTelemetry、Prometheus | 代码/测试具备；无公网 collector/dashboard |
-| 测试评测 | 本分支后端 671、前端 60、三业务 42/42、Agent 9/9、Compose | 后端为一次性 pgvector 库本地结果；最终 main 仍需 CI 复核；不是生产 SLA |
+| 测试评测 | 后端 671、前端 60、三业务 42/42、Agent 9/9、Compose | 本地与 main CI 已复核；不是生产 SLA |
 
 ## 合理设计演进
 
@@ -55,8 +55,9 @@ OperCerta 当前实现与“受控单 Agent + 三业务共享可靠性内核”�
 
 ## 已验证事实
 
-- 收口前最新 main 为 `61d5fa0`，PR #22 和 Actions run `30622621533` 五项成功。
-- 收口前 main 为后端 668；本分支新增 3 条门禁契约后，本地一次性 pgvector 测试库结果为 `671 passed in 112.07s`。前端 19 文件/60 条、三业务 42/42、Agent 9/9、Compose 数据库副作用及 API/MCP 重启恢复此前均通过，等待本分支最终复验。
+- PR #23 已合入 main `7bb9ecda8170ed8752049331f5597ea2368d77b1`；Actions run `30629194460` 五项成功。
+- 本轮新增 3 条门禁契约后，本地一次性 pgvector 测试库为 `671 passed in 112.07s`；main backend job 再次通过。前端 19 文件/60 条、三业务 42/42、Agent 9/9 均通过。
+- main Compose 在干净 GitHub Linux 环境成功构建 uv `0.11.28` 镜像，完成三业务数据库副作用、API/MCP 重启、恢复和清理；本机 GHCR 拉取超时不再构成未验证缺口。
 - Netlify 根路径与 `/api/*` 都是静态 SPA，证明公网未暴露 FastAPI。
 - 本机 `opercerta-demo` 的 PostgreSQL、Redis、MCP、API 四服务 healthy，readiness 的 database/checkpoint/MCP 均 ready。
 - README/CONTRIBUTING 使用标准 `English｜简体中文` 双文件互链；GitHub Markdown 不支持无跳转、无折叠且只显示一种语言的自定义状态切换。
@@ -91,8 +92,7 @@ OperCerta 当前实现与“受控单 Agent + 三业务共享可靠性内核”�
 
 ## 剩余 P0 收口
 
-1. 本分支全门禁、PR、main CI 与 Compose 复验。
-2. 项目所有者按 `docs/learning/opercerta-ownership-acceptance.md` 独立完成验收，并保存 `operation_id`、`work_order_id`、Trace、审计和数据库事实。
-3. 完成 3–5 分钟录屏；之后才能签署本人掌握结果并创建最终 Showcase tag。
+1. 项目所有者按 `docs/learning/opercerta-ownership-acceptance.md` 独立完成验收，并保存 `operation_id`、`work_order_id`、Trace、审计和数据库事实。
+2. 完成 3–5 分钟录屏；之后才能签署本人掌握结果并创建最终 Showcase tag。
 
 ForenTrail 暂不启动。FieldPilot 在 OperCerta 完成后另行规划，不混入本仓库。

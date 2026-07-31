@@ -1,5 +1,15 @@
 # GitHub Actions 分层 CI：远程验证证据
 
+## 2026-07-31 双门禁收口 PR #23 与 main 总门禁
+
+- [PR #23](https://github.com/KXHXK/opercerta/pull/23) 的 `repository-safety`、`python-quality`、`backend-tests`、`frontend` 全部成功，`compose-smoke` 按 PR 事件规则跳过；随后以普通 merge commit `7bb9ecda8170ed8752049331f5597ea2368d77b1` 合入 main。
+- 对应 [main run 30629194460](https://github.com/KXHXK/opercerta/actions/runs/30629194460) 五项 job 全部为 `success`。
+- `backend-tests` 通过完整 671 条后端测试、三业务固定契约和冻结 Agent 安全/恢复评测 `9/9`；`frontend` 通过 19 个测试文件/60 条用例和 Vite production build。
+- `python-quality` 通过 Ruff、format 与 mypy；`repository-safety` 通过双语公开文档凭据扫描、固定 Action 和权限边界检查。
+- `compose-smoke` 在干净 GitHub Linux 环境使用 Dockerfile 固定的 uv `0.11.28` 构建镜像，启动 PostgreSQL、Redis、MCP 和 API，验证三业务 Agent 轨迹与数据库副作用，重启 API/MCP 后完成 recovery-only 验证，并删除隔离资源。
+- 本次远程结果关闭本机 GHCR 拉取超时导致的容器构建证据缺口。它证明本地可复现单节点 Agent MVP，不证明公网交互、生产 IAM、高可用或 SLA。
+- 当前 `Showcase Release gate: AWAITING_OWNER_VALIDATION`；`Product Release gate: CLOSED`。
+
 ## 2026-07-31 最终证据合并与 Showcase Pre-release
 
 - [PR #18](https://github.com/KXHXK/opercerta/pull/18) 已合入 main `298fc5978a56961d36e73888f4ae73017e302715`，未绕过检查。
