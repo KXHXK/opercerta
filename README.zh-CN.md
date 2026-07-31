@@ -32,8 +32,8 @@ OperCerta 是一个面向库存短缺、设备异常和作业阻塞的受控、�
 Agent。它把有边界的大模型推理与确定性规则、人工审批、持久化工作流状态和
 幂等业务写入组合成完整闭环。
 
-> **开发状态：** 三业务完整流程可以在本地单节点 Docker Compose 环境中运行。
-> 公开项目页面为纯静态页面，不连接 API 或数据库。项目**尚未达到生产就绪**：
+> **发布范围：** 当前版本定义为“**公开静态展示 + 本地可复现完整 Agent MVP +
+> 录屏**”。公开页面不连接 API 或数据库；它不是公网交互产品，也不是生产部署。
 > 生产身份、公网入口、限流、备份、高可用和自动部署仍未实现。
 
 ## 项目背景
@@ -166,7 +166,7 @@ provider fail-closed。该小样本只证明 provider 兼容性，不代表模�
 
 | 门禁 | 当前已验证结果 |
 | --- | ---: |
-| 后端测试 | 667 条通过 |
+| 后端测试 | 671 条通过 |
 | 前端测试 | 19 个测试文件、60 条用例通过 |
 | 三业务固定契约 | 42/42 通过 |
 | 冻结 Agent 安全与恢复评测 | 9/9 通过 |
@@ -221,7 +221,9 @@ docs/              技术指南、开发记录和发布证据
 
 - [核心技术手册](docs/learning/opercerta-core-technical-guide.md)
 - [手动实验手册](docs/learning/opercerta-manual-experiment-guide.md)
+- [项目所有者掌握验收](docs/learning/opercerta-ownership-acceptance.md)
 - [当前实施状态](docs/development-log/current-state.md)
+- [Showcase 发布门禁定义](docs/superpowers/specs/2026-07-31-showcase-release-gate-amendment-design.md)
 - [单根 Agent Loop 实施证据](docs/release-evidence/single-root-agent-loop-case-workspace.md)
 - [GitHub Actions 证据](docs/release-evidence/github-actions-ci.md)
 
@@ -235,6 +237,13 @@ docs/              技术指南、开发记录和发布证据
 - 固定契约/评测以及 main 分支 Compose 恢复证据；
 - 只读公开项目页面和可复现预发布版本。
 
+当前门禁状态：
+
+- 工程与本地自动化门禁：`PASSED`；
+- Showcase Release gate：`AWAITING_OWNER_VALIDATION`，必须由项目所有者亲自完成
+  业务实演、源码讲解、恢复/幂等实验和 3–5 分钟录屏；
+- Product Release gate：`CLOSED`。
+
 生产部署前仍需完成：
 
 - 生产身份和授权生命周期；
@@ -247,3 +256,7 @@ docs/              技术指南、开发记录和发布证据
 
 开发环境、质量门禁、Pull Request 要求和 Agent 安全规则见
 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+## 许可证
+
+本项目采用 [Apache License 2.0](LICENSE)。

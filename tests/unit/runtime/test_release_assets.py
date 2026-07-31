@@ -112,10 +112,10 @@ def test_release_documents_keep_verified_boundaries_truthful() -> None:
 
     assert "Private GitHub" not in readme
     assert "Private GitHub" not in state
-    assert "Not production-ready" in readme
-    assert "尚未达到生产就绪" in readme_zh
-    assert "真实模型代表性" in state
-    assert "尚未" in state
+    assert "not a public interactive product" in readme
+    assert "不是公网交互产品" in readme_zh
+    assert "少量兼容性代表验证" in state
+    assert "Product Release gate" in state
 
 
 def test_public_entry_documents_show_one_language_and_use_standard_switch_links() -> None:
@@ -259,3 +259,45 @@ def test_current_demo_and_learning_docs_match_the_single_root_agent_release() ->
     assert ".worktrees/agent-core-implementation" not in manual
     assert "cd frontend" not in manual
     assert "cd web" in manual
+
+
+def test_showcase_release_gate_and_owner_acceptance_are_explicit() -> None:
+    amendment = (
+        ROOT
+        / "docs"
+        / "superpowers"
+        / "specs"
+        / "2026-07-31-showcase-release-gate-amendment-design.md"
+    ).read_text(encoding="utf-8")
+    ownership = (ROOT / "docs" / "learning" / "opercerta-ownership-acceptance.md").read_text(
+        encoding="utf-8"
+    )
+    state = (ROOT / "docs" / "development-log" / "current-state.md").read_text(encoding="utf-8")
+    handoff = (ROOT / "IMPLEMENTATION_HANDOFF.md").read_text(encoding="utf-8")
+
+    for phrase in (
+        "Showcase Release",
+        "Product Release",
+        "公开静态展示",
+        "本地可复现完整 Agent MVP",
+        "3\u20135 分钟录屏",
+    ):
+        assert phrase in amendment
+    assert "Showcase Release gate: AWAITING_OWNER_VALIDATION" in state
+    assert "Product Release gate: CLOSED" in state
+    assert "PR #22" in handoff
+    assert "671 passed" in handoff
+    assert "不得由 Codex 自动代签" in ownership
+    assert "operation_id" in ownership
+    assert "work_order_id" in ownership
+
+
+def test_public_repository_has_an_apache_license_and_current_test_count() -> None:
+    license_text = (ROOT / "LICENSE").read_text(encoding="utf-8")
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    readme_zh = (ROOT / "README.zh-CN.md").read_text(encoding="utf-8")
+
+    assert "Apache License" in license_text
+    assert "Version 2.0, January 2004" in license_text
+    assert "671 tests passed" in readme
+    assert "671 条通过" in readme_zh

@@ -33,11 +33,11 @@ equipment incidents, and blocked operational tasks. It combines bounded LLM
 reasoning with deterministic policy, human approval, durable workflow state,
 and idempotent business writes.
 
-> **Development status:** the complete three-business workflow runs locally in
-> a single-node Docker Compose environment. The public project page is static
-> and does not expose the API or database. **Not production-ready:** production
-> identity, public ingress, rate limiting, backups, high availability, and
-> automated deployment are not implemented.
+> **Release scope:** this version is a **public static showcase + locally
+> reproducible complete Agent MVP + recording**. The public page does not expose
+> the API or database. It is not a public interactive product or a production
+> deployment. Production identity, public ingress, rate limiting, backups, high
+> availability, and automated deployment are not implemented.
 
 ## Why OperCerta
 
@@ -178,7 +178,7 @@ latency, cost, or SLA claim.
 
 | Gate | Current verified result |
 | --- | ---: |
-| Backend suite | 667 tests passed |
+| Backend suite | 671 tests passed |
 | Frontend suite | 19 test files, 60 tests passed |
 | Three-business fixed contracts | 42/42 passed |
 | Frozen Agent safety and recovery evaluation | 9/9 passed |
@@ -234,7 +234,9 @@ docs/              Technical guides, development records, and release evidence
 
 - [Core technical guide](docs/learning/opercerta-core-technical-guide.md)
 - [Manual experiment guide](docs/learning/opercerta-manual-experiment-guide.md)
+- [Owner acceptance guide](docs/learning/opercerta-ownership-acceptance.md)
 - [Current implementation state](docs/development-log/current-state.md)
+- [Showcase release gate definition](docs/superpowers/specs/2026-07-31-showcase-release-gate-amendment-design.md)
 - [Single-root Agent loop evidence](docs/release-evidence/single-root-agent-loop-case-workspace.md)
 - [GitHub Actions evidence](docs/release-evidence/github-actions-ci.md)
 
@@ -248,6 +250,14 @@ Completed locally:
 - fixed contract/evaluation suites and main-branch Compose recovery evidence;
 - read-only public project page and a reproducible pre-release.
 
+Current gate state:
+
+- engineering and local automated gate: `PASSED`;
+- Showcase Release gate: `AWAITING_OWNER_VALIDATION` until the owner completes
+  the manual walkthrough, source explanation, recovery/idempotency experiment,
+  and 3–5 minute recording;
+- Product Release gate: `CLOSED`.
+
 Open work before a production deployment:
 
 - production identity and authorization lifecycle;
@@ -260,3 +270,7 @@ Open work before a production deployment:
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, quality gates,
 pull-request expectations, and Agent safety rules.
+
+## License
+
+Licensed under the [Apache License 2.0](LICENSE).

@@ -58,6 +58,7 @@ def test_compose_pins_pgvector_and_persists_the_embedding_cache() -> None:
 def test_image_uses_locked_dependencies_and_non_root_user() -> None:
     dockerfile = Path("Dockerfile").read_text(encoding="utf-8")
 
+    assert "ghcr.io/astral-sh/uv:0.11.28" in dockerfile
     assert "uv sync --frozen --no-dev" in dockerfile
     assert "install -d -o opercerta -g opercerta /home/opercerta/.cache" in dockerfile
     assert "USER opercerta" in dockerfile

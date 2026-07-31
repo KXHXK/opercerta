@@ -1,127 +1,98 @@
 # OperCerta 规格一致性与发布就绪审计（2026-07-31）
 
-## 结论
+## 审计结论
 
-OperCerta 当前实现与“受控单 Agent + 三业务共享可靠性内核”的有效设计主线一致，
-没有退化为普通 CRUD 工单系统，也没有偏离为自由聊天或多 Agent 角色讨论。库存补货、
-设备维修和作业异常恢复共享同一条生产 LangGraph 生命周期，并真实接入 LLM 决策、
-FastMCP 工具、pgvector SOP 检索、人工审批、批准后复核、幂等写入、PostgreSQL 事实、
-Redis 只读缓存、Agent Trace 和重启恢复。
+OperCerta 当前实现与“受控单 Agent + 三业务共享可靠性内核”的有效设计主线一致。库存补货、设备维修和作业恢复共享同一条生产 LangGraph 生命周期，并接入 LLM 有界决策、FastMCP 工具、pgvector SOP 检索、人工审批、批准后复核、幂等写入、PostgreSQL 事实、Redis 只读缓存、Agent Trace 和重启恢复。
 
-当前已经达到“公开源码 + 静态项目页 + 可重复本地单节点完整 Agent MVP”的发布状态，
-尚未达到“公网可交互产品”或“企业生产系统”状态。静态 Netlify 页面可以公开访问，但
-`/api/*` 返回静态 SPA HTML；真实 FastAPI、MCP、PostgreSQL 和 Redis 只在本地/CI 与
-release Compose 中运行。
+本次正式将当前版本定义为：
 
-## 核验依据与优先级
+> **公开静态展示 + 本地可复现完整 Agent MVP + 3–5 分钟录屏。**
 
-1. 命名基线：`docs/specs/2026-07-14-agent-project-naming-design.md`。
-2. 总体基线：`docs/specs/ai-agent-portfolio-overall-design.md`。
-3. 组合基线：`docs/specs/2026-07-14-agent-portfolio-design.md`。
-4. OperCerta 原始详细设计：`docs/specs/2026-07-14-opercerta-design.md`。
-5. 有效修订：三业务发布、Agent 核心架构、异常信号收件箱、信号对账与后继调查、
-   单根 LangGraph Agent Loop 与 case 工作台规格。
-6. 当前事实：源码、锁文件、迁移、Compose、CI、固定评测、真实模型代表报告和本审计
-   当日运行结果。后来的明确修订优先于早期设计中被修订的范围，运行事实不由文档状态
-   代替。
+因此，原始详细设计中“线上地址跑通真实业务”的要求仍属于 Product Release，不能用静态 Showcase 冒充；但它不再阻塞本次 Showcase Release。修订依据见 `docs/superpowers/specs/2026-07-31-showcase-release-gate-amendment-design.md`。
+
+## 当前门禁
+
+| 门禁 | 状态 | 剩余条件 |
+| --- | --- | --- |
+| 工程与本地自动化 | `PASSED` | 本收口分支合并后补录新鲜 main CI/Compose 结果 |
+| Showcase Release | `AWAITING_OWNER_VALIDATION` | 本人完整实演、源码讲解、恢复/幂等验证和录屏 |
+| Product Release | `CLOSED` | 公网可写后端及完整生产治理未实现 |
+
+## 核验依据
+
+1. `docs/specs/2026-07-14-agent-project-naming-design.md`。
+2. `docs/specs/ai-agent-portfolio-overall-design.md`。
+3. `docs/specs/2026-07-14-agent-portfolio-design.md`。
+4. `docs/specs/2026-07-14-opercerta-design.md`。
+5. 三业务发布、Agent 核心架构、异常信号收件箱、信号对账、单根 Agent Loop 等后续已批准修订。
+6. 当前源码、锁文件、迁移、Compose、固定评测、CI、真实模型代表报告和本机运行事实。
+
+后来的明确修订优先于早期被修订条款；测试或文档不能代替真实运行证据。
 
 ## 设计—实现映射
 
-| 设计要求 | 当前实现证据 | 结论 |
+| 设计要求 | 当前实现 | 结论 |
 | --- | --- | --- |
-| 库存、设备、作业三业务 | scenario registry、三类 signal detector、三类策略和工单 payload | 一致 |
-| 有限输入而非自由聊天 | React 三业务表单、严格 Pydantic Goal/Intent、对象和动作 allowlist | 一致；这是后续 Agent 规格对早期“自然语言请求”的安全收敛 |
-| 单 Agent Plan-and-Execute | `ControlledAgentRootGraph`、Model → Tool Policy → MCP Observation → Model 有界回环 | 一致 |
-| LangGraph 唯一生命周期所有者 | production factory 只构造受控根图；同一 thread/checkpoint 覆盖审批、复核、写入和终态 | 一致；历史场景图只保留回归与等价测试 |
-| MCP 工具调用 | FastMCP 注册库存、设备、任务、策略、SOP、工单创建和工单查询共 7 个类型化工具 | 一致；原始 5 工具先由三业务修订扩展，再由 Agent/RAG 修订增加知识工具 |
-| RAG 与 Memory | FastEmbed、pgvector 512 维向量、HNSW、版本化合成 SOP、citation；checkpoint/业务事实/知识分层 | 一致；RAG 不提供权威数量和权限 |
-| 人工审批和批准后复核 | JWT/RBAC、绑定哈希、PostgreSQL 行锁、fresh-fact cache bypass、模型 Verifier、重新审批 | 一致 |
-| 幂等与重启恢复 | 唯一幂等键、写后读、PostgreSQL checkpointer、业务表主导 recovery、API/MCP restart smoke | 一致 |
-| API 与前端 | FastAPI 安全 envelope、health、operation/signal/case/trace/SSE API；React case 工作台和局部状态 | 本地一致；公网 API 未部署 |
-| 数据与基础设施 | PostgreSQL 18/pgvector、8 个 Alembic 迁移、Redis 8.8、Docker Compose、Caddy | 本地和 CI 一致 |
-| 可观测性 | request/operation/thread/tool/trace 关联、JSON 日志、OpenTelemetry、Prometheus、Agent Trace/audit 分层 | 代码与测试一致；公开环境没有 collector、dashboard 或告警 |
-| 测试与评测 | 667 条后端、19 文件/60 条前端、42/42 三业务契约、9/9 Agent 安全恢复、main Compose | 已有可重复证据；均不是生产 SLA 或独立准确率 |
+| 库存、设备、作业三业务 | scenario registry、三类 detector、策略和工单 payload | 一致 |
+| 有限输入而非自由聊天 | React 表单、Pydantic Goal/Intent、对象/动作 allowlist | 一致，符合受控业务边界 |
+| 单 Agent Plan-and-Execute | `ControlledAgentRootGraph` 与 Model → Tool → Observation 有界回环 | 一致 |
+| LangGraph 生命周期 | 同一 thread/checkpoint 覆盖调查、审批、复核、写入和终态 | 一致 |
+| MCP 工具 | 7 个类型化事实、规则、知识和工单工具 | 一致；写工具受策略和审批约束 |
+| RAG 与 Memory | FastEmbed、pgvector、SOP citation；checkpoint/事实/知识分层 | 一致；检索不提供权威数量或权限 |
+| 审批与复核 | JWT/RBAC、绑定哈希、行锁、cache bypass、Verifier | 一致 |
+| 幂等与恢复 | 幂等键、唯一约束、写后读、PostgreSQL checkpointer | 一致 |
+| 前后端 | FastAPI 安全边界、React Case 工作台、SSE/Trace/审计 | 本地一致；公网 API 未部署 |
+| 基础设施 | PostgreSQL 18/pgvector、Redis、Docker Compose、Caddy | 本地与 CI 一致 |
+| 可观测性 | 关联 ID、结构化日志、OpenTelemetry、Prometheus | 代码/测试具备；无公网 collector/dashboard |
+| 测试评测 | 本分支后端 671、前端 60、三业务 42/42、Agent 9/9、Compose | 后端为一次性 pgvector 库本地结果；最终 main 仍需 CI 复核；不是生产 SLA |
 
-## 原始设计与当前实现的合理变化
+## 合理设计演进
 
-- 原始详细设计只具体化库存和设备，2026-07-20 三业务修订正式补齐作业异常。因此当前
-  三业务不是范围膨胀或偏差，而是对总体设计缺口的已批准修复。
-- 原始 MCP 清单为 5 个工具；任务工具和 `knowledge.search_sop` 分别由三业务与 Agent
-  核心/RAG 规格增加，当前 7 工具与有效设计一致。
-- 原始描述允许自然语言请求，后续规格把产品入口收敛为有限表单和受控 Goal。LLM 仍在
-  根图内完成语义/规划、工具选择、Observation 后续决策和批准后 Verifier，不需要通过
-  无边界聊天框证明 Agent 属性。
-- 早期证据文档记录了当时查询路径不调用模型、旧图或尚未发布等历史事实；当前运行事实
-  以单根 Agent Loop 证据、`current-state.md` 顶部和最新 main CI 为准。历史记录不能被
-  反向解释为当前架构。
+- 三业务修订补齐了原始详细设计对作业阻塞的缺口，不是无审批扩展。
+- MCP 从原始 5 个工具扩展为 7 个，是任务事实与 SOP 检索规格的明确结果。
+- 入口从自由自然语言收敛为有限业务表单；LLM 仍负责图内语义、规划、Observation 后决策和批准后 Verifier。
+- 生产图统一为单根 Agent Loop；历史场景图只承担回归和等价测试。
 
-## 当日新鲜验证
+## 已验证事实
 
-- GitHub PR #20 已合并为 main `764f4b5`，main Actions run `30614799180` 五项成功：
-  repository safety、Python quality、完整 backend、frontend、真实 Compose restart/recovery。
-- 本分支 README/CONTRIBUTING/文档索引定向测试：`14 passed`。
-- GitHub 原生 README 不支持 JavaScript/CSS 标签页。最终采用标准
-  `English｜简体中文` 双文件互链，README/CONTRIBUTING 每个页面只显示一种语言，
-  不使用 `<details>` 折叠框；两种语言的结构和事实由自动化测试约束。
-- `https://opercerta-kxh.netlify.app/`、`/console` 和 `/api/v1/auth/demo-token` 均返回
-  `200 text/html`；最后一项再次证明公网是静态 SPA，不是 API。
-- 本机 `opercerta-demo` PostgreSQL、Redis、MCP、API 四容器 healthy；readiness 返回
-  database/checkpoint/MCP 全部 ready。
-- `docker compose -f compose.release.yaml config --quiet` 通过，说明发布拓扑配置可解析；
-  它不等同于公网环境、备份、容量或安全验收。
+- 收口前最新 main 为 `61d5fa0`，PR #22 和 Actions run `30622621533` 五项成功。
+- 收口前 main 为后端 668；本分支新增 3 条门禁契约后，本地一次性 pgvector 测试库结果为 `671 passed in 112.07s`。前端 19 文件/60 条、三业务 42/42、Agent 9/9、Compose 数据库副作用及 API/MCP 重启恢复此前均通过，等待本分支最终复验。
+- Netlify 根路径与 `/api/*` 都是静态 SPA，证明公网未暴露 FastAPI。
+- 本机 `opercerta-demo` 的 PostgreSQL、Redis、MCP、API 四服务 healthy，readiness 的 database/checkpoint/MCP 均 ready。
+- README/CONTRIBUTING 使用标准 `English｜简体中文` 双文件互链；GitHub Markdown 不支持无跳转、无折叠且只显示一种语言的自定义状态切换。
 
-## 尚存问题与优先级
+## 本轮已解决的公开仓库缺口
 
-### P0：公网交互或生产上线前必须完成
+- 新增 Apache-2.0 `LICENSE`。
+- Dockerfile uv 与本地/CI 统一为 `0.11.28`。
+- 仓库安全扫描扩展到双语公开文档、handoff 和索引。
+- 用双门禁修订消除“静态 Showcase”与“公网 Product”完成定义冲突。
+- 新增不得由 Codex 代签的项目所有者掌握验收表。
 
-- 部署真实 HTTPS FastAPI 后端，并配置与前端完全匹配的 CORS 和公开入口。
-- 用生产身份系统替换本地 demo JWT 签发；补齐身份生命周期、最小权限和会话吊销。
-- 增加限流、配额、模型费用熔断、防滥用、托管密钥和安全数据重置。
-- 使用托管/受维护的 PostgreSQL，完成备份、恢复演练、迁移编排和故障回滚。
-- 部署日志/Trace/指标采集、dashboard 和告警；当前只有埋点与本地测试。
-- 增加公网端到端、浏览器 CORS、超时、并发和失败恢复验收。
+## 非 Showcase 阻塞项
 
-### P1：优质公开仓库建议补齐
+以下事项继续阻塞 Product Release，但不阻塞诚实边界内的 Showcase：
 
-- 当前 GitHub community profile 为 42%；缺少明确 `LICENSE`、`SECURITY.md`、
-  Code of Conduct、Issue/PR 模板。
-- main 分支尚未启用 branch protection；目前依靠人工坚持 PR 全绿后合并。
-- 缺少独立 ADR 目录；架构取舍存在于规格和技术手册中，但不利于外部贡献者快速定位。
-- 当前真实模型只做少量代表调用，adapter 又没有供应商 usage，不能给出准确率、Token、
-  成本或 SLA 结论。
+- 生产身份、精确 CORS、公网 HTTPS API、限流、配额、防滥用与模型费用熔断。
+- 托管密钥、托管 PostgreSQL、备份/恢复演练、高可用与迁移回滚。
+- 线上日志/Trace/指标收集、dashboard、告警和公网端到端验收。
+- main branch protection、`SECURITY.md`、Code of Conduct、Issue/PR 模板和独立 ADR 可继续增强开源治理。
+- 独立人工标注质量集、更多真实模型重复运行、浏览器 E2E、无障碍和供应链扫描属于后续增强；不得虚构指标。
 
-### P2：增强可信度而非阻塞本地 MVP
+## 发布使用边界
 
-- 增加独立人工标注的业务质量集和多次真实模型运行，报告失败样本与方差。
-- 增加 Playwright 类完整浏览器 E2E、无障碍和 Lighthouse 证据。
-- 为容器基础镜像增加 digest/供应链更新策略，为公开部署增加 SBOM 或漏洞扫描。
-
-## 发布与作品使用结论
-
-| 使用方式 | 当前结论 | 允许表述 |
+| 使用方式 | 当前结论 | 合法表述 |
 | --- | --- | --- |
-| GitHub 开源源码 | 可用 | 可复现、经过 CI 的受控运营 Agent MVP |
-| Netlify 静态项目页 | 已上线 | 公开只读项目说明和静态功能展示 |
-| 本地/现场完整演示 | 可用 | Docker Compose 单节点三业务完整闭环 |
-| 公网交互演示 | 未完成 | 不可称在线可操作 Agent；需要后端部署与安全治理 |
-| 企业生产系统 | 未完成 | 不可声称生产高可用、SLA、真实 WMS/CMMS 接入 |
+| GitHub 源码 | 可用 | 经 CI 验证的受控运营 Agent MVP |
+| Netlify | 已上线 | 公开静态项目展示 |
+| 本地/现场演示 | 工程具备、待本人验收 | Docker Compose 单节点完整 Agent MVP |
+| 公网交互 | 未实现 | 不得称为在线可操作 Agent |
+| 企业生产 | 未实现 | 不得声称高可用、SLA 或真实 WMS/CMMS 接入 |
 
-因此，OperCerta 已可作为个人 Agent 项目写入简历并用于本地面试演示，前提是明确写成
-“可部署单节点 MVP + 公开静态项目页”，并能亲自解释和操作业务闭环。若希望审阅者无需
-本地环境直接操作真实 Agent，则仍需完成 P0 中的公网交互演示子集；若希望称为生产系统，
-则必须完成全部 P0 并补充运行期证据。
+## 剩余 P0 收口
 
-## 原始完成定义对照
+1. 本分支全门禁、PR、main CI 与 Compose 复验。
+2. 项目所有者按 `docs/learning/opercerta-ownership-acceptance.md` 独立完成验收，并保存 `operation_id`、`work_order_id`、Trace、审计和数据库事实。
+3. 完成 3–5 分钟录屏；之后才能签署本人掌握结果并创建最终 Showcase tag。
 
-| 完成定义 | 状态 |
-| --- | --- |
-| 核心业务成功/失败/拒绝终态闭环 | 通过 |
-| 状态、工具、权限和异常路径测试 | 通过 |
-| 固定评测与可重复性能/缓存报告 | 通过，样本边界已声明 |
-| 干净 Docker Compose 启动与重启恢复 | 通过 |
-| 在线地址可以完成真实核心业务 | 未通过；当前仅静态页 |
-| README、架构、API/部署/限制文档 | 部分通过；内容充分但正式 ADR/安全治理文件缺失 |
-| 日志、Trace、Token、成本与关键指标 | 部分通过；Trace/指标具备，供应商 usage/公开观测后端缺失 |
-| 无密钥、无旧单位专有内容、无未授权材料 | 仓库安全门禁通过 |
-| Release tag 与验收记录 | 通过，现有 Showcase pre-release |
-| 可重复演示与学习材料 | 材料通过；个人脱稿掌握仍需本人验收 |
+ForenTrail 暂不启动。FieldPilot 在 OperCerta 完成后另行规划，不混入本仓库。
