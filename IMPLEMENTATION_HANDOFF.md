@@ -4,7 +4,7 @@
 
 ## 当前交接结论
 
-OperCerta 的代码与自动化主线已经完成，当前收口分支为 `release/showcase-ownership-closeout-20260731`。收口前最新 main 为 `61d5fa0`，由 PR #22 合入；main Actions run `30622621533` 五项全绿，包含后端 `668 passed`、前端 19 文件/60 条、三业务固定契约 42/42、Agent 安全恢复 9/9 和真实 Compose 重启恢复。本分支增加 3 条发布/安全契约后，本地专用 pgvector 测试库完整结果为 `671 passed`。
+OperCerta 的代码与自动化主线已经完成。双门禁与本人掌握收口经 PR #23 合入 main `7bb9ecda8170ed8752049331f5597ea2368d77b1`；main Actions run `30629194460` 五项全绿，包含后端 `671 passed`、前端 19 文件/60 条、三业务固定契约 42/42、Agent 安全恢复 9/9，以及干净构建 uv `0.11.28` 镜像后的真实 Compose 三业务数据库副作用与 API/MCP 重启恢复。
 
 本版本发布定义已经正式修订为：
 
@@ -35,11 +35,9 @@ OperCerta 的代码与自动化主线已经完成，当前收口分支为 `relea
 
 ## 下一执行顺序
 
-1. 跑定向门禁与完整 Python/前端/Compose 检查。
-2. 提交、推送、创建 PR，等待所有检查通过后合入 main。
-3. 在 main 上复跑 Compose smoke，更新最终提交、run 和测试数字。
-4. 由项目所有者亲自执行 `docs/learning/opercerta-ownership-acceptance.md`；必须记录 `operation_id`、`work_order_id`、Trace、审计序列和数据库事实，**不得由 Codex 自动代签**。
-5. 完成 3–5 分钟录屏与口述复盘后，才能把 Showcase 门禁改为 `PASSED` 并创建最终 tag。
+1. 由项目所有者亲自执行 `docs/learning/opercerta-ownership-acceptance.md`；必须记录 `operation_id`、`work_order_id`、Trace、审计序列和数据库事实，**不得由 Codex 自动代签**。
+2. 完成 3–5 分钟录屏与口述复盘。
+3. 人工证据通过后，把 Showcase 门禁改为 `PASSED`，创建最终 tag 并记录回滚提交。
 
 ## 本地运行入口
 

@@ -27,7 +27,7 @@ Typora 显示：首次运行 `powershell -ExecutionPolicy Bypass -File scripts/i
 | 序号 | 文件名 | 路径 | 用途（详细） | 状态 | 日期 |
 | ---: | --- | --- | --- | --- | --- |
 | 1 | `README.md` | `README.md` | 英文项目总入口，使用顶部 `English｜简体中文` 标准链接切换语言，说明业务背景、三业务功能、Agent 闭环、完整技术栈、快速启动、使用流程、验证结果、可靠性边界和路线图。 | 每页只显示一种语言；不使用折叠框 | 2026-07-30 |
-| 2 | `IMPLEMENTATION_HANDOFF.md` | `IMPLEMENTATION_HANDOFF.md` | 跨对话和上下文压缩后的实施交接文件，记录当前分支、已验证事实、未完成事项、下一步动作及禁止越过的发布边界。 | 已切换为当前权威快照；Showcase 待本人验收，Product gate 关闭 | 2026-07-30 |
+| 2 | `IMPLEMENTATION_HANDOFF.md` | `IMPLEMENTATION_HANDOFF.md` | 跨对话和上下文压缩后的实施交接文件，记录当前分支、已验证事实、未完成事项、下一步动作及禁止越过的发布边界。 | PR #23/main 五项门禁已收口；Showcase 待本人验收，Product gate 关闭 | 2026-07-30 |
 | 3 | `DOCUMENT_INDEX.md` | `DOCUMENT_INDEX.md` | OperCerta 全部项目文档的唯一总登记表，用于按文件名、路径、用途、状态和日期统一检索、复查与交接。 | 当前根工作树 122 份文档已完整登记；另保留 6 个旧 worktree 的 456 条历史记录 | 2026-07-15 |
 | 4 | `2026-07-14-agent-project-naming-design.md` | `docs/specs/2026-07-14-agent-project-naming-design.md` | 定义 OperCerta、ForenTrail、SiteVerum、Federune 四个项目的命名原则、语义边界与品牌一致性，防止项目职责和名称漂移。 | 已冻结为命名基线 | 2026-07-14 |
 | 5 | `ai-agent-portfolio-overall-design.md` | `docs/specs/ai-agent-portfolio-overall-design.md` | 规定四个 AI Agent 项目的整体定位、差异化业务范围、技术能力组合、实施顺序和共同约束，是项目组合的最高层设计依据。 | 已冻结为总体设计基线；文件名已统一为英文路径 | 2026-07-14 |
@@ -68,7 +68,7 @@ Typora 显示：首次运行 `powershell -ExecutionPolicy Bypass -File scripts/i
 | 40 | `2026-07-20-opercerta-three-business-release.md` | `docs/superpowers/plans/2026-07-20-opercerta-three-business-release.md` | 将三业务适配、六个 MCP 工具、评测、Redis、OpenTelemetry、真实模型代表验证、本地发布和中文学习包拆成主线任务。 | 本地任务已执行；公网交互、用户掌握与最终门禁待完成 | 2026-07-20 |
 | 41 | `2026-07-20-opercerta-zero-cost-showcase-engineering-walkthrough.md` | `docs/superpowers/plans/2026-07-20-opercerta-zero-cost-showcase-engineering-walkthrough.md` | 规划统一事实清单、招聘专题、本地工程详解、控制台共存、响应式测试、静态导出和 Netlify 发布验证。 | 计划已创建；根分支尚未归档完成证据 | 2026-07-20 |
 | 42 | `README.md` | `docs/development-log/README.md` | 说明开发日志目录结构、各类日志职责、记录规范、敏感信息禁区和上下文恢复阅读顺序。 | 已建立并持续使用 | 2026-07-15 |
-| 43 | `current-state.md` | `docs/development-log/current-state.md` | 保存最新可验证项目状态、测试证据、运行环境、发布边界、未完成事项和下一步，作为压缩上下文后的唯一当前事实入口；历史状态只保留在 daily 与 release evidence。 | 工程门禁通过；Showcase 待本人验收；Product gate 关闭 | 2026-07-30 |
+| 43 | `current-state.md` | `docs/development-log/current-state.md` | 保存最新可验证项目状态、测试证据、运行环境、发布边界、未完成事项和下一步，作为压缩上下文后的唯一当前事实入口；历史状态只保留在 daily 与 release evidence。 | main `7bb9ecd` 五项门禁通过；Showcase 待本人验收；Product gate 关闭 | 2026-07-30 |
 | 44 | `2026-07-15.md` | `docs/development-log/daily/2026-07-15.md` | 记录日志体系、Windows PostgreSQL、审批领域契约及初始可靠性实施过程与命令证据。 | 当日记录已归档 | 2026-07-15 |
 | 45 | `2026-07-16.md` | `docs/development-log/daily/2026-07-16.md` | 记录库存补货 Task 1–9、幂等工单、LangGraph 恢复、调试过程和本地验证结果。 | 当日记录已归档 | 2026-07-16 |
 | 46 | `2026-07-17.md` | `docs/development-log/daily/2026-07-17.md` | 记录 WSL2、Docker Linux 运行时、JWT/RBAC 和 Compose 环境迁移中的问题、修复与验证。 | 当日记录已归档 | 2026-07-17 |
@@ -90,7 +90,7 @@ Typora 显示：首次运行 `powershell -ExecutionPolicy Bypass -File scripts/i
 | 62 | `cache-tracing-model-adapter.md` | `docs/release-evidence/cache-tracing-model-adapter.md` | 保存 Redis 只读缓存、审批后绕过、OpenTelemetry 脱敏关联、严格真实模型适配器及未验证边界的阶段证据。 | 阶段证据已归档；真实模型另有独立证据 | 2026-07-20 |
 | 63 | `demo-jwt-rbac.md` | `docs/release-evidence/demo-jwt-rbac.md` | 保存本地 JWT 签发、四角色权限矩阵、审批身份绑定、安全拒绝和 Compose 回归结果。 | 本地验证通过；不代表生产身份系统 | 2026-07-18 |
 | 64 | `docker-linux-runtime.md` | `docs/release-evidence/docker-linux-runtime.md` | 保存 WSL2 Ubuntu 下 Compose 构建、服务健康、数据库初始化、业务 smoke 和重启恢复的实际输出。 | 单节点本地验证通过；发布门禁仍关闭 | 2026-07-17 |
-| 65 | `github-actions-ci.md` | `docs/release-evidence/github-actions-ci.md` | 保存 GitHub PR/main Actions、后端与前端测试、PostgreSQL/Compose smoke、仓库可见性变化和分支保护能力核验。 | 已追加 PR #18、main run 30541088053、667/60/9-of-9、Compose 重启恢复与 Showcase 预发布证据；main 保护尚未配置 | 2026-07-30 |
+| 65 | `github-actions-ci.md` | `docs/release-evidence/github-actions-ci.md` | 保存 GitHub PR/main Actions、后端与前端测试、PostgreSQL/Compose smoke、仓库可见性变化和分支保护能力核验。 | 已追加 PR #23、main run 30629194460、671/60/9-of-9、uv 0.11.28 镜像构建与 Compose 重启恢复；main 保护尚未配置 | 2026-07-30 |
 | 66 | `inventory-replenishment-vertical-slice.md` | `docs/release-evidence/inventory-replenishment-vertical-slice.md` | 汇总库存查询、规则判断、审批、执行、唯一工单、审计和 API 的首条端到端后端闭环证据。 | Windows 本地后端闭环已验证；发布门禁仍关闭 | 2026-07-16 |
 | 67 | `langgraph-restart-recovery.md` | `docs/release-evidence/langgraph-restart-recovery.md` | 保存 LangGraph 四点 A/B 重启测试、checkpointer 状态、审批中断恢复和副作用不重复的数据库断言。 | 本地恢复证据已归档；不代表生产高可用 | 2026-07-16 |
 | 68 | `native-postgres-environment.md` | `docs/release-evidence/native-postgres-environment.md` | 保存 Windows 原生 PostgreSQL 版本、服务、数据库、角色、认证规则和连接验证结果。 | 历史环境证据已归档；当前主运行时已迁移 | 2026-07-15 |
@@ -141,8 +141,8 @@ Typora 显示：首次运行 `powershell -ExecutionPolicy Bypass -File scripts/i
 | 113 | `verifier-v1.md` | `src/opercerta/prompts/verifier-v1.md` | Verifier 角色版本化 Prompt，用于批准后重新核对事实、识别漂移并决定执行、重审批或安全终止。 | v1 已实施并有事实漂移回归测试 | 2026-07-21 |
 | 114 | `2026-07-30.md` | `docs/development-log/daily/2026-07-30.md` | 记录新电脑环境最终收口、WSL 登录 shell Node PATH 的 TDD 修复、冻结依赖国内镜像恢复、DrvFS 权限边界、PR/main 门禁，以及发布材料防漂移与静态安全头修订。 | PR #17/main 五项 CI、667/60/9-of-9、Netlify 静态 production 安全头与产物一致性均已验证 | 2026-07-30 |
 | 115 | `CONTRIBUTING.md` | `CONTRIBUTING.md` | 英文贡献指南，使用顶部 `English｜简体中文` 标准链接切换语言，规定开发环境、TDD 流程、Agent/业务安全规则、Python/前端/Compose 门禁、文档同步、PR 检查表和安全问题报告方式。 | 每页只显示一种语言；不使用折叠框 | 2026-07-30 |
-| 116 | `2026-07-31.md` | `docs/development-log/daily/2026-07-31.md` | 记录 OperCerta 最终 main/CI、Netlify 静态发布、Showcase 预发布、双语开源入口、规格一致性审计、自动化门禁、产品边界和下一掌握任务。 | 本地 Agent MVP 与静态展示已收口；公网交互和产品 production gate 保持 CLOSED | 2026-07-31 |
-| 117 | `2026-07-31-spec-release-readiness-audit.md` | `docs/development-log/audits/2026-07-31-spec-release-readiness-audit.md` | 对照四份原始设计及三业务、Agent 核心、信号收件箱和单根 LangGraph 有效修订，逐项核验当前源码、技术栈、测试、Compose、Netlify 和发布证据，区分合理设计演进、真实偏差、开源治理缺口、公网交互条件和简历可用边界。 | 审计完成；架构主线一致，本地/静态发布可用，公网交互与企业生产门禁未通过 | 2026-07-31 |
+| 116 | `2026-07-31.md` | `docs/development-log/daily/2026-07-31.md` | 记录 OperCerta 最终 main/CI、Netlify 静态发布、Showcase 预发布、双语开源入口、规格一致性审计、自动化门禁、产品边界和下一掌握任务。 | PR #23/main 自动化与 Compose 已收口；Showcase 等待本人验收和录屏 | 2026-07-31 |
+| 117 | `2026-07-31-spec-release-readiness-audit.md` | `docs/development-log/audits/2026-07-31-spec-release-readiness-audit.md` | 对照四份原始设计及三业务、Agent 核心、信号收件箱和单根 LangGraph 有效修订，逐项核验当前源码、技术栈、测试、Compose、Netlify 和发布证据，区分合理设计演进、真实偏差、开源治理缺口、公网交互条件和展示使用边界。 | main 自动化与 Compose 已通过；Showcase 等待本人验收，Product gate 关闭 | 2026-07-31 |
 | 118 | `README.zh-CN.md` | `README.zh-CN.md` | 简体中文项目总入口，与英文 README 保持等价结构和事实，使用顶部 `English｜简体中文` 链接切换语言，并独立展示中文业务、架构、启动、验证和边界内容。 | 每页只显示一种语言；不使用折叠框 | 2026-07-31 |
 | 119 | `CONTRIBUTING.zh-CN.md` | `CONTRIBUTING.zh-CN.md` | 简体中文贡献指南，与英文贡献指南保持等价结构和事实，使用顶部 `English｜简体中文` 链接切换语言。 | 每页只显示一种语言；不使用折叠框 | 2026-07-31 |
 | 120 | `2026-07-31-showcase-release-gate-amendment-design.md` | `docs/superpowers/specs/2026-07-31-showcase-release-gate-amendment-design.md` | 正式拆分 Showcase Release 与 Product Release，规定当前版本交付物为公开静态展示、本地可复现完整 Agent MVP、自动化证据、本人验收和录屏，并禁止把静态站点误报为公网交互产品。 | 已批准；Showcase 等待本人验收，Product gate 保持 CLOSED | 2026-07-31 |

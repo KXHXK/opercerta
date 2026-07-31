@@ -285,7 +285,8 @@ def test_showcase_release_gate_and_owner_acceptance_are_explicit() -> None:
         assert phrase in amendment
     assert "Showcase Release gate: AWAITING_OWNER_VALIDATION" in state
     assert "Product Release gate: CLOSED" in state
-    assert "PR #22" in handoff
+    assert "PR #23" in handoff
+    assert "30629194460" in handoff
     assert "671 passed" in handoff
     assert "不得由 Codex 自动代签" in ownership
     assert "operation_id" in ownership
