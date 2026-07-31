@@ -92,3 +92,16 @@ steps:
 
     assert any("unpinned action" in item for item in findings)
     assert any("write permission" in item for item in findings)
+
+
+def test_bilingual_public_documents_are_in_secret_scan_scope(tmp_path: Path) -> None:
+    files = clean_files() | {
+        "README.zh-CN.md": "# OperCerta\nBearer actual-looking-token\n",
+        "CONTRIBUTING.md": "# Contributing\nSafe content.\n",
+        "CONTRIBUTING.zh-CN.md": "# 贡献指南\nSafe content.\n",
+    }
+    root = tracked_repo(tmp_path, files)
+
+    findings = scan_repository(root)
+
+    assert any("credential-like content: README.zh-CN.md" in item for item in findings)

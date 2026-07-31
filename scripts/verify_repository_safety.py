@@ -48,7 +48,15 @@ def _is_forbidden_path(path: Path) -> bool:
 
 def _is_content_scope(relative: str) -> bool:
     return (
-        relative in {"README.md", "IMPLEMENTATION_HANDOFF.md", "DOCUMENT_INDEX.md"}
+        relative
+        in {
+            "README.md",
+            "README.zh-CN.md",
+            "CONTRIBUTING.md",
+            "CONTRIBUTING.zh-CN.md",
+            "IMPLEMENTATION_HANDOFF.md",
+            "DOCUMENT_INDEX.md",
+        }
         or relative == "docs/development-log/current-state.md"
         or relative.startswith("docs/release-evidence/")
         or relative.startswith("src/")
