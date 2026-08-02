@@ -1,12 +1,14 @@
 const STEPS = [
-  ["01", "请求与身份", "React 选择场景、角色和动作；FastAPI 校验 JWT/RBAC 与严格请求。"],
-  ["02", "建立 Operation", "PostgreSQL 保存请求与第一条审计事实。"],
-  ["03", "MCP 取证", "状态工具和 policy.list_constraints 返回类型化合成证据。"],
-  ["04", "确定性评估", "领域代码决定风险、动作与参数；query 在这里直接完成。"],
-  ["05", "受限模型解释", "create 路径的 Kimi 只返回 summary/rationale。"],
-  ["06", "审批中断", "approval binding 与 checkpoint 持久化后 LangGraph interrupt。"],
-  ["07", "批准后复核", "行锁决定审批胜者；恢复后绕过 Redis 重读 MCP 事实。"],
-  ["08", "幂等写入与审计", "唯一键、写后读和 SSE 保证一张有效工单与可回放终态。"],
+  ["01", "异常被发现", "只读扫描比较权威事实与阈值，产生库存短缺、设备告警或任务阻塞信号。"],
+  ["02", "请求准入", "操作员从结构化表单选择信号与动作；FastAPI 校验 JWT/RBAC、Pydantic 契约。"],
+  ["03", "目标编码", "受信场景与对象进入 Agent Context；Kimi 输出严格 GoalEncoding，Harness 防止目标漂移。"],
+  ["04", "规划与工具循环", "模型在预算内选择白名单只读工具，Observation 返回后决定继续取证或结束。"],
+  ["05", "MCP 与 RAG 取证", "FastMCP 读取 PostgreSQL 事实、策略约束与 pgvector SOP，返回结构化证据和 citation。"],
+  ["06", "分析与确定性校验", "模型综合证据形成建议；领域规则独立计算动作、参数和风险并拒绝不一致。"],
+  ["07", "HITL 审批中断", "证据、规则、计划与参数哈希写入 approval binding，LangGraph checkpoint 后 interrupt。"],
+  ["08", "批准后验证", "PostgreSQL 行锁决定审批胜者；恢复后绕过 Redis 重取事实，模型与代码双重验证。"],
+  ["09", "幂等写入", "稳定幂等键、唯一约束与写后读确保重试、重放或重启只产生一张有效工单。"],
+  ["10", "反馈与恢复", "Trace、Audit、citation 经 SSE 回到界面；服务重启从 checkpoint 与业务表恢复到可解释终态。"],
 ] as const;
 
 export function OperationFlow() {

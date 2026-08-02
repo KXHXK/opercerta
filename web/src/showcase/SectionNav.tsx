@@ -1,8 +1,8 @@
 const ITEMS = [
   ["business", "业务"],
   ["flow", "流程"],
-  ["architecture", "架构"],
-  ["evidence", "证据"],
+  ["architecture", "架构 / Harness"],
+  ["evidence", "评测"],
 ] as const;
 
 export function SectionNav() {

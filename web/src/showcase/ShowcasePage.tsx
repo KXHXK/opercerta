@@ -1,3 +1,5 @@
+import { AgentArchitecture } from "./AgentArchitecture";
+import { EvaluationResults } from "./EvaluationResults";
 import { OperationFlow } from "./OperationFlow";
 import { PROJECT_FACTS, PUBLIC_LIMITATIONS, sourceHref } from "./project-facts";
 import { ReliabilityEvidence } from "./ReliabilityEvidence";
@@ -12,8 +14,8 @@ export function ShowcasePage() {
         <p className="eyebrow">OPERATIONS CONTROL AGENT · LOCAL RELEASE CANDIDATE</p>
         <h1 id="showcase-title">可审批、可恢复的运营工单 Agent</h1>
         <p className="hero-summary">
-          OperCerta 用三条合成业务闭环展示受控 Agent 后端：模型负责解释，确定性代码决定动作，PostgreSQL
-          约束批准与写入。
+          OperCerta 把 LLM 的目标理解、规划、工具调用与证据综合接入三条运营处置闭环；
+          Agent Harness、LangGraph、HITL 和 PostgreSQL 共同约束高风险写入，使每一步可验证、可恢复、可审计。
         </p>
         <dl className="fact-strip">
           <div>
@@ -26,7 +28,7 @@ export function ShowcasePage() {
           </div>
           <div>
             <dt>真实模型</dt>
-            <dd>{PROJECT_FACTS.realModelOperations} 次真实模型代表操作</dd>
+            <dd>{PROJECT_FACTS.realModelPaths} 条真实模型路径</dd>
           </div>
           <div>
             <dt>产品状态</dt>
@@ -42,8 +44,8 @@ export function ShowcasePage() {
       </section>
 
       <section id="flow" className="showcase-section" aria-labelledby="flow-title">
-        <p className="section-kicker">90 SECOND TRACE</p>
-        <h2 id="flow-title">一次写路径如何变成可审计终态</h2>
+        <p className="section-kicker">END-TO-END OPERATION</p>
+        <h2 id="flow-title">从异常信号到工单终态的完整运行过程</h2>
         <OperationFlow />
       </section>
 
@@ -52,24 +54,20 @@ export function ShowcasePage() {
         className="showcase-section"
         aria-labelledby="architecture-title"
       >
-        <p className="section-kicker">SYSTEM BOUNDARIES</p>
-        <h2 id="architecture-title">模型不拥有业务副作用</h2>
+        <p className="section-kicker">AGENT ARCHITECTURE & HARNESS</p>
+        <h2 id="architecture-title">感知 → 决策 → 行动 → 反馈的受控循环</h2>
         <p>
-          React → FastAPI → OperationRunner → LangGraph → MCP/FastMCP、Kimi 与 PostgreSQL；FastAPI 再以
-          SSE 回放有序审计事件。
+          FastAPI 是可信准入边界，LangGraph 是单根 Agent 的状态机与恢复骨架，Kimi 是受契约约束的认知层，
+          MCP、RAG 与数据库提供可追溯事实；写操作必须经过人类批准和确定性终审。
         </p>
-        <ul className="architecture-boundaries">
-          <li>
-            Kimi K2.6 只返回 <code>summary</code> 与 <code>rationale</code>。
-          </li>
-          <li>规则、动作、审批参数和幂等键由类型化领域代码决定。</li>
-          <li>Redis 只缓存初次只读证据；批准后直接重读 MCP 事实。</li>
-        </ul>
+        <AgentArchitecture />
       </section>
 
       <section id="evidence" className="showcase-section" aria-labelledby="evidence-title">
         <p className="section-kicker">VERIFIED BEHAVIOR</p>
-        <h2 id="evidence-title">可靠性结论都有可复核证据</h2>
+        <h2 id="evidence-title">测试、评测与真实模型结果</h2>
+        <EvaluationResults />
+        <h3 className="subsection-title">可靠性内核</h3>
         <ReliabilityEvidence />
         <div className="evidence-gallery">
           <figure>
@@ -82,11 +80,11 @@ export function ShowcasePage() {
           </figure>
         </div>
         <a
-          href={sourceHref("docs/release-evidence/real-model-representative-validation.md")}
+          href={sourceHref("docs/release-evidence/real-model-quality-evaluation.md")}
           target="_blank"
           rel="noreferrer"
         >
-          查看真实模型代表性验证
+          查看真实模型质量评测证据
         </a>
       </section>
 
@@ -96,10 +94,11 @@ export function ShowcasePage() {
         aria-labelledby="boundary-title"
       >
         <p className="section-kicker">HONEST BOUNDARY</p>
-        <h2 id="boundary-title">当前是本地单节点发布候选</h2>
+        <h2 id="boundary-title">公开静态展示 + 本地可复现 Agent MVP</h2>
         <p>
-          这是即时打开的静态项目专题，不连接可写后端；完整三业务演示在本地 WSL2 + Docker Compose
-          运行。生产身份、托管数据库和公网写服务仍未建设。
+          当前网站是即时打开的静态项目专题，不连接可写后端；完整三业务 Agent、真实模型调用与审批写入在本地
+          WSL2 + Docker Compose 复现，并以源码、自动化结果和录屏展示。它不是公网交互产品；生产身份、
+          托管数据库和公网写服务仍未建设。
         </p>
         <p className="gate">生产门禁：{PROJECT_FACTS.releaseGate}</p>
         <ul>
