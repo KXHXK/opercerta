@@ -65,3 +65,10 @@ def test_structured_prompts_declare_exact_output_fields_and_decisions() -> None:
         assert literal in verifier
     for field in ("outcome", "summary", "evidence_refs", "citations", "snake_case"):
         assert field in reporter
+
+
+def test_tool_loop_leaves_authoritative_evidence_binding_to_the_graph() -> None:
+    content = PromptRegistry.packaged().load(PromptId.TOOL_LOOP).content
+
+    assert "evidence_refs" in content
+    assert "确定性" in content

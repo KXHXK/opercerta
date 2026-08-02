@@ -114,7 +114,8 @@ def test_release_documents_keep_verified_boundaries_truthful() -> None:
     assert "Private GitHub" not in state
     assert "not a public interactive product" in readme
     assert "不是公网交互产品" in readme_zh
-    assert "少量兼容性代表验证" in state
+    assert "冻结真实模型质量评测 9/9" in state
+    assert "不代表生产准确率、成本或 SLA" in state
     assert "Product Release gate" in state
 
 
@@ -213,7 +214,7 @@ def test_agent_delivery_documents_cover_architecture_learning_and_truthful_evide
     assert "Plan-and-Execute" in interview
     assert "六层 Agent" in interview
     assert "真实 Kimi Tool Calling" in interview
-    assert "三业务只读、库存批准写入和无效 provider fail-closed" in interview
+    assert "Kimi 9 条冻结质量路径" in interview
 
     for phrase in (
         "642d3ba",
@@ -243,19 +244,16 @@ def test_current_demo_and_learning_docs_match_the_single_root_agent_release() ->
         assert "扫描业务异常" in content
         assert "启动 Agent 调查" in content
     for content in (demo, interview):
-        assert "三业务只读、库存批准写入和无效 provider fail-closed" in content
+        assert "9/9" in content
+        assert "提示注入" in content
         assert "新 Agent 核心的 Real Kimi Tool Calling 代表 query 为 failed" not in content
 
     normalized_readme = " ".join(readme.split())
     normalized_readme_zh = " ".join(readme_zh.split())
-    assert (
-        "three read-only business paths, an approved inventory write, and "
-        "invalid-provider fail-closed" in normalized_readme
-    )
-    assert "三业务只读、库存批准写入和无效 provider fail-closed" in normalized_readme_zh
+    assert "passed all nine local paths" in normalized_readme
+    assert "共 9 条本地路径全部通过" in normalized_readme_zh
 
-    assert "667 条后端测试" in interview
-    assert "v0.1.0-showcase.1" in interview
+    assert "682 条后端测试" in interview
     assert ".worktrees/agent-core-implementation" not in manual
     assert "cd frontend" not in manual
     assert "cd web" in manual
@@ -300,5 +298,5 @@ def test_public_repository_has_an_apache_license_and_current_test_count() -> Non
 
     assert "Apache License" in license_text
     assert "Version 2.0, January 2004" in license_text
-    assert "671 tests passed" in readme
-    assert "671 条通过" in readme_zh
+    assert "682 tests passed" in readme
+    assert "682 条通过" in readme_zh

@@ -9,7 +9,7 @@
 5. 切换到 `approver`，核对并提交绑定审批；说明证据 ID、规则版本、事实哈希、计划哈希和参数来自后端，审批身份来自演示 JWT，调用者不能在请求体冒充审批人。
 6. 审批通过后展示 Verifier、最终状态、唯一工单 ID、写后读和审计时间线；切换 `auditor` 读取同一处置，强调 Trace、业务 audit 和 OpenTelemetry 的职责不同。
 7. 解释两项自动化证据：PostgreSQL 行锁让并发审批只有一个原子胜者；API/MCP 重启后由业务表寻找候选、LangGraph checkpoint 决定续跑位置，重复执行仍复用同一幂等工单。
-8. 展示 Mock/Real 分层证据：Mock 冻结评测 9/9 和真实 FastEmbed/pgvector、PostgreSQL、MCP、Compose 重启通过；新单根 Agent 的 Real Kimi 三业务只读、库存批准写入和无效 provider fail-closed 代表路径通过。修复前 failed 报告仍保留，少量调用不解释为准确率、SLA、token 或成本指标。
+8. 展示 Mock/Real 分层证据：Mock 冻结评测 9/9 和真实 FastEmbed/pgvector、PostgreSQL、MCP、Compose 重启通过；Real Kimi 冻结质量评测 9/9，覆盖三业务正常查询、提示注入和审批写入，未授权工具调用、审批绕过、重复工单均为 0。固定本地小样本不解释为生产准确率、SLA、token 或成本指标。
 9. 如面试官追问工程排障，从 `/engineering` 选择 1--2 个案例，按“观察—根因—修复—验证—限制”讲述。结束时主动说明生产 IAM/SSO、公网可写 HTTPS 后端、限流、备份、高可用、自动部署和 Release Tag 尚未完成。
 
 录制视频时只保留浏览器业务区域，不展示本机用户名、文件路径、令牌、数据库连接或环境变量。只有实际完成上述流程的录屏才能放入公开专题；失败或未验证的运行不得剪辑成成功结果。

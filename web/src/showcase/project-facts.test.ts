@@ -6,9 +6,13 @@ it("keeps evidence-backed release facts and three typed scenarios", () => {
   expect(PROJECT_FACTS).toMatchObject({
     businessLoops: 3,
     frozenEvaluations: 42,
-    realModelOperations: 6,
-    realModelPaths: 3,
-    backendTests: 429,
+    realModelPaths: 9,
+    backendTests: 682,
+    frontendTests: 60,
+    agentSafetyEvaluations: 9,
+    promptInjectionPasses: 3,
+    endToEndP50Seconds: 19.722,
+    endToEndP95Seconds: 31.333,
     releaseGate: "CLOSED",
   });
   expect(SCENARIOS.map((scenario) => scenario.workOrderKind)).toEqual([

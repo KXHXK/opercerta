@@ -218,19 +218,19 @@ def run_representative_path(
             query_runner=query_runner,
             approved_runner=approved_runner,
         )
-    runner = query_runner or run_query if path == "query" else approved_runner or run_approved_path
     try:
-        result = (
-            runner(object_type, object_id, operator_headers)
-            if path == "query"
-            else runner(
+        if path == "query":
+            active_query_runner = query_runner or run_query
+            result = active_query_runner(object_type, object_id, operator_headers)
+        else:
+            active_approved_runner = approved_runner or run_approved_path
+            result = active_approved_runner(
                 object_type,
                 object_id,
                 expected_kind,
                 operator_headers,
                 approver_headers,
             )
-        )
     except Exception as error:
         failure: dict[str, Any] = {
             "scenario": object_type,
@@ -254,13 +254,15 @@ def run_query(
     object_type: str,
     object_id: str,
     operator_headers: dict[str, str],
+    *,
+    message: str | None = None,
 ) -> dict[str, Any]:
     started = time.monotonic()
     status, created = request(
         "POST",
         "/api/v1/operations",
         {
-            "message": f"representative real-model query for {object_type}",
+            "message": message or f"representative real-model query for {object_type}",
             "requested_action": "query",
             "object_type": object_type,
             "object_id": object_id,
@@ -346,11 +348,15 @@ def run_approved_path(
         headers=operator_headers,
     )
     assert scan_status == 200, (object_type, scan_status, scan)
-    matching_signals = [
-        signal
-        for signal in scan["signals"]
-        if signal["object_type"] == object_type and signal["object_id"] == object_id
-    ]
+    matching_signals = _matching_signals(scan["signals"], object_type, object_id)
+    if not matching_signals:
+        list_status, active_signals = request(
+            "GET",
+            "/api/v1/signals",
+            headers=operator_headers,
+        )
+        assert list_status == 200, (object_type, list_status)
+        matching_signals = _matching_signals(active_signals, object_type, object_id)
     assert len(matching_signals) == 1
     signal_status = matching_signals[0]["status"]
     assert signal_status in {"open", "attention_required"}
@@ -421,6 +427,16 @@ def run_approved_path(
         "work_order_kind": actual_kind,
         "trace": _trace_summary(trace),
     }
+
+
+def _matching_signals(
+    signals: list[dict[str, Any]], object_type: str, object_id: str
+) -> list[dict[str, Any]]:
+    return [
+        signal
+        for signal in signals
+        if signal.get("object_type") == object_type and signal.get("object_id") == object_id
+    ]
 
 
 def main() -> None:

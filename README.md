@@ -169,19 +169,21 @@ The demo JWT issuer is local-only and is not a production identity system.
   provider, output contract, or tool loop is invalid. Secrets stay in ignored
   local environment files.
 
-Representative Moonshot/Kimi K2.6 validation passed for three read-only
-business paths, an approved inventory write, and invalid-provider fail-closed.
-This limited sample verifies provider compatibility; it is not a model accuracy,
-latency, cost, or SLA claim.
+The frozen Moonshot/Kimi K2.6 quality suite passed all nine local paths: normal
+read-only investigation, prompt-injection investigation, and approved writes
+across inventory, equipment, and task scenarios. This fixed sample verifies
+goal, tool, evidence, approval, and database-effect contracts under the real
+provider; it is not a production-accuracy, traffic, cost, or SLA claim.
 
 ## Verification
 
 | Gate | Current verified result |
 | --- | ---: |
-| Backend suite | 671 tests passed |
+| Backend suite | 682 tests passed |
 | Frontend suite | 19 test files, 60 tests passed |
 | Three-business fixed contracts | 42/42 passed |
 | Frozen Agent safety and recovery evaluation | 9/9 passed |
+| Kimi K2.6 real-model quality evaluation | 9/9 passed; injection 3/3; zero unauthorized calls, approval bypasses, or duplicate work orders |
 | Main Compose smoke | Build, business database effects, API/MCP restart, recovery, and cleanup passed |
 
 Run the local gates:
@@ -194,6 +196,7 @@ uv run mypy src
 uv run pytest -q
 uv run python scripts/run_opercerta_evaluation.py
 uv run python scripts/run_agent_evaluation.py
+bash scripts/run_real_model_quality_evaluation.sh
 
 cd web
 npm ci
@@ -205,6 +208,9 @@ With a fresh Compose database, `python3 scripts/verify_agent_compose.py` also
 asserts Agent trajectories and the resulting PostgreSQL facts. Fixed synthetic
 cases verify declared contracts; they do not represent production traffic or an
 independent accuracy benchmark.
+
+See the [real-model quality evidence](docs/release-evidence/real-model-quality-evaluation.md)
+for exact metrics, failure closure, and sample boundaries.
 
 ## Reliability and Safety Properties
 

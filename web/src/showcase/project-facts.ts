@@ -11,9 +11,13 @@ export type ScenarioFact = {
 export const PROJECT_FACTS = {
   businessLoops: 3,
   frozenEvaluations: 42,
-  realModelOperations: 6,
-  realModelPaths: 3,
-  backendTests: 429,
+  realModelPaths: 9,
+  backendTests: 682,
+  frontendTests: 60,
+  agentSafetyEvaluations: 9,
+  promptInjectionPasses: 3,
+  endToEndP50Seconds: 19.722,
+  endToEndP95Seconds: 31.333,
   realModelProvider: "Moonshot AI",
   realModelName: "kimi-k2.6",
   releaseGate: "CLOSED",
@@ -62,7 +66,6 @@ export const PUBLIC_LIMITATIONS = [
   "生产 IAM/SSO",
   "公开可写 HTTPS 后端",
   "限流、防滥用与高可用",
-  "Release Tag",
 ] as const;
 
 export function sourceHref(path: string): string {

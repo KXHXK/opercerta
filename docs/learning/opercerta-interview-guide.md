@@ -2,7 +2,7 @@
 
 ## 30 秒版本
 
-“OperCerta 是我用 FastAPI、LangGraph、最小 LangChain、FastMCP、PostgreSQL/pgvector、Redis 和 React 实现的可恢复运营处置 Agent。它跑通库存补货、设备维修、作业异常恢复三条闭环：确定性检测先发现异常，Plan-and-Execute Agent 受控取证，人工审批绑定快照，批准后重新复核，再幂等写工单。最新 main 有 667 条后端测试、19 个前端测试文件/60 条用例、9/9 Agent 冻结评测和真实 Compose 重启证据；Real Kimi 的三业务只读、库存批准写入和无效 provider fail-closed 做过少量代表验证，并发布了 `v0.1.0-showcase.1` 只读静态 Showcase 预发布。公网可写后端仍未上线。”
+“OperCerta 是我用 FastAPI、LangGraph、最小 LangChain、FastMCP、PostgreSQL/pgvector、Redis 和 React 实现的可恢复运营处置 Agent。它跑通库存补货、设备维修、作业异常恢复三条闭环：确定性检测先发现异常，Plan-and-Execute Agent 受控取证，人工审批绑定快照，批准后重新复核，再幂等写工单。当前候选分支已验证 682 条后端测试、19 个前端测试文件/60 条用例、42/42 三业务固定契约、9/9 Agent 冻结安全恢复评测和真实 Compose 重启；Kimi K2.6 的 9 条冻结本地路径也全部通过，覆盖三业务查询、提示注入和审批写入。公网可写后端仍未上线。”
 
 ## 3 分钟版本
 
@@ -11,7 +11,7 @@
 3. **可靠性：** 非法输入在边界失败；审批用行锁保证一个胜者；审批绑定包含证据/规则/事实/计划哈希；批准后绕过缓存重读 MCP；工单用确定性幂等键和唯一约束保证重放不多写。
 4. **恢复：** 业务 operation UUID 同时作为 LangGraph thread ID。启动扫描非终态业务表，再从 checkpoint 继续；业务表是真相，checkpoint 是执行进度。
 5. **证据：** 原三业务 42 条固定合成评测之外，新增 9 类 Agent 轨迹评测，覆盖非法 schema、提示注入、未知工具、对象漂移、RAG 隔离、审批后漂移、竞态、幂等和重启；Compose 使用真实 FastEmbed/pgvector RAG。
-6. **边界：** 本地 Mock 闭环、真实 RAG/数据库/MCP 和少量 Kimi 兼容路径已验证；真实调用样本不足以形成准确率、SLA 或成本结论。`v0.1.0-showcase.1` 是只读静态 Showcase 预发布，不代表生产 IAM、公开 HTTPS 后端、高可用或产品级正式 Release 已完成。
+6. **边界：** 本地 Mock 闭环、真实 RAG/数据库/MCP 和 Kimi 9 条冻结质量路径已验证；固定本地样本不足以形成生产准确率、SLA 或成本结论。公开站点是只读静态 Showcase，不代表生产 IAM、公开 HTTPS 后端、高可用或产品级正式 Release 已完成。
 
 ## 10 分钟深挖提纲
 
@@ -65,7 +65,7 @@ request ID 和 W3C trace context 关联 API/MCP；span 跨 LangGraph、Redis、S
 
 ### 12. 真实 Kimi Tool Calling 兼容问题怎么讲
 
-“Mock 回归全绿后，真实 Kimi 首轮仍安全返回 503。我通过 checkpoint 阶段和安全错误分类定位到三类 provider 边界：LLM 错用了 MCP 的 2 秒 timeout；Kimi K2.6 的强制工具调用在当前 Moonshot 配置下要求关闭 thinking；最终分析和 Verifier 的 structured output 还有波动。我把模型 timeout 独立为 90 秒，在 adapter 配置边界关闭 thinking，并让最终分析/Verifier 使用两个内部原生提交工具。随后三业务只读、库存批准写入和无效 provider 零写入验证全部通过。整个过程没有回退 Mock，也没有把一次成功夸大为生产 SLA。”
+“Mock 回归全绿后，真实 Kimi 首轮仍安全返回 503。我通过 checkpoint 阶段和安全错误分类定位 provider timeout、thinking/tool calling 与 structured output 边界；随后在 9 条冻结路径中又发现 SOP 前置缺失、模型复制 citation ID 和评测状态共享问题。我把模型 timeout 与 MCP timeout 分离，在 adapter 边界关闭 thinking，并让 Harness 从已验证 Observation 确定性绑定 evidence refs。最终三业务正常查询、提示注入和审批写入 9/9 通过，且没有未授权调用、审批绕过或重复工单。整个过程没有回退 Mock，也没有把固定小样本夸大为生产 SLA。”
 
 这说明 Mock 用于确定性契约回归，Real 用于供应商协议兼容；两类证据都必要但不能互相替代。
 
@@ -81,7 +81,7 @@ OperCerta 不是把聊天框贴到工单系统上，而是解决仓储异常调�
 
 恢复后不是直接执行：系统绕过 Redis 重新读取权威事实，LLM Verifier 给 `proceed/abort/escalate` 建议，确定性 binding 再比较事实哈希、规则版本、计划哈希和参数。只有两层都允许，才调用受控写工具；PostgreSQL 行锁解决审批竞态，唯一键和事务保证业务副作用 effectively-once，写后读再确认结果。checkpoint 记图位置，业务表记长期事实，二者共同支持重启恢复。
 
-验证分三层：Mock 冻结轨迹、真实 PostgreSQL/MCP/Compose 的数据库与重启断言、少量真实 Kimi 兼容调用。当前本地闭环完整，但公网可写后端、生产 IAM、限流、备份和高可用没有上线，因此发布门禁仍是 `CLOSED`。
+验证分三层：Mock 冻结轨迹、真实 PostgreSQL/MCP/Compose 的数据库与重启断言、Kimi 9 条冻结质量路径。当前本地闭环完整，但公网可写后端、生产 IAM、限流、备份和高可用没有上线，因此 Product Release gate 仍是 `CLOSED`。
 
 ## 高频追问
 
@@ -108,12 +108,12 @@ OperCerta 不是把聊天框贴到工单系统上，而是解决仓储异常调�
 3. 从设备或作业 case 点击“启动 Agent 调查”，展示 Goal、Tool/RAG、Trace 与等待审批；
 4. 批准并展示 Verifier、唯一工单、审计和绑定；
 5. 展示一个自动化测试或 42 条报告，而不是滚动大量终端；
-6. 主动说明三业务只读、库存批准写入和无效 provider fail-closed 只做过本地代表性验证，公网后端/生产 IAM 仍未完成。
+6. 主动说明 Kimi 9/9 是固定本地小样本，不是生产准确率或 SLA；公网后端/生产 IAM 仍未完成。
 
 ## 简历项目表述（通过个人掌握检查后使用）
 
 - 基于 FastAPI、LangGraph、最小 LangChain Tool Calling、FastMCP、PostgreSQL/pgvector、Redis 与 React，实现库存、设备、作业三类异常的可恢复运营处置 Agent；以受控只读取证、人工审批绑定、批准后复核和幂等事务约束高风险写入。
-- 建立 42 条固定三业务契约、9/9 冻结 Agent 安全/恢复评测与 GitHub Actions main Compose 门禁；验证 API/MCP 重启恢复和工单业务有效一次，并以 `v0.1.0-showcase.1` 发布只读静态展示。
+- 建立 42 条固定三业务契约、9/9 冻结 Agent 安全/恢复评测与 Kimi 9/9 真实模型质量小样本；验证提示注入 3/3、零未授权调用/审批绕过/重复工单，以及 API/MCP 重启恢复和工单业务有效一次。
 
 展示入口：[OperCerta 专题](https://opercerta-kxh.netlify.app)、[GitHub 仓库](https://github.com/KXHXK/opercerta)、[Showcase 预发布](https://github.com/KXHXK/opercerta/releases/tag/v0.1.0-showcase.1)。在完成下方检查前，只陈述已经实现和验证的项目事实，不在简历中使用“精通”、生产级 SLA 或未经测量的准确率、性能和成本数字。
 
