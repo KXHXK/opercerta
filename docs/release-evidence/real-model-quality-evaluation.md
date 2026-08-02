@@ -51,3 +51,10 @@ bash scripts/run_real_model_quality_evaluation.sh \
 - 当前 provider 响应链路没有向评测器提供可信 token/cost 字段，因此 token 用量和成本标记为 unavailable，不做估算。
 - 报告不保存 API key、完整 Prompt、原始模型文本或原始异常消息。
 - Product Release gate 仍为 `CLOSED`；本证据只支持“公开静态展示 + 本地可复现完整 Agent MVP”。
+
+## 项目专题同步
+
+- 公开专题：<https://opercerta-kxh.netlify.app/>
+- 专题已经同步 Agent Harness 组成、循环架构、端到端业务链路、各技术实际职责和本页评测结果。
+- 前端门禁为 62/62，生产构建产物为 `index-Cn61pK2g.js`；Netlify deploy `6a6f200da7560edee31e8739` 已发布并通过 HTTP 200、CSP 和关键评测内容检查。
+- 公开页面仍是只读静态展示，不把本地 Agent MVP 描述为公网可写产品。
