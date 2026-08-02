@@ -1,6 +1,6 @@
 # OperCerta 当前状态
 
-> 更新时间：2026-07-31。本文件只保存当前权威状态；历史过程见 `docs/development-log/daily/` 与 `docs/release-evidence/`。
+> 更新时间：2026-08-02。本文件只保存当前权威状态；历史过程见 `docs/development-log/daily/` 与 `docs/release-evidence/`。
 
 ## 当前结论
 
@@ -14,7 +14,7 @@ OperCerta 的三业务共享 Agent 主线、可靠性内核、前后端、本地
 
 | 门禁 | 状态 | 判定依据 |
 | --- | --- | --- |
-| 工程与本地自动化门禁 | `PASSED` | 当前 main `7bb9ecd`；PR #23 合并；main run `30629194460` 五项成功；后端 671、前端 60、三业务 42/42、Agent 9/9、Compose 重启恢复通过 |
+| 工程与本地自动化门禁 | `PASSED` | main `7bb9ecd` 的 671 条后端基线与五项 CI 已通过；当前真实模型评测候选分支后端 682/682、Kimi 9/9，前端仍为 60，三业务 42/42、Agent 9/9、Compose 重启恢复通过 |
 | Showcase Release gate | `AWAITING_OWNER_VALIDATION` | 静态站点和本地 MVP 已具备；仍需项目所有者独立完成业务实演、源码讲解、恢复实验和录屏 |
 | Product Release gate | `CLOSED` | 未部署公网可写后端、生产身份、限流、防滥用、托管数据库备份、高可用与线上告警 |
 
@@ -22,7 +22,7 @@ OperCerta 的三业务共享 Agent 主线、可靠性内核、前后端、本地
 
 `Product Release gate: CLOSED`
 
-本分支新增 3 条发布/安全契约后，本地一次性 pgvector 测试库得到 `671 passed in 112.07s`；main backend job 随后复核通过。
+main 发布/安全基线曾在一次性 pgvector 测试库得到 `671 passed in 112.07s` 并由 backend job 复核；当前真实模型评测候选分支新增 11 条契约后得到 `682 passed in 96.49s`，尚待合并后取得新鲜 main CI。
 
 ## 已实现范围
 
@@ -34,12 +34,13 @@ OperCerta 的三业务共享 Agent 主线、可靠性内核、前后端、本地
 - PostgreSQL LangGraph checkpoint、业务表主导恢复、API/MCP 重启恢复。
 - Redis 只缓存只读证据，审批后复核绕过缓存。
 - FastAPI/JWT/RBAC/Pydantic/SSE、React Case 工作台、Agent Trace 和审计时间线。
-- Mock 模型确定性门禁；Moonshot/Kimi K2.6 仅做少量兼容性代表验证，不宣称准确率、成本或 SLA。
+- Mock 模型承担确定性回归门禁；Moonshot/Kimi K2.6 冻结真实模型质量评测 9/9：三业务各覆盖正常查询、提示注入和审批写入；提示注入 3/3，未授权调用、审批绕过和重复工单均为 0。该固定本地小样本不代表生产准确率、成本或 SLA。
 
 ## 当前运行与发布证据
 
 - GitHub main：`7bb9ecda8170ed8752049331f5597ea2368d77b1`；PR #23；Actions run `30629194460` 五项全绿。
-- 自动化基线：后端 `671 passed`；前端 19 文件/60 条；三业务固定契约 42/42；冻结 Agent 安全恢复 9/9；main Compose smoke 通过。
+- 自动化基线：main 后端 `671 passed`，当前候选分支后端 `682 passed`；前端 19 文件/60 条；三业务固定契约 42/42；冻结 Agent 安全恢复 9/9；main Compose smoke 通过。
+- 真实模型质量小样本：9/9；Goal、工具 precision/recall、证据完整率、citation 可解析率与数据库副作用匹配率均为 100%；端到端 P50/P95 为 19.722/31.333 秒。该结果不是生产准确率或 SLA。
 - main Compose 在干净 GitHub Linux 环境构建 uv `0.11.28` 镜像，验证三业务数据库副作用、API/MCP 重启、恢复和隔离卷清理，关闭了本机 GHCR 拉取超时留下的容器证据缺口。
 - 本机 WSL2 Ubuntu 26.04 的 `opercerta-demo` PostgreSQL、Redis、MCP、API 四服务 healthy；readiness 中 database、checkpoint、MCP 均 ready。
 - Netlify 为静态站点；`/console` 与 `/api/*` 在公网均是 SPA 静态回退，不是可写后端。

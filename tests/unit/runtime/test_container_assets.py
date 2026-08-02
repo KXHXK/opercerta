@@ -60,16 +60,19 @@ def test_image_uses_locked_dependencies_and_non_root_user() -> None:
 
     assert "ghcr.io/astral-sh/uv:0.11.28" in dockerfile
     assert "uv sync --frozen --no-dev" in dockerfile
+    assert dockerfile.count("--mount=type=cache,target=/root/.cache/uv") == 2
     assert "install -d -o opercerta -g opercerta /home/opercerta/.cache" in dockerfile
     assert "USER opercerta" in dockerfile
 
 
-def test_image_copies_project_build_inputs_before_locked_sync() -> None:
+def test_image_caches_locked_dependencies_before_copying_project_source() -> None:
     dockerfile = Path("Dockerfile").read_text(encoding="utf-8")
-    sync = dockerfile.index("RUN uv sync --frozen --no-dev")
+    dependency_sync = dockerfile.index("uv sync --frozen --no-dev --no-install-project")
+    source_copy = dockerfile.index("COPY src ./src")
+    project_sync = dockerfile.index("uv sync --frozen --no-dev --offline")
 
-    assert dockerfile.index("README.md") < sync
-    assert dockerfile.index("COPY src ./src") < sync
+    assert dockerfile.index("README.md") < dependency_sync
+    assert dependency_sync < source_copy < project_sync
 
 
 def test_compose_example_is_tracked_and_real_file_is_ignored() -> None:

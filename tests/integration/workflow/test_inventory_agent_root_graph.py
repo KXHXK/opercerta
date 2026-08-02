@@ -74,10 +74,17 @@ class InventoryReadGateway:
 
 
 class SequentialTurnModel:
-    def __init__(self, *, finish_early: bool = False, forbidden_write: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        finish_early: bool = False,
+        forbidden_write: bool = False,
+        bogus_evidence_refs: bool = False,
+    ) -> None:
         self.contexts: list[AgentDecisionContext] = []
         self._finish_early = finish_early
         self._forbidden_write = forbidden_write
+        self._bogus_evidence_refs = bogus_evidence_refs
 
     async def encode_goal(self, context: GoalContext) -> GoalEncoding:
         return GoalEncoding(
@@ -111,7 +118,11 @@ class SequentialTurnModel:
                 {
                     "kind": "final_analysis",
                     "finding": "库存事实与规则已核对。",
-                    "evidence_refs": [item.tool_call_id for item in context.observations],
+                    "evidence_refs": (
+                        ["model-invented-ref"]
+                        if self._bogus_evidence_refs
+                        else [item.tool_call_id for item in context.observations]
+                    ),
                     "missing_evidence": [],
                     "recommended_action": (
                         "report_status" if context.goal.goal == "query" else "request_approval"
@@ -195,6 +206,28 @@ async def test_query_observation_returns_to_model_before_next_decision(
     assert result["model_call_count"] == 4  # goal encoding plus three decisions
     assert result["tool_call_count"] == 2
     assert result["decision_plan"] is None
+
+
+@pytest.mark.asyncio
+async def test_verified_observations_deterministically_bind_final_evidence_refs(
+    catalog: SyntheticCatalog,
+) -> None:
+    model = SequentialTurnModel(bogus_evidence_refs=True)
+    gateway = InventoryReadGateway(catalog)
+    graph = build_inventory_agent_root_graph(
+        model,
+        gateway,
+        clock=lambda: NOW,
+        enabled=True,
+    )
+
+    result = await graph.ainvoke(
+        build_inventory_agent_root_initial_state(OPERATION_ID, request("query")),
+        config={"configurable": {"thread_id": str(OPERATION_ID)}},
+    )
+
+    assert result["status"] == "query_completed"
+    assert set(result["final_analysis"]["evidence_refs"]) == {"call-1", "call-2"}
 
 
 @pytest.mark.asyncio

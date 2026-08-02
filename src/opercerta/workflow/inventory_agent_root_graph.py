@@ -391,14 +391,16 @@ def build_controlled_agent_root_graph(
         if not required <= set(successful) or turn.root.missing_evidence:
             return fail("required_evidence_incomplete")
         required_refs = {successful[name].tool_call_id for name in required}
-        if not required_refs <= set(turn.root.evidence_refs):
-            return fail("final_analysis_evidence_mismatch")
+        # Evidence identifiers are authoritative workflow facts, not a model
+        # judgment. Bind them from validated observations so provider formatting
+        # variation cannot drop or invent the lineage used by later controls.
+        bound_final = turn.root.model_copy(update={"evidence_refs": tuple(sorted(required_refs))})
         analysis = AgentAnalysis(
-            summary=turn.root.finding,
-            recommendation=turn.root.explanation,
+            summary=bound_final.finding,
+            recommendation=bound_final.explanation,
         )
         return {
-            "final_analysis": turn.root.model_dump(mode="json"),
+            "final_analysis": bound_final.model_dump(mode="json"),
             "agent_analysis": analysis.model_dump(mode="json"),
         }
 

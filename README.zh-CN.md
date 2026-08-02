@@ -158,18 +158,19 @@ npm run dev
 - **Real 模式**连接 OpenAI-compatible endpoint；provider、输出契约或工具循环
   不合法时会 fail closed。密钥只保存在被忽略的本地环境文件中。
 
-Moonshot/Kimi K2.6 的少量代表验证已覆盖三业务只读、库存批准写入和无效
-provider fail-closed。该小样本只证明 provider 兼容性，不代表模型准确率、
-延迟、成本或 SLA。
+Moonshot/Kimi K2.6 的冻结真实模型质量评测覆盖三业务的正常只读调查、提示
+注入调查和批准写入，共 9 条本地路径全部通过。该固定小样本验证 provider 下的
+Goal、工具、证据、审批和数据库副作用契约，不代表生产准确率、真实流量或 SLA。
 
 ## 测试结果
 
 | 门禁 | 当前已验证结果 |
 | --- | ---: |
-| 后端测试 | 671 条通过 |
+| 后端测试 | 682 条通过 |
 | 前端测试 | 19 个测试文件、60 条用例通过 |
 | 三业务固定契约 | 42/42 通过 |
 | 冻结 Agent 安全与恢复评测 | 9/9 通过 |
+| Kimi K2.6 真实模型质量评测 | 9/9 通过；提示注入 3/3；未授权调用、审批绕过、重复工单均为 0 |
 | main Compose smoke | 构建、业务数据库副作用、API/MCP 重启、恢复和清理通过 |
 
 运行本地门禁：
@@ -182,6 +183,7 @@ uv run mypy src
 uv run pytest -q
 uv run python scripts/run_opercerta_evaluation.py
 uv run python scripts/run_agent_evaluation.py
+bash scripts/run_real_model_quality_evaluation.sh
 
 cd web
 npm ci
@@ -192,6 +194,9 @@ npm run build
 在全新 Compose 数据库上执行 `python3 scripts/verify_agent_compose.py`，还会断言
 Agent 轨迹和 PostgreSQL 最终事实。固定合成用例只验证已声明契约，不代表生产
 流量或独立准确率评测。
+
+真实模型质量评测的逐项指标、故障收口和诚实边界见
+[`docs/release-evidence/real-model-quality-evaluation.md`](docs/release-evidence/real-model-quality-evaluation.md)。
 
 ## 可靠性与安全属性
 
