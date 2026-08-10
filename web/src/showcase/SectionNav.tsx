@@ -15,12 +15,22 @@ export function SectionNav() {
       <a className="showcase-logo" href="/">
         OPERCERTA
       </a>
-      <div>
-        {ITEMS.map(([id, label]) => (
-          <button key={id} type="button" onClick={() => moveTo(id)}>
-            {label}
-          </button>
-        ))}
+      <div className="section-nav-actions">
+        <div className="section-nav-links">
+          {ITEMS.map(([id, label]) => (
+            <button key={id} type="button" onClick={() => moveTo(id)}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <a
+          className="section-source"
+          href="https://github.com/KXHXK/opercerta"
+          target="_blank"
+          rel="noreferrer"
+        >
+          GitHub ↗
+        </a>
       </div>
     </nav>
   );

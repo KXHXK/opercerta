@@ -74,7 +74,7 @@ flowchart LR
     UI["React console"] --> API["FastAPI boundary"]
     API --> SIGNAL["Deterministic signal scan"]
     SIGNAL --> GOAL["Typed goal encoding"]
-    GOAL --> GRAPH["LangGraph plan-and-execute loop"]
+    GOAL --> GRAPH["LangGraph bounded ReAct-style tool loop"]
     GRAPH --> LLM["LLM reasoning"]
     LLM --> POLICY["Tool policy and harness"]
     POLICY --> MCP["FastMCP read tools"]
@@ -180,11 +180,11 @@ provider; it is not a production-accuracy, traffic, cost, or SLA claim.
 | Gate | Current verified result |
 | --- | ---: |
 | Backend suite | 682 tests passed |
-| Frontend suite | 19 test files, 60 tests passed |
+| Frontend suite | 19 test files, 63 tests passed |
 | Three-business fixed contracts | 42/42 passed |
 | Frozen Agent safety and recovery evaluation | 9/9 passed |
 | Kimi K2.6 real-model quality evaluation | 9/9 passed; injection 3/3; zero unauthorized calls, approval bypasses, or duplicate work orders |
-| Main Compose smoke | Build, business database effects, API/MCP restart, recovery, and cleanup passed |
+| Closeout-branch local Compose smoke | Clean build, business database effects, API/MCP restart, recovery, and cleanup passed; new main CI pending |
 
 Run the local gates:
 
@@ -200,6 +200,7 @@ bash scripts/run_real_model_quality_evaluation.sh
 
 cd web
 npm ci
+npm audit --audit-level=high
 npm run test:run
 npm run build
 ```
@@ -253,12 +254,14 @@ Completed locally:
 - three bounded business workflows and the shared Agent loop;
 - approval binding, revalidation, idempotent writes, and restart recovery;
 - real PostgreSQL/pgvector, Redis, FastMCP, FastEmbed retrieval, and React console;
-- fixed contract/evaluation suites and main-branch Compose recovery evidence;
+- fixed contract/evaluation suites and closeout-branch local Compose recovery evidence;
 - read-only public project page and a reproducible pre-release.
 
 Current gate state:
 
 - engineering and local automated gate: `PASSED`;
+- remote main CI gate: `PENDING_PR` because the current main Compose run failed
+  before this branch fixed its clean-build dependency-cache assumption;
 - Showcase Release gate: `AWAITING_OWNER_VALIDATION` until the owner completes
   the manual walkthrough, source explanation, recovery/idempotency experiment,
   and 3–5 minute recording;

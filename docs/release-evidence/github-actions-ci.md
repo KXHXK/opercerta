@@ -1,5 +1,14 @@
 # GitHub Actions 分层 CI：远程验证证据
 
+## 2026-08-10 PR #25 main 失败复核与本地修复
+
+- PR #25 已合入 main `c4257ac10dec470bbb9ca1076c4cfacfb21a80de`。
+- [main run 30744845403](https://github.com/KXHXK/opercerta/actions/runs/30744845403) 的 `repository-safety`、`python-quality`、`backend-tests`、`frontend` 成功；后端为 682 条，前端为 19 文件/62 条，42/42 与 9/9 评测均通过。
+- `compose-smoke` 在 `Build and start Compose services` 失败：Dockerfile 第二次 `uv sync --frozen --no-dev --offline` 在全新 runner cache 中找不到 PEP 517 `hatchling>=1.27,<2`。因此该 main run 总结论为 `failure`，不得继续写成五项全绿。
+- `release/final-closeout-20260810` 先增加容器资产 RED 断言，再移除错误的项目安装离线假设；运行依赖继续使用 `uv.lock` 和 `--frozen`。
+- 本地 WSL2 clean Docker build、隔离 Compose 三业务数据库副作用、API/MCP 重启和 recovery-only 已通过；收口分支前端新增源码入口测试后为 63 条，`npm audit --audit-level=high` 为 0 个漏洞。
+- 本节只证明本地修复候选。分支尚未 push/PR，必须取得新的 main GitHub Actions 五项成功后，远程 CI 门禁才能改为 `PASSED`。
+
 ## 2026-07-31 双门禁收口 PR #23 与 main 总门禁
 
 - [PR #23](https://github.com/KXHXK/opercerta/pull/23) 的 `repository-safety`、`python-quality`、`backend-tests`、`frontend` 全部成功，`compose-smoke` 按 PR 事件规则跳过；随后以普通 merge commit `7bb9ecda8170ed8752049331f5597ea2368d77b1` 合入 main。

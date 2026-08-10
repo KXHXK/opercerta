@@ -60,12 +60,21 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 22px 0;
+  padding: 16px 0;
   border-bottom: 1px solid var(--line);
 }
 
-.section-nav div {
+.section-nav-actions,
+.section-nav-links {
   display: flex;
+  align-items: center;
+}
+
+.section-nav-actions {
+  gap: 12px;
+}
+
+.section-nav-links {
   flex-wrap: wrap;
   gap: 6px;
 }
@@ -90,6 +99,29 @@ a {
   color: var(--accent);
   background: var(--accent-soft);
   transform: translateY(-1px);
+}
+
+.section-source {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--accent);
+  background: rgba(255, 255, 255, 0.7);
+  font-weight: 750;
+  text-decoration: none;
+  transition:
+    color 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease;
+}
+
+.section-source:hover {
+  color: var(--ink);
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .showcase-logo {
@@ -1457,9 +1489,16 @@ code {
   }
 
   .section-nav {
-    flex-direction: column;
-    gap: 14px;
-    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .section-nav-links {
+    display: none;
+  }
+
+  .section-source {
+    min-height: 34px;
+    padding-inline: 10px;
   }
 
   .showcase-hero,

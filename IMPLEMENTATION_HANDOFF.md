@@ -1,10 +1,10 @@
 # OperCerta 实施交接
 
-> 更新时间：2026-07-31。先读 `DOCUMENT_INDEX.md` 的核心阅读表，再读本文件和 `docs/development-log/current-state.md`。
+> 更新时间：2026-08-10。先读 `DOCUMENT_INDEX.md` 的核心阅读表，再读本文件和 `docs/development-log/current-state.md`。
 
 ## 当前交接结论
 
-OperCerta 的代码与自动化主线已经完成。双门禁与本人掌握收口经 PR #23 合入 main `7bb9ecda8170ed8752049331f5597ea2368d77b1`；main Actions run `30629194460` 五项全绿，包含后端 `671 passed`、前端 19 文件/60 条、三业务固定契约 42/42、Agent 安全恢复 9/9，以及干净构建 uv `0.11.28` 镜像后的真实 Compose 三业务数据库副作用与 API/MCP 重启恢复。
+OperCerta 的三业务、Agent 主线、真实模型固定评测和本地运行能力已经合入 main `c4257ac10dec470bbb9ca1076c4cfacfb21a80de`（PR #25）。该 main run `30744845403` 中仓库安全、Python 质量、后端 682 条及两套评测、前端 19 文件/62 条均通过；`compose-smoke` 因 Dockerfile 在全新 runner 上离线安装项目时缺少 PEP 517 `hatchling` 缓存而失败。`release/final-closeout-20260810` 已按 TDD 修复并完成 clean Docker build、三业务副作用和 API/MCP 重启恢复本地复验；仍需新的远程 main CI 才能称为总门禁重新全绿。
 
 本版本发布定义已经正式修订为：
 
@@ -27,17 +27,19 @@ OperCerta 的代码与自动化主线已经完成。双门禁与本人掌握收�
 
 ## 本轮收口修改
 
-- 新增 Apache-2.0 `LICENSE`。
-- Dockerfile 的 uv 固定为本地/CI 同版 `0.11.28`。
-- 仓库安全扫描覆盖双语 README、双语 CONTRIBUTING、handoff 和文档索引。
-- 新增双门禁修订规格、实施计划和本人掌握验收表。
-- 当前状态不再堆叠历史快照；历史仍保存在 daily 与 release evidence。
+- 修复 clean-runner Docker build：保持运行依赖 `--frozen`，但不再假设构建后端已经存在于 uv cache。
+- 升级前端锁文件中的受影响传递依赖，并在 CI/贡献指南加入 `npm audit --audit-level=high`。
+- 新增 `SECURITY.md`，明确安全报告入口和非生产边界。
+- 统一当前实现为“有界 ReAct 风格 Tool Loop”，不再误报为严格 Plan-and-Execute。
+- 同步 682 条后端、当前收口分支 63 条前端、42/42、9/9 Agent、9/9 Kimi 真实模型固定路径等已验证数字及其样本边界。
+- 补充完整 Agent Harness 技术说明和 2026-08-10 规格/发布审计。
 
 ## 下一执行顺序
 
-1. 由项目所有者亲自执行 `docs/learning/opercerta-ownership-acceptance.md`；必须记录 `operation_id`、`work_order_id`、Trace、审计序列和数据库事实，**不得由 Codex 自动代签**。
-2. 完成 3–5 分钟录屏与口述复盘。
-3. 人工证据通过后，把 Showcase 门禁改为 `PASSED`，创建最终 tag 并记录回滚提交。
+1. 由项目所有者回来后批准 push/PR；取得新的 main 五项全绿证据。
+2. 由项目所有者亲自执行 `docs/learning/opercerta-ownership-acceptance.md`；必须记录 `operation_id`、`work_order_id`、Trace、审计序列和数据库事实，**不得由 Codex 自动代签**。
+3. 完成 3–5 分钟录屏与口述复盘。
+4. 人工证据通过后，把 Showcase 门禁改为 `PASSED`，创建最终 tag 并记录回滚提交。
 
 ## 本地运行入口
 
@@ -66,6 +68,7 @@ uv run python scripts/run_agent_evaluation.py
 
 cd web
 npm ci
+npm audit --audit-level=high
 npm run test:run
 npm run build
 ```

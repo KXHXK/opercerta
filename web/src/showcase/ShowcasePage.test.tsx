@@ -49,7 +49,7 @@ it("publishes exact reproducible evaluation results and honest limits", () => {
 
   for (const result of [
     "682 / 682",
-    "60 / 60",
+    "63 / 63",
     "42 / 42",
     "3 / 3",
     "19.722 s",
@@ -93,6 +93,15 @@ it("moves within the page without adding a location hash", () => {
 
   expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
   expect(window.location.hash).toBe("");
+});
+
+it("links directly to the public source repository", () => {
+  render(<ShowcasePage />);
+
+  expect(screen.getByRole("link", { name: /GitHub/ })).toHaveAttribute(
+    "href",
+    "https://github.com/KXHXK/opercerta",
+  );
 });
 
 it("labels both screenshots as local synthetic-data evidence", () => {
