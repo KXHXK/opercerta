@@ -69,10 +69,13 @@ def test_image_caches_locked_dependencies_before_copying_project_source() -> Non
     dockerfile = Path("Dockerfile").read_text(encoding="utf-8")
     dependency_sync = dockerfile.index("uv sync --frozen --no-dev --no-install-project")
     source_copy = dockerfile.index("COPY src ./src")
-    project_sync = dockerfile.index("uv sync --frozen --no-dev --offline")
+    project_sync = dockerfile.index("uv sync --frozen --no-dev", source_copy)
 
     assert dockerfile.index("README.md") < dependency_sync
     assert dependency_sync < source_copy < project_sync
+    # A clean runner has no cached PEP 517 build backend. Keeping the project
+    # install online lets uv fetch hatchling while the runtime lock stays frozen.
+    assert "uv sync --frozen --no-dev --offline" not in dockerfile
 
 
 def test_compose_example_is_tracked_and_real_file_is_ignored() -> None:

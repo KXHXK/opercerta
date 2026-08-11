@@ -68,7 +68,7 @@ flowchart LR
     UI["React 控制台"] --> API["FastAPI 边界"]
     API --> SIGNAL["确定性异常扫描"]
     SIGNAL --> GOAL["类型化目标编码"]
-    GOAL --> GRAPH["LangGraph 规划与执行循环"]
+    GOAL --> GRAPH["LangGraph 有界 ReAct 风格工具循环"]
     GRAPH --> LLM["LLM 推理"]
     LLM --> POLICY["工具策略与 Harness"]
     POLICY --> MCP["FastMCP 只读工具"]
@@ -167,11 +167,11 @@ Goal、工具、证据、审批和数据库副作用契约，不代表生产准�
 | 门禁 | 当前已验证结果 |
 | --- | ---: |
 | 后端测试 | 682 条通过 |
-| 前端测试 | 19 个测试文件、60 条用例通过 |
+| 前端测试 | 19 个测试文件、63 条用例通过 |
 | 三业务固定契约 | 42/42 通过 |
 | 冻结 Agent 安全与恢复评测 | 9/9 通过 |
 | Kimi K2.6 真实模型质量评测 | 9/9 通过；提示注入 3/3；未授权调用、审批绕过、重复工单均为 0 |
-| main Compose smoke | 构建、业务数据库副作用、API/MCP 重启、恢复和清理通过 |
+| 收口分支本地 Compose smoke | 干净构建、业务数据库副作用、API/MCP 重启、恢复和清理通过；等待新 main CI |
 
 运行本地门禁：
 
@@ -187,6 +187,7 @@ bash scripts/run_real_model_quality_evaluation.sh
 
 cd web
 npm ci
+npm audit --audit-level=high
 npm run test:run
 npm run build
 ```
@@ -239,12 +240,13 @@ docs/              技术指南、开发记录和发布证据
 - 三条受控业务流程和共享 Agent Loop；
 - 审批绑定、重新取证、幂等写入和重启恢复；
 - 真实 PostgreSQL/pgvector、Redis、FastMCP、FastEmbed 检索和 React 控制台；
-- 固定契约/评测以及 main 分支 Compose 恢复证据；
+- 固定契约/评测以及收口分支本地 Compose 恢复证据；
 - 只读公开项目页面和可复现预发布版本。
 
 当前门禁状态：
 
 - 工程与本地自动化门禁：`PASSED`；
+- 远程 CI 门禁：`PR_CHECKS_PASSED_MAIN_PENDING`；PR #26 四项 PR job 已通过，main-only Compose smoke 仍需合并后运行；
 - Showcase Release gate：`AWAITING_OWNER_VALIDATION`，必须由项目所有者亲自完成
   业务实演、源码讲解、恢复/幂等实验和 3–5 分钟录屏；
 - Product Release gate：`CLOSED`。

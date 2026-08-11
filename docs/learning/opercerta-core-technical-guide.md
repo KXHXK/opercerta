@@ -182,7 +182,7 @@ RAG 回答“适用 SOP 怎么描述”，返回带 `document_id/chunk_id/versio
 2. `operational_signals` 保存来源、时间、事实哈希和严重级别；`dedup_key` 唯一约束使并发扫描不会制造重复待办。
 3. operator 从信号箱点击“启动 Agent 调查”；`trigger_signal_id`、对象类型和对象 ID 在同一 PostgreSQL 事务中校验并绑定 operation。
 4. 同一信号只有一个认领胜者；重复点击返回 `signal_already_claimed`，不能创建第二个处置。
-5. 进入 operation 后，Agent 才使用 Goal、Plan-and-Execute、Tool Calling、RAG 和模型解释完成深入调查；审批、复核和幂等写入边界保持不变。
+5. 进入 operation 后，Agent 才使用 Goal、有界 ReAct 风格 Tool Loop、Tool Calling、RAG 和模型解释完成深入调查；审批、复核和幂等写入边界保持不变。
 
 为什么不让用户先点“查询状态”再点“创建处置”：写路径本来就必须重新取证，拆成两次人工操作既重复调用，又会让第一次查询结果在第二次提交前过期，形成 TOCTOU。为什么不让 LLM 负责发现 `12 < 15`：这是稳定、可审计、可单测的数值规则，用模型只会增加成本、延迟和不确定性。真正适合 Agent 的部分是多来源取证、SOP 检索、受控规划、解释、人机协作和恢复。
 
@@ -200,7 +200,7 @@ RAG 回答“适用 SOP 怎么描述”，返回带 `document_id/chunk_id/versio
 
 `facts_hash` 把本次判定事实固定下来，`dedup_key = signal 类型 + 对象 + facts_hash`。相同事实再次扫描会复用 PostgreSQL 中的旧 signal，所以已经被认领的信号仍显示 `investigating`；这表示“本次重新取证命中了同一异常”，不是本次扫描偷偷创建了新处置。前端现在显示本次扫描时间、对象数、命中数、规则事实和来源，角色切换不再自动加载数据库信号。
 
-operator 点击“启动 Agent 调查”后才进入第二阶段：FastAPI 在同一事务认领 signal，LangGraph 编码 Goal，Plan-and-Execute 通过受控 Tool Calling 再取业务事实并检索对应 SOP，模型只负责综合解释，确定性场景规则生成候选计划，然后停在人工审批。批准后 Verifier 绕过缓存再次取证，绑定一致才允许幂等写工单。因此整个链路是“规则发现 → Agent 深入调查 → 人工批准 → 重新验证 → 受控执行”，而不是让模型猜测是否异常。
+operator 点击“启动 Agent 调查”后才进入第二阶段：FastAPI 在同一事务认领 signal，LangGraph 编码 Goal，有界 ReAct 风格 Tool Loop 通过受控 Tool Calling 再取业务事实并检索对应 SOP，模型只负责选择只读工具和综合解释，确定性场景规则生成候选计划，然后停在人工审批。批准后 Verifier 绕过缓存再次取证，绑定一致才允许幂等写工单。因此整个链路是“规则发现 → Agent 深入调查 → 人工批准 → 重新验证 → 受控执行”，而不是让模型猜测是否异常。
 
 ## 21. 历史对账和后继调查为什么不能直接“重开”
 
@@ -276,3 +276,132 @@ flowchart TD
 真实模型验证暴露了两个 Mock 无法发现的问题。第一，生产工厂曾把 `OPERCERTA_MCP_TIMEOUT_SECONDS=2` 同时传给 LLM；Kimi 正常工具调用约需数秒，导致统一 503。现已拆分 `OPERCERTA_MODEL_TIMEOUT_SECONDS=90`。第二，Kimi K2.6 的强制工具调用在当前 Moonshot 配置下需要 `OPERCERTA_MODEL_THINKING_MODE=disabled`；否则首个 `model_decide` 返回供应商 BadRequest。最终分析和审批 Verifier 也改为单一内部提交工具的原生 tool calling，避免供应商 structured-output 解析波动。
 
 这不是把供应商特例散落进业务代码：通用 gateway 默认仍为 `thinking=default`，Moonshot 部署配置显式选择 `disabled`；业务图只依赖严格 `AgentLoopModelGateway` 契约。三个真实只读场景、一个库存批准写入和一个不可用端点闭锁均已有独立脱敏证据。发布门禁仍为 `CLOSED`，因为尚未 commit/push/merge、复跑远程 CI、公开交互后端和完成人工掌握验收。
+
+## 25. Agent Harness：让模型有判断空间，但没有越权空间
+
+### 25.1 Harness 不是单个类
+
+OperCerta 的 Agent Harness 是包围 LLM 的整套运行约束：
+
+> LLM 负责理解目标、选择只读工具、综合证据和提出建议；确定性代码负责权限、业务规则、审批、参数计算、写入授权、幂等和恢复。
+
+`AgentHarness` 类只实现可信 Goal 和调用预算契约。完整 Harness 还包括 Prompt Registry、Pydantic Context、ToolPolicy、ToolExecutor、LangGraph、PostgreSQL Checkpointer、TraceRecorder、冻结 Eval 和确定性 Policy Guard。
+
+```mermaid
+flowchart LR
+    UI["React 有限表单"] --> API["FastAPI 认证与请求校验"]
+    API --> INTENT["可信 IntentEnvelope"]
+    INTENT --> LLM["LLM Goal / Tool Calling / FinalAnalysis"]
+    LLM --> POLICY["ToolPolicy 白名单·对象绑定·预算"]
+    POLICY --> MCP["FastMCP 只读工具"]
+    MCP --> OBS["事实·规则·RAG Observation"]
+    OBS --> LLM
+    LLM --> GUARD["确定性 Policy Guard"]
+    GUARD --> HUMAN["人工审批 interrupt"]
+    HUMAN --> FRESH["绕过 Redis 重新取证"]
+    FRESH --> VERIFY["LLM Verifier + 确定性 Binding"]
+    VERIFY --> WRITE["幂等工单写入与回读"]
+    WRITE --> TRACE["Trace / Audit / Feedback"]
+    TRACE -. "状态与反馈" .-> LLM
+    PG[("PostgreSQL\n事实·Checkpoint·Trace·pgvector")] --- OBS
+```
+
+### 25.2 七个工程组成
+
+| 组成 | 本项目实现 | 约束与价值 |
+| --- | --- | --- |
+| Prompt | `PromptRegistry` 加载并哈希 `planner-v1`、`tool-loop-v1`、`verifier-v1` | Prompt 约束模型职责，但不能代替代码安全边界 |
+| 上下文 | `IntentEnvelope`、`GoalContext`、`AgentDecisionContext`、`VerificationContext` | 只给模型阶段性最小结构化上下文，不暴露凭据、SQL 或无限聊天历史 |
+| 工具 | `ToolPolicy → ToolExecutor → CachedReadToolGateway → McpToolGateway → FastMCP` | 模型只能看到白名单只读工具，写工具不进入模型目录 |
+| 编排 | 三业务共享 `ControlledAgentRootGraph` | 有界 Model→Tool→Observation 循环，人工审批使用 LangGraph `interrupt` |
+| 记忆 | Graph State、PostgreSQL checkpoint、pgvector SOP、Trace/Audit | Redis 只是可删除的只读缓存，不是业务事实或长期记忆 |
+| Eval | 42 条三业务契约、9 条安全恢复轨迹、9 条 Kimi 固定真实模型路径 | 证明明确契约，不等于生产准确率、真实流量或 SLA |
+| 约束与恢复 | RBAC、Schema、对象绑定、审批周期、批准后重取证、Binding、幂等键、写后读、RecoveryCoordinator | 任一关键证据、权限或状态不一致都失败关闭 |
+
+### 25.3 Prompt 与上下文的真实生产边界
+
+当前生产单根图实际使用：
+
+- `planner-v1`：把可信 `IntentEnvelope` 编码为 `GoalEncoding`；
+- `tool-loop-v1`：根据允许工具和已有 Observation 返回 `ToolDecision` 或 `FinalAnalysis`；
+- `verifier-v1`：批准后比较原事实和刷新事实，返回 `proceed`、`abort` 或 `escalate`。
+
+`analyst-v1` 和 `reporter-v1` 存在于模型适配器，但当前根图不单独调用。最终分析来自 `tool-loop-v1`，终态结果主要由确定性代码生成。不能因为 Prompt 文件存在就声称它们全部位于当前生产路径。
+
+系统不保存或展示隐藏思维链。Trace 只保存 Prompt 引用、结构化决定、工具与证据引用、安全摘要和错误码。`AgentHarness.validate_goal()` 还要求模型输出的 goal、scenario、object_id 与可信 Intent 完全一致；当前根图最多允许 6 次模型调用和 4 次工具调用，证据仍不完整就返回 `required_evidence_incomplete`。
+
+### 25.4 受控 Tool Calling 与写权限隔离
+
+模型可见工具只有：
+
+- `inventory.get_snapshot`；
+- `equipment.get_status`；
+- `task.get_status`；
+- `policy.list_constraints`；
+- `knowledge.search_sop`。
+
+`ToolPolicy` 检查工具白名单、严格参数、对象绑定、重复调用和预算；`ToolExecutor` 将结果转换成带 evidence id、参数哈希、状态、安全摘要和 cache status 的 `ToolObservation`。
+
+FastMCP 还实现 `work_order.create` 与 `work_order.get`，但它们不对模型开放。只有人工批准、重新取证、LLM Verifier 和确定性 Binding 全部通过后，LangGraph 的代码节点才可调用写工具。模型不能用一句“已创建”替代数据库写入和回读事实。
+
+### 25.5 有界 ReAct 风格生命周期
+
+当前根图不是严格 Plan-and-Execute，也不是无限开放 ReAct，而是有预算和确定性出口的 ReAct 风格 Tool Loop：
+
+```text
+encode_goal
+→ model_decide
+→ authorize_tools
+→ execute_read_tools
+→ model_decide（有界循环）
+→ validate_final_analysis
+→ calculate_policy
+→ persist_policy_result
+→ approval_interrupt
+→ refresh_and_verify
+→ execute_work_order
+→ verify_work_order
+→ mark_completed
+```
+
+查询路径在确定性规则评估后直接完成；写入路径必须等待人工审批。库存、设备和任务只替换事实 Schema、场景规则、计划参数和工单 payload，不复制可靠性生命周期。
+
+### 25.6 四种记忆与 Redis 边界
+
+1. **工作记忆：** LangGraph State 保存本 operation 的 Intent、Goal、Observation、审批、刷新事实、Verifier、工单和调用计数。
+2. **可恢复状态：** PostgreSQL `langgraph` schema 保存 checkpoint，`operation_id` 同时作为 `thread_id`。
+3. **长期语义知识：** FastEmbed 将合成 SOP 编码为 512 维向量，pgvector 按 scenario、active、version 过滤并执行 cosine 检索。
+4. **事件记忆：** Agent Trace 和业务 Audit 保存脱敏的工具、审批、执行、反馈与错误码。
+
+Redis 是 cache-aside 读优化，不是业务真相或长期 Memory。Redis 删除或不可用时回退 MCP 权威读取；批准后复核强制 `bypass_cache=True`。当前没有用户画像、跨 operation 聊天历史或自动改规则的自学习记忆。
+
+### 25.7 Eval 与量化边界
+
+当前证据包括 42 条三业务固定契约、9 条 Agent 安全/恢复轨迹和 9 条 Kimi K2.6 固定真实模型路径。真实模型小样本中，Goal exact、工具 precision/recall、证据完整率、citation 可解析率和数据库副作用匹配率均为 100%，提示注入 3/3，未授权调用、审批绕过和重复工单均为 0；端到端 P50/P95 为 19.722/31.333 秒。
+
+这些是开发者维护的固定本地小样本，用于验证 Goal、Tool、Evidence、Approval 和 Side Effect 契约；不是独立第三方基准，也不能表述为生产准确率、供应商性能、成本或 SLA。
+
+### 25.8 失败恢复链
+
+- FastAPI/Pydantic 拒绝非法 Schema；JWT/RBAC 分离 operator、approver 和 auditor。
+- operation 必须来自真实、未认领的 operational signal。
+- `AgentHarness` 防 Goal 漂移和预算越界；`ToolPolicy` 拒绝未知工具、写工具、参数漂移和重复调用。
+- PostgreSQL 行锁与 `(operation_id, approval_cycle)` 让并发审批只有一个原子胜者。
+- 批准后绕过 Redis 重取事实；Verifier 给认知建议，确定性 `binding_facts` 拥有最终执行门禁。
+- 工单使用 operation 派生幂等键与数据库唯一约束；相同请求回放原工单，冲突 payload 失败。
+- 写入后调用 `work_order.get` 核对 ID、operation、payload 和 hash。
+- `ControlledAgentRootRecoveryCoordinator` 比较业务状态和 checkpoint，选择等待、重建、恢复审批或不操作；冲突时抛出 `RecoveryStateConflict`。
+- MCP 与模型均有显式超时；provider 失败时 operation 安全收口，不静默回退 Mock。
+
+### 25.9 当前诚实边界
+
+默认 Compose 使用 `MockAgentModelGateway`，用于稳定自动化和可复现工程契约；真实模型模式必须显式配置兼容 endpoint，并在 Trace 标识真实 provider。Mock 与 Real 证据不能混写。
+
+仍有两个不能夸大的留白：
+
+1. `AgentBudget.max_input_tokens` 和 Harness `timeout_seconds` 已建模，但尚无统一 token 计数器和全链路 Deadline；实际超时由模型与 MCP 客户端分别执行。
+2. `OPERCERTA_TOOL_MODE=parallel` 已配置，但生产单根 Tool Loop 仍顺序执行模型提出的只读调用；只有 signal 扫描中的独立事实/规则读取使用并发。不能声称 Agent 工具循环已实现通用并行调度。
+
+对外准确表达是：
+
+> OperCerta 将 LLM 放在认知与工具选择层，把业务规则、审批授权和写入权限留在确定性控制层；通过 LangGraph 保存可恢复状态，借助 FastMCP 获取类型化事实，使用 PostgreSQL/pgvector 管理事实与知识，并以审批后重新取证、绑定比较和幂等写入解决传统工单系统中的事实漂移、竞态和重复副作用问题。

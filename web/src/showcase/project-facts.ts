@@ -13,7 +13,7 @@ export const PROJECT_FACTS = {
   frozenEvaluations: 42,
   realModelPaths: 9,
   backendTests: 682,
-  frontendTests: 60,
+  frontendTests: 63,
   agentSafetyEvaluations: 9,
   promptInjectionPasses: 3,
   endToEndP50Seconds: 19.722,

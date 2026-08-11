@@ -116,6 +116,8 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - name: Install frozen frontend dependencies
         run: npm ci
+      - name: Audit production and development dependencies
+        run: npm audit --audit-level=high
       - name: Run frontend tests
         run: npm run test:run
       - name: Build frontend

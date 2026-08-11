@@ -2,7 +2,7 @@
 
 ## 30 秒版本
 
-“OperCerta 是我用 FastAPI、LangGraph、最小 LangChain、FastMCP、PostgreSQL/pgvector、Redis 和 React 实现的可恢复运营处置 Agent。它跑通库存补货、设备维修、作业异常恢复三条闭环：确定性检测先发现异常，Plan-and-Execute Agent 受控取证，人工审批绑定快照，批准后重新复核，再幂等写工单。当前候选分支已验证 682 条后端测试、19 个前端测试文件/60 条用例、42/42 三业务固定契约、9/9 Agent 冻结安全恢复评测和真实 Compose 重启；Kimi K2.6 的 9 条冻结本地路径也全部通过，覆盖三业务查询、提示注入和审批写入。公网可写后端仍未上线。”
+“OperCerta 是我用 FastAPI、LangGraph、最小 LangChain、FastMCP、PostgreSQL/pgvector、Redis 和 React 实现的可恢复运营处置 Agent。它跑通库存补货、设备维修、作业异常恢复三条闭环：确定性检测先发现异常，有界 ReAct 风格 Agent 受控取证，人工审批绑定快照，批准后重新复核，再幂等写工单。当前收口分支已验证 682 条后端测试、19 个前端测试文件/63 条用例、42/42 三业务固定契约、9/9 Agent 冻结安全恢复评测；Kimi K2.6 的 9 条冻结本地路径也全部通过，覆盖三业务查询、提示注入和审批写入。公网可写后端仍未上线，最新 Compose 修复还要取得新 main CI 后才恢复总门禁。”
 
 ## 3 分钟版本
 
@@ -59,9 +59,9 @@ request ID 和 W3C trace context 关联 API/MCP；span 跨 LangGraph、Redis、S
 
 还可以讲 WSL 生命周期使 Docker 正常退出、Netlify worktree 部署错产物、失败测试污染共享数据库等案例。
 
-### 11. 为什么是 Plan-and-Execute，而不是开放 ReAct
+### 11. 为什么是有界 ReAct 风格工具循环，而不是开放式 ReAct 或严格 Plan-and-Execute
 
-业务动作只有查询和创建三类受控工单，开放聊天会放大提示注入、对象漂移和越权工具风险。模型先把固定表单编码成 Goal，再提出只读工具计划；ToolPolicy/Harness 校验后执行，确定性规则和人工审批才允许进入写路径。需要重规划时最多一次，不允许无限自治循环。
+业务动作只有调查和创建三类受控工单，开放聊天会放大提示注入、对象漂移和越权工具风险。模型先把固定表单编码成 Goal，再根据 Observation 逐轮选择只读工具；ToolPolicy/Harness 校验后执行，证据不足时继续循环，满足证据契约后结束。它没有严格 Plan-and-Execute 的独立完整计划阶段，也不是无限自治的开放 ReAct：模型和工具调用都有预算，确定性规则和人工审批才允许进入写路径。
 
 ### 12. 真实 Kimi Tool Calling 兼容问题怎么讲
 

@@ -78,6 +78,7 @@ uv run python scripts/verify_repository_safety.py
 
 ```bash
 cd web
+npm audit --audit-level=high
 npm run test:run
 npm run build
 ```
@@ -124,6 +125,6 @@ Pull Request 应包含：
 
 ## 报告安全问题
 
-不要在公开 Issue 中发布可利用细节、凭据或敏感数据。请私下联系仓库所有者，
-提供最小复现、受影响版本和影响范围。项目计划增加独立安全策略和私密报告渠道，
-但当前尚未配置。
+不要在公开 Issue 中发布可利用细节、凭据或敏感数据。请按
+[SECURITY.md](SECURITY.md) 的流程提交漏洞，在没有私密入口时只公开提出建立私密联系，
+不要附带复现细节。

@@ -84,6 +84,7 @@ data.
 
 ```bash
 cd web
+npm audit --audit-level=high
 npm run test:run
 npm run build
 ```
@@ -136,6 +137,5 @@ Before requesting review, confirm:
 ## Reporting Security Issues
 
 Do not publish exploitable details, credentials, or sensitive data in a public
-issue. Contact the repository owner privately with a minimal reproduction,
-affected versions, and impact. A dedicated security policy and private
-reporting channel are planned but are not yet configured.
+issue. Follow [SECURITY.md](SECURITY.md) to report a vulnerability without
+disclosing sensitive details.
