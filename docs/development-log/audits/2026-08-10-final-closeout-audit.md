@@ -39,7 +39,7 @@
 
 ## 仍需项目所有者完成的关键节点
 
-- 批准本收口分支 push/PR，并以新的 main CI 五项全绿作为工程门禁证据。
+- 复核 Draft PR #26，批准转为 Ready 并合并；以新的 main CI 五项全绿作为远程工程门禁证据。
 - 独立完成 `opercerta-ownership-acceptance.md` 的业务实演、源码讲解、重启/幂等实验和记录；Codex 不得代签。
 - 录制 3–5 分钟演示并核对静态专题内容。
 - 验收通过后创建最终 Showcase tag；不得提前把 Product Release gate 打开。
@@ -47,7 +47,7 @@
 ## 发布判定
 
 - 工程与本地自动化门禁：`PASSED`，本分支完整本地结果已通过。
-- 远程 main CI 门禁：`PENDING_PR`，等待项目所有者批准推送和新远程运行。
+- 远程 CI 门禁：`PR_CHECKS_PASSED_MAIN_PENDING`；PR 四项通过，等待合并后的 main Compose。
 - Showcase Release gate：`AWAITING_OWNER_VALIDATION`。
 - Product Release gate：`CLOSED`。
 

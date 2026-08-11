@@ -260,8 +260,8 @@ Completed locally:
 Current gate state:
 
 - engineering and local automated gate: `PASSED`;
-- remote main CI gate: `PENDING_PR` because the current main Compose run failed
-  before this branch fixed its clean-build dependency-cache assumption;
+- remote CI gate: `PR_CHECKS_PASSED_MAIN_PENDING`; PR #26 passed all four PR
+  jobs, while the main-only Compose smoke still requires a post-merge run;
 - Showcase Release gate: `AWAITING_OWNER_VALIDATION` until the owner completes
   the manual walkthrough, source explanation, recovery/idempotency experiment,
   and 3–5 minute recording;

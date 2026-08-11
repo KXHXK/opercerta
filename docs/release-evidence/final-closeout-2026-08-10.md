@@ -45,7 +45,7 @@ main Actions run [`30744845403`](https://github.com/KXHXK/opercerta/actions/runs
 ## 判定
 
 - 工程与本地自动化门禁：`PASSED`。
-- 远程 main CI 门禁：`PENDING_PR`。
+- 远程 CI 门禁：`PR_CHECKS_PASSED_MAIN_PENDING`。Draft PR #26 初始 run `31479724666` 四项通过；Compose 按 PR 事件规则跳过。
 - Showcase Release gate：`AWAITING_OWNER_VALIDATION`。
 - Product Release gate：`CLOSED`。
 
@@ -53,7 +53,7 @@ main Actions run [`30744845403`](https://github.com/KXHXK/opercerta/actions/runs
 
 ## 尚不能写成通过的事项
 
-- 收口分支尚未 push/PR，尚无新的远程 clean runner Compose 证据。
+- 收口分支已推送并创建 Draft PR #26；尚无合并后的新 main clean-runner Compose 证据。
 - 项目所有者掌握验收与 3–5 分钟录屏尚未完成。
 - 最终 Showcase tag 尚未创建。
 - Product Release gate 保持 `CLOSED`；本证据不覆盖公网 IAM、Ingress、限流、备份、高可用或 SLA。

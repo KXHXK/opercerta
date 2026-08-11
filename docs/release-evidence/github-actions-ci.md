@@ -7,7 +7,8 @@
 - `compose-smoke` 在 `Build and start Compose services` 失败：Dockerfile 第二次 `uv sync --frozen --no-dev --offline` 在全新 runner cache 中找不到 PEP 517 `hatchling>=1.27,<2`。因此该 main run 总结论为 `failure`，不得继续写成五项全绿。
 - `release/final-closeout-20260810` 先增加容器资产 RED 断言，再移除错误的项目安装离线假设；运行依赖继续使用 `uv.lock` 和 `--frozen`。
 - 本地 WSL2 clean Docker build、隔离 Compose 三业务数据库副作用、API/MCP 重启和 recovery-only 已通过；收口分支前端新增源码入口测试后为 63 条，`npm audit --audit-level=high` 为 0 个漏洞。
-- 本节只证明本地修复候选。分支尚未 push/PR，必须取得新的 main GitHub Actions 五项成功后，远程 CI 门禁才能改为 `PASSED`。
+- 修复提交 `63692be` 已推送并创建 [Draft PR #26](https://github.com/KXHXK/opercerta/pull/26)。初始 [PR run 31479724666](https://github.com/KXHXK/opercerta/actions/runs/31479724666) 的 `repository-safety`、`python-quality`、`backend-tests`、`frontend` 全部成功；`compose-smoke` 按 PR 事件规则跳过。
+- PR 结果证明修复提交的四项快速门禁通过；必须取得合并后的 main GitHub Actions 五项成功，远程 CI 门禁才能改为 `PASSED`。
 
 ## 2026-07-31 双门禁收口 PR #23 与 main 总门禁
 

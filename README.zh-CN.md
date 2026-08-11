@@ -246,7 +246,7 @@ docs/              技术指南、开发记录和发布证据
 当前门禁状态：
 
 - 工程与本地自动化门禁：`PASSED`；
-- 远程 main CI 门禁：`PENDING_PR`；当前 main 的 Compose run 失败，本收口分支已修复其 clean-build 依赖缓存假设，仍待新远程运行确认；
+- 远程 CI 门禁：`PR_CHECKS_PASSED_MAIN_PENDING`；PR #26 四项 PR job 已通过，main-only Compose smoke 仍需合并后运行；
 - Showcase Release gate：`AWAITING_OWNER_VALIDATION`，必须由项目所有者亲自完成
   业务实演、源码讲解、恢复/幂等实验和 3–5 分钟录屏；
 - Product Release gate：`CLOSED`。

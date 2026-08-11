@@ -15,7 +15,7 @@ OperCerta 的三业务共享 Agent 主线、可靠性内核、前后端、本地
 | 门禁 | 状态 | 判定依据 |
 | --- | --- | --- |
 | 工程与本地自动化门禁 | `PASSED` | 收口分支锁文件、Ruff/format/mypy、682 条后端、42/42、9/9、63 条前端、0 high audit、clean Docker build 与 Compose 三业务/重启恢复均通过 |
-| 远程 main CI 门禁 | `PENDING_PR` | main `c4257ac` 四项通过但 Compose 构建失败；本地修复已验证，等待项目所有者批准 push/PR 和新 main run |
+| 远程 CI 门禁 | `PR_CHECKS_PASSED_MAIN_PENDING` | Draft PR #26 初始 run `31479724666` 四项通过；Compose 按 PR 规则跳过，等待批准合并和新 main run |
 | Showcase Release gate | `AWAITING_OWNER_VALIDATION` | 静态站点和本地 MVP 已具备；仍需项目所有者独立完成业务实演、源码讲解、恢复实验和录屏 |
 | Product Release gate | `CLOSED` | 未部署公网可写后端、生产身份、限流、防滥用、托管数据库备份、高可用与线上告警 |
 
@@ -40,6 +40,7 @@ PR #25 已把真实模型质量评测合入 main。main run `30744845403` 的后
 ## 当前运行与发布证据
 
 - GitHub main：`c4257ac10dec470bbb9ca1076c4cfacfb21a80de`；PR #25；Actions run `30744845403` 四项成功、`compose-smoke` 失败。
+- 收口 Draft PR：[PR #26](https://github.com/KXHXK/opercerta/pull/26)；初始 head `63692be`；PR run `31479724666` 的 repository-safety、python-quality、backend-tests、frontend 全部成功，compose-smoke 按事件规则跳过。
 - 已合并自动化基线：后端 `682 passed`；前端 19 文件/62 条；三业务固定契约 42/42；冻结 Agent 安全恢复 9/9。最近一次成功 main Compose 证据属于 `4c696d2`，不能替代 `c4257ac` 的失败结果。
 - 收口分支本地新鲜证据：后端 421 单元 + 261 集成 = 682；前端 19 文件/63 条；依赖审计 0；clean Docker build 成功；隔离 Compose 完成三业务数据库副作用、API/MCP 重启、recovery-only 和资源清理。
 - 真实模型质量小样本：9/9；Goal、工具 precision/recall、证据完整率、citation 可解析率与数据库副作用匹配率均为 100%；端到端 P50/P95 为 19.722/31.333 秒。该结果不是生产准确率或 SLA。
@@ -50,7 +51,7 @@ PR #25 已把真实模型质量评测合入 main。main run `30744845403` 的后
 
 ## 当前唯一主线
 
-1. 经项目所有者批准后 push/PR，取得新的 main 五项全绿证据，把远程 CI 门禁改为 `PASSED`。
+1. 项目所有者复核 Draft PR #26 后批准转为 Ready 并合并，取得新的 main 五项全绿证据，把远程 CI 门禁改为 `PASSED`。
 2. 项目所有者按 `docs/learning/opercerta-ownership-acceptance.md` 亲自完成环境、完整库存闭环、代码链路、重启/幂等和分层讲解验收。
 3. 录制 3–5 分钟演示，保存操作编号、工单编号、Trace/审计和数据库后置事实。
 4. 验收通过后创建最终 Showcase tag，并以“公开静态展示 + 本地可复现完整 Agent MVP”对外表述。
