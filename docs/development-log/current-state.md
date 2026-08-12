@@ -1,6 +1,6 @@
 # OperCerta 当前状态
 
-> 更新时间：2026-08-10。本文件只保存当前权威状态；历史过程见 `docs/development-log/daily/` 与 `docs/release-evidence/`。
+> 更新时间：2026-08-12。本文件只保存当前权威状态；历史过程见 `docs/development-log/daily/` 与 `docs/release-evidence/`。
 
 ## 当前结论
 
@@ -15,7 +15,7 @@ OperCerta 的三业务共享 Agent 主线、可靠性内核、前后端、本地
 | 门禁 | 状态 | 判定依据 |
 | --- | --- | --- |
 | 工程与本地自动化门禁 | `PASSED` | 收口分支锁文件、Ruff/format/mypy、682 条后端、42/42、9/9、63 条前端、0 high audit、clean Docker build 与 Compose 三业务/重启恢复均通过 |
-| 远程 CI 门禁 | `PR_CHECKS_PASSED_MAIN_PENDING` | Draft PR #26 初始 run `31479724666` 四项通过；Compose 按 PR 规则跳过，等待批准合并和新 main run |
+| 远程 CI 门禁 | `PASSED` | PR #26 已合并为 `cde3dcd`；main run `31519846029` 的仓库安全、Python 质量、后端、前端和 Compose smoke 五项全部通过 |
 | Showcase Release gate | `AWAITING_OWNER_VALIDATION` | 静态站点和本地 MVP 已具备；仍需项目所有者独立完成业务实演、源码讲解、恢复实验和录屏 |
 | Product Release gate | `CLOSED` | 未部署公网可写后端、生产身份、限流、防滥用、托管数据库备份、高可用与线上告警 |
 
@@ -23,7 +23,7 @@ OperCerta 的三业务共享 Agent 主线、可靠性内核、前后端、本地
 
 `Product Release gate: CLOSED`
 
-PR #25 已把真实模型质量评测合入 main。main run `30744845403` 的后端、前端、Python 与仓库安全 job 通过，但 Compose 构建失败，因此不能继续写成“五项全绿”。失败点是 Dockerfile 第二次 `uv sync --offline` 无法在全新缓存中取得 `hatchling`，不是业务、Agent 或数据库断言失败。
+PR #25 引入的 main run `30744845403` 曾因 Dockerfile 第二次 `uv sync --offline` 无法在全新缓存中取得 `hatchling` 而失败。PR #26 已修复该 clean-runner 假设；新的 main run `31519846029` 五项全绿，关闭了该远程证据缺口。失败历史仍保留在 release evidence 中，不能删除或改写。
 
 ## 已实现范围
 
@@ -39,22 +39,21 @@ PR #25 已把真实模型质量评测合入 main。main run `30744845403` 的后
 
 ## 当前运行与发布证据
 
-- GitHub main：`c4257ac10dec470bbb9ca1076c4cfacfb21a80de`；PR #25；Actions run `30744845403` 四项成功、`compose-smoke` 失败。
-- 收口 Draft PR：[PR #26](https://github.com/KXHXK/opercerta/pull/26)；初始 head `63692be`；PR run `31479724666` 的 repository-safety、python-quality、backend-tests、frontend 全部成功，compose-smoke 按事件规则跳过。
-- 已合并自动化基线：后端 `682 passed`；前端 19 文件/62 条；三业务固定契约 42/42；冻结 Agent 安全恢复 9/9。最近一次成功 main Compose 证据属于 `4c696d2`，不能替代 `c4257ac` 的失败结果。
+- GitHub main：`cde3dcd8597645597b0da1cb73e1c2056644cd80`；[PR #26](https://github.com/KXHXK/opercerta/pull/26) 已以普通 merge commit 合并。
+- [main run 31519846029](https://github.com/KXHXK/opercerta/actions/runs/31519846029) 五项成功：repository-safety、python-quality、backend-tests、frontend、compose-smoke。
+- 已合并自动化基线：后端 `682 passed`；前端 19 文件/63 条；三业务固定契约 42/42；冻结 Agent 安全恢复 9/9；前端 high 级依赖审计为 0。
 - 收口分支本地新鲜证据：后端 421 单元 + 261 集成 = 682；前端 19 文件/63 条；依赖审计 0；clean Docker build 成功；隔离 Compose 完成三业务数据库副作用、API/MCP 重启、recovery-only 和资源清理。
 - 真实模型质量小样本：9/9；Goal、工具 precision/recall、证据完整率、citation 可解析率与数据库副作用匹配率均为 100%；端到端 P50/P95 为 19.722/31.333 秒。该结果不是生产准确率或 SLA。
-- 最近一次成功的历史 main Compose 在 `4c696d2` 验证了三业务数据库副作用与恢复；当前 main `c4257ac` 的 clean build 失败事实已单列，不能混写。
+- 最新 main Compose 在 `cde3dcd` 验证了干净镜像构建、三业务数据库副作用、API/MCP 重启、恢复与资源清理；此前 `c4257ac` 的失败作为历史根因证据保留。
 - 本轮 WSL2 Ubuntu 26.04 隔离 Compose 的 PostgreSQL、Redis、MCP、API 四服务均达到 healthy，验证完成后已删除容器、网络和测试卷，不保留污染状态。
 - Netlify 为静态站点；`/console` 与 `/api/*` 在公网均是 SPA 静态回退，不是可写后端。
 - 旧预发布 `v0.1.0-showcase.1` 指向较早提交，只保留历史；最终 Showcase tag 必须在本轮合并、本人验收和录屏后创建。
 
 ## 当前唯一主线
 
-1. 项目所有者复核 Draft PR #26 后批准转为 Ready 并合并，取得新的 main 五项全绿证据，把远程 CI 门禁改为 `PASSED`。
-2. 项目所有者按 `docs/learning/opercerta-ownership-acceptance.md` 亲自完成环境、完整库存闭环、代码链路、重启/幂等和分层讲解验收。
-3. 录制 3–5 分钟演示，保存操作编号、工单编号、Trace/审计和数据库后置事实。
-4. 验收通过后创建最终 Showcase tag，并以“公开静态展示 + 本地可复现完整 Agent MVP”对外表述。
+1. 项目所有者按 `docs/learning/opercerta-ownership-acceptance.md` 亲自完成环境、完整库存闭环、代码链路、重启/幂等和分层讲解验收。
+2. 录制 3–5 分钟演示，保存操作编号、工单编号、Trace/审计和数据库后置事实。
+3. 验收通过后创建最终 Showcase tag，并以“公开静态展示 + 本地可复现完整 Agent MVP”对外表述。
 
 ForenTrail 暂不启动。FieldPilot 是 OperCerta 完成后的独立项目，不在本仓库扩展或预先实施。
 

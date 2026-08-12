@@ -171,7 +171,7 @@ Goal、工具、证据、审批和数据库副作用契约，不代表生产准�
 | 三业务固定契约 | 42/42 通过 |
 | 冻结 Agent 安全与恢复评测 | 9/9 通过 |
 | Kimi K2.6 真实模型质量评测 | 9/9 通过；提示注入 3/3；未授权调用、审批绕过、重复工单均为 0 |
-| 收口分支本地 Compose smoke | 干净构建、业务数据库副作用、API/MCP 重启、恢复和清理通过；等待新 main CI |
+| main 分支 Compose smoke | [run 31519846029](https://github.com/KXHXK/opercerta/actions/runs/31519846029) 已通过干净构建、业务数据库副作用、API/MCP 重启、恢复和清理 |
 
 运行本地门禁：
 
@@ -246,7 +246,9 @@ docs/              技术指南、开发记录和发布证据
 当前门禁状态：
 
 - 工程与本地自动化门禁：`PASSED`；
-- 远程 CI 门禁：`PR_CHECKS_PASSED_MAIN_PENDING`；PR #26 四项 PR job 已通过，main-only Compose smoke 仍需合并后运行；
+- 远程 CI 门禁：`PASSED`；PR #26 已合并为 `cde3dcd`，main
+  [run 31519846029](https://github.com/KXHXK/opercerta/actions/runs/31519846029)
+  的仓库安全、Python 质量、后端、前端和 Compose smoke 五项全部通过；
 - Showcase Release gate：`AWAITING_OWNER_VALIDATION`，必须由项目所有者亲自完成
   业务实演、源码讲解、恢复/幂等实验和 3–5 分钟录屏；
 - Product Release gate：`CLOSED`。

@@ -30,7 +30,7 @@
 
 ## 本次发现并处理的偏差
 
-1. **主线 CI 状态漂移：** main `c4257ac` 的 Actions run `30744845403` 并非五项全绿。四项通过，`compose-smoke` 在 clean runner 构建镜像时因 `uv sync --offline` 缺少 `hatchling` 缓存而失败。收口分支已用 RED/GREEN 测试移除错误的离线假设；必须以新远程 main run 关闭此项。
+1. **主线 CI 状态漂移：** main `c4257ac` 的 Actions run `30744845403` 并非五项全绿。四项通过，`compose-smoke` 在 clean runner 构建镜像时因 `uv sync --offline` 缺少 `hatchling` 缓存而失败。收口分支用 RED/GREEN 测试移除错误的离线假设；PR #26 合并后的 main run `31519846029` 五项全绿，已关闭此项。
 2. **Agent 模式术语漂移：** README 和讲解文档沿用 Plan-and-Execute，但当前实现是模型根据 Observation 逐轮选择工具的有界 ReAct 风格循环。已统一表述，避免面试或开源审查时与代码不符。
 3. **前端数字漂移：** 已合并 main 实际为 62 条前端用例，部分 README、专题和状态文档仍显示 60。同步后又增加源码入口回归测试，因此收口分支最终为 63 条。
 4. **前端传递依赖告警：** `npm ci` 后发现 nanoid、postcss、undici 的传递依赖漏洞。锁文件已升级到修复版本，CI 新增 high 级依赖审计。
@@ -39,7 +39,6 @@
 
 ## 仍需项目所有者完成的关键节点
 
-- 复核 Draft PR #26，批准转为 Ready 并合并；以新的 main CI 五项全绿作为远程工程门禁证据。
 - 独立完成 `opercerta-ownership-acceptance.md` 的业务实演、源码讲解、重启/幂等实验和记录；Codex 不得代签。
 - 录制 3–5 分钟演示并核对静态专题内容。
 - 验收通过后创建最终 Showcase tag；不得提前把 Product Release gate 打开。
@@ -47,7 +46,7 @@
 ## 发布判定
 
 - 工程与本地自动化门禁：`PASSED`，本分支完整本地结果已通过。
-- 远程 CI 门禁：`PR_CHECKS_PASSED_MAIN_PENDING`；PR 四项通过，等待合并后的 main Compose。
+- 远程 CI 门禁：`PASSED`；PR #26 已合并为 `cde3dcd`，main run `31519846029` 五项全部通过。
 - Showcase Release gate：`AWAITING_OWNER_VALIDATION`。
 - Product Release gate：`CLOSED`。
 
