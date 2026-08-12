@@ -283,11 +283,12 @@ def test_showcase_release_gate_and_owner_acceptance_are_explicit() -> None:
         assert phrase in amendment
     assert "Showcase Release gate: AWAITING_OWNER_VALIDATION" in state
     assert "Product Release gate: CLOSED" in state
-    assert "PR #25" in handoff
-    assert "30744845403" in handoff
+    assert "PR #26" in handoff
+    assert "cde3dcd8597645597b0da1cb73e1c2056644cd80" in handoff
+    assert "31519846029" in handoff
     assert "compose-smoke" in handoff
-    assert "后端 682" in handoff
-    assert "前端 19 文件/62 条" in handoff
+    assert "682 条后端" in handoff
+    assert "63 条前端" in handoff
     assert "不得由 Codex 自动代签" in ownership
     assert "operation_id" in ownership
     assert "work_order_id" in ownership
