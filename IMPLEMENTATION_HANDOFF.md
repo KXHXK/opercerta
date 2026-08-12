@@ -1,10 +1,10 @@
 # OperCerta 实施交接
 
-> 更新时间：2026-08-10。先读 `DOCUMENT_INDEX.md` 的核心阅读表，再读本文件和 `docs/development-log/current-state.md`。
+> 更新时间：2026-08-12。先读 `DOCUMENT_INDEX.md` 的核心阅读表，再读本文件和 `docs/development-log/current-state.md`。
 
 ## 当前交接结论
 
-OperCerta 的三业务、Agent 主线、真实模型固定评测和本地运行能力已经合入 main `c4257ac10dec470bbb9ca1076c4cfacfb21a80de`（PR #25）。该 main run `30744845403` 中仓库安全、Python 质量、后端 682 条及两套评测、前端 19 文件/62 条均通过；`compose-smoke` 因 Dockerfile 在全新 runner 上离线安装项目时缺少 PEP 517 `hatchling` 缓存而失败。修复分支已推送并创建 Draft PR #26；初始 PR run `31479724666` 四项全部通过，Compose 按 PR 事件规则跳过。本地 clean Docker build、三业务副作用和 API/MCP 重启恢复也已通过；仍需合并后的 main-only Compose run 才能称为总门禁重新全绿。
+OperCerta 的三业务、Agent 主线、真实模型固定评测和本地运行能力已经通过 PR #26 合入 main `cde3dcd8597645597b0da1cb73e1c2056644cd80`。对应 [main run 31519846029](https://github.com/KXHXK/opercerta/actions/runs/31519846029) 的仓库安全、Python 质量、后端测试、前端测试/构建和 `compose-smoke` 五项全部通过；Compose 在干净 GitHub Linux runner 上完成镜像构建、三业务 Agent 轨迹与数据库副作用、API/MCP 重启、恢复验证和资源清理。工程、本地自动化与远程 CI 门禁均为 `PASSED`。
 
 本版本发布定义已经正式修订为：
 
@@ -36,10 +36,9 @@ OperCerta 的三业务、Agent 主线、真实模型固定评测和本地运行�
 
 ## 下一执行顺序
 
-1. 项目所有者复核 Draft PR #26 后批准转为 Ready 并合并；取得新的 main 五项全绿证据。
-2. 由项目所有者亲自执行 `docs/learning/opercerta-ownership-acceptance.md`；必须记录 `operation_id`、`work_order_id`、Trace、审计序列和数据库事实，**不得由 Codex 自动代签**。
-3. 完成 3–5 分钟录屏与口述复盘。
-4. 人工证据通过后，把 Showcase 门禁改为 `PASSED`，创建最终 tag 并记录回滚提交。
+1. 由项目所有者亲自执行 `docs/learning/opercerta-ownership-acceptance.md`；必须记录 `operation_id`、`work_order_id`、Trace、审计序列和数据库事实，**不得由 Codex 自动代签**。
+2. 完成 3–5 分钟录屏与口述复盘。
+3. 人工证据通过后，把 Showcase 门禁改为 `PASSED`，创建最终 tag 并记录回滚提交。
 
 ## 本地运行入口
 

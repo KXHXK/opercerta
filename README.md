@@ -184,7 +184,7 @@ provider; it is not a production-accuracy, traffic, cost, or SLA claim.
 | Three-business fixed contracts | 42/42 passed |
 | Frozen Agent safety and recovery evaluation | 9/9 passed |
 | Kimi K2.6 real-model quality evaluation | 9/9 passed; injection 3/3; zero unauthorized calls, approval bypasses, or duplicate work orders |
-| Closeout-branch local Compose smoke | Clean build, business database effects, API/MCP restart, recovery, and cleanup passed; new main CI pending |
+| Main-branch Compose smoke | Clean build, business database effects, API/MCP restart, recovery, and cleanup passed in [run 31519846029](https://github.com/KXHXK/opercerta/actions/runs/31519846029) |
 
 Run the local gates:
 
@@ -260,8 +260,9 @@ Completed locally:
 Current gate state:
 
 - engineering and local automated gate: `PASSED`;
-- remote CI gate: `PR_CHECKS_PASSED_MAIN_PENDING`; PR #26 passed all four PR
-  jobs, while the main-only Compose smoke still requires a post-merge run;
+- remote CI gate: `PASSED`; PR #26 was merged as `cde3dcd`, and main
+  [run 31519846029](https://github.com/KXHXK/opercerta/actions/runs/31519846029)
+  passed repository safety, Python quality, backend, frontend, and Compose smoke;
 - Showcase Release gate: `AWAITING_OWNER_VALIDATION` until the owner completes
   the manual walkthrough, source explanation, recovery/idempotency experiment,
   and 3–5 minute recording;
